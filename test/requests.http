@@ -1,0 +1,9 @@
+### 机器人聊天接口
+POST http://{{host}}/completion
+Content-Type: application/json
+
+{
+    "query": "你好，你是谁？"
+}
+
+###
