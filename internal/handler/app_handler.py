@@ -5,6 +5,7 @@ from openai import OpenAI
 from openai.types.chat import ChatCompletionUserMessageParam
 
 from internal.schema.app_schema import CompletionReq
+from pkg.response import success_json, validate_error_json
 
 
 class AppHandler:
@@ -32,7 +33,7 @@ class AppHandler:
         req = CompletionReq()
 
         if not req.validate():
-            return req.errors
+            return validate_error_json(req.errors)
 
         query = request.json.get("query")
         client = OpenAI(base_url=os.getenv("OPENAI_API_BASE_URL"))
@@ -43,4 +44,6 @@ class AppHandler:
             ]
         )
 
-        return completion.choices[0].message.content
+        content = completion.choices[0].message.content
+
+        return success_json({"content": content})

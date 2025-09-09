@@ -15,7 +15,6 @@ class Router:
     def register_route(self, app: Flask):
         """注册路由"""
         bp = Blueprint("llmops", __name__, url_prefix="")
-        bp.add_url_rule("/ping", view_func=self.app_handler.ping)
         bp.add_url_rule("/completion", methods=["POST"],
                         view_func=self.app_handler.completion)
         app.register_blueprint(bp)
