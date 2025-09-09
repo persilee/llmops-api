@@ -1,5 +1,5 @@
 ### 机器人聊天接口
-POST http://{{host}}/completion
+POST {{host}}/completion
 Content-Type: application/json
 
 {
