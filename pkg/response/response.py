@@ -1,7 +1,7 @@
 from dataclasses import field, dataclass
 from typing import Any
 
-from flask import jsonify
+from flask import jsonify, Response as FlaskResponse
 
 from pkg.response.http_code import HttpCode
 
@@ -13,7 +13,7 @@ class Response:
     data: Any = field(default_factory=dict)
 
 
-def json(data: Response = None):
+def json(data: Response = None) -> FlaskResponse:
     """
     将响应数据转换为 JSON 格式并返回
 
@@ -28,7 +28,7 @@ def json(data: Response = None):
         - 固定返回 HTTP 状态码 200 表示请求成功
         - 支持处理特殊字符如 //t (制表符), //r (回车符) 和 //n (换行符)
     """
-    return jsonify(data), 200
+    return jsonify(data)
 
 
 def success_json(data: Any = None):
@@ -233,6 +233,6 @@ def forbidden_message_json(message: str = ""):
 
     示例:
         >>> forbidden_message_json("Access denied")
-        {'code': 403, 'message': 'Access denied'} 
+        {'code': 403, 'message': 'Access denied'}
     """
     return message_json(code=HttpCode.FORBIDDEN, message=message)
