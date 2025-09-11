@@ -1,6 +1,7 @@
 import os
 
 from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
 
 from config import Config
 from internal.exception import CustomException
@@ -11,7 +12,7 @@ from pkg.response import Response, json, HttpCode
 class Http(Flask):
     """Http服务"""
 
-    def __init__(self, *args, conf: Config, router: Router, **kwargs):
+    def __init__(self, *args, conf: Config, db: SQLAlchemy, router: Router, **kwargs):
         # 调用父类的构造方法，传递所有位置参数和关键字参数
         super().__init__(*args, **kwargs)
 
@@ -22,7 +23,10 @@ class Http(Flask):
 
         # 注册异常处理函数，将所有异常(Exception)类型的错误都交给_register_error_handler方法处理
         self.register_error_handler(Exception, self._register_error_handler)
-        
+
+        # 初始化数据库
+        db.init_app(self)
+
         # 将当前路由实例注册到路由器中
         router.register_route(self)
 
