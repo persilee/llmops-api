@@ -26,6 +26,11 @@ class Http(Flask):
 
         # 初始化数据库
         db.init_app(self)
+        with self.app_context():
+            db.create_all()
+
+        # 初始化路由器
+        self.router = router
 
         # 将当前路由实例注册到路由器中
         router.register_route(self)

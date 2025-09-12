@@ -1,3 +1,19 @@
+### 删除 App 记录
+POST {{host}}/app/8da9c6d3-3d43-4a3c-8756-e66da88e2384/delete
+Content-Type: application/json
+
+### 修改 App 记录
+POST {{host}}/app/8da9c6d3-3d43-4a3c-8756-e66da88e2384
+Content-Type: application/json
+
+### 获取 App 记录
+GET {{host}}/app/8da9c6d3-3d43-4a3c-8756-e66da88e2384
+Accept: application/json
+
+### 创建 App 记录
+POST {{host}}/app
+Content-Type: application/json
+
 ### 机器人聊天接口
 POST {{host}}/completion
 Content-Type: application/json
