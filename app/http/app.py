@@ -1,11 +1,11 @@
 import dotenv
-from flask_sqlalchemy import SQLAlchemy
 from injector import Injector
 
 from app.http.module import ExtensionModule
 from config import Config
 from internal.router import Router
 from internal.server import Http
+from pkg.sqlalchemy import SQLAlchemy
 
 # 加载环境变量
 dotenv.load_dotenv()

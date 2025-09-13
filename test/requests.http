@@ -1,5 +1,5 @@
 # app_handler API接口测试
-@id = eaa9bff5-7f1e-41ce-9cb8-c5c2e15a8149
+@id = 8e86af99-8f97-44e4-8253-b14e753d84e9
 
 ### 删除 App 记录
 POST {{host}}/app/{{id}}/delete

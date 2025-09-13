@@ -11,6 +11,9 @@ class Redprint:
         return decorator
 
     def register(self, bp, url_prefix=None):
+        if url_prefix is None:
+            url_prefix = f"/{self.name}"
+        
         for func, rule, options in self.mound:
             endpoint = options.pop("endpoint", func.__name__)
             bp.add_url_rule(url_prefix + rule, endpoint, func, **options)

@@ -11,6 +11,6 @@ class Router:
         """注册路由"""
         bp = Blueprint("llmops", __name__, url_prefix="")
 
-        app_handler.api.register(bp, url_prefix="/app")
+        app_handler.api.register(bp)
 
         app.register_blueprint(bp)
