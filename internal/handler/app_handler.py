@@ -1,82 +1,75 @@
 import os
 import uuid
-from dataclasses import dataclass
 
 from flask import request
-from injector import inject
+from injector import Injector
 from openai import OpenAI
 from openai.types.chat import ChatCompletionUserMessageParam
 
+from app.http.module import ExtensionModule
+from internal.extension.redprint import Redprint
 from internal.model import App
 from internal.schema.app_schema import CompletionReq
 from internal.service import AppService
-from pkg.response import success_json, validate_error_json, success_message_json
+from pkg.response import success_message_json, validate_error_json, success_json
+
+api = Redprint("app")
+
+injector = Injector([ExtensionModule])
+
+app_service = injector.get(AppService)
 
 
-@inject
-@dataclass
-class AppHandler:
-    """
-    AppHandler 是一个处理聊天机器人相关请求的处理器类。
+@api.route("/create", methods=["POST"])
+def create_app():
+    """创建 App 表"""
+    app = app_service.create_app()
 
-    核心功能：
-    - 提供聊天机器人接口，处理用户查询并返回 AI 助手的回复
+    return success_message_json(f"创建成功, app: {app}")
 
-    代码示例：
-        ```python
-        response = AppHandler.completion()
-        print(response)  # 打印 AI 助手的回复
-        ```
 
-    使用限制：
-    - 需要正确配置环境变量 OPENAI_API_BASE_URL
-    - 请求必须包含有效的 query 参数
-    """
+@api.route("/<uuid:app_id>", methods=["GET"])
+def get_app(app_id: uuid.UUID):
+    """获取 App 表"""
+    app: App = app_service.get_app(app_id)
 
-    app_service: AppService
+    return success_message_json(f"获取成功, app: {app.name}")
 
-    def create_app(self):
-        """创建 App 表"""
-        app = self.app_service.create_app()
 
-        return success_message_json(f"创建成功, app: {app}")
+@api.route("/<uuid:app_id>", methods=["POST"])
+def update_app(app_id: uuid.UUID):
+    """更新 App 表"""
+    app: App = app_service.update_app(app_id)
 
-    def get_app(self, app_id: uuid.UUID):
-        """获取 App 表"""
-        app: App = self.app_service.get_app(app_id)
+    return success_message_json(f"更新成功, app: {app.name}")
 
-        return success_message_json(f"获取成功, app: {app.name}")
 
-    def update_app(self, app_id: uuid.UUID):
-        """更新 App 表"""
-        app: App = self.app_service.update_app(app_id)
+@api.route("/<uuid:app_id>/delete", methods=["POST"])
+def delete_app(app_id: uuid.UUID):
+    """删除 App 表"""
+    app: App = app_service.delete_app(app_id)
 
-        return success_message_json(f"更新成功, app: {app.name}")
+    return success_message_json(f"删除成功, app: {app.name}")
 
-    def delete_app(self, app_id: uuid.UUID):
-        """删除 App 表"""
-        app: App = self.app_service.delete_app(app_id)
 
-        return success_message_json(f"删除成功, app: {app.name}")
+@api.route("/completion", methods=["POST"])
+def completion():
+    """聊天机器人接口"""
 
-    @staticmethod
-    def completion():
-        """聊天机器人接口"""
+    req = CompletionReq()
 
-        req = CompletionReq()
+    if not req.validate():
+        return validate_error_json(req.errors)
 
-        if not req.validate():
-            return validate_error_json(req.errors)
+    query = request.json.get("query")
+    client = OpenAI(base_url=os.getenv("OPENAI_API_BASE_URL"))
+    result = client.chat.completions.create(
+        model="gpt-4-turbo",
+        messages=[
+            ChatCompletionUserMessageParam(role="user", content=query)
+        ]
+    )
 
-        query = request.json.get("query")
-        client = OpenAI(base_url=os.getenv("OPENAI_API_BASE_URL"))
-        completion = client.chat.completions.create(
-            model="gpt-4-turbo",
-            messages=[
-                ChatCompletionUserMessageParam(role="user", content=query)
-            ]
-        )
+    content = result.choices[0].message.content
 
-        content = completion.choices[0].message.content
-
-        return success_json({"content": content})
+    return success_json({"content": content})

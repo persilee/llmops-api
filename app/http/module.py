@@ -1,5 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from injector import Module, Binder
+from injector import Module, Binder, singleton
 
 from internal.extension.database_extension import db
 
@@ -13,4 +13,4 @@ class ExtensionModule(Module):
         Args:
             binder (Binder): 依赖注入绑定器对象，用于建立类型和实例之间的映射关系。
         """
-        binder.bind(SQLAlchemy, to=db)
+        binder.bind(SQLAlchemy, to=db, scope=singleton)
