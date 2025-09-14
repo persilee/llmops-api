@@ -3,7 +3,7 @@ from injector import Injector
 
 from app.http.module import ExtensionModule
 from config import Config
-from internal.router import Router
+from internal.router.router import Router
 from internal.server import Http
 from pkg.sqlalchemy import SQLAlchemy
 
