@@ -1,6 +1,7 @@
 import os
 
 from flask import Flask
+from flask_migrate import Migrate
 
 from config import Config
 from internal.exception import CustomException
@@ -12,7 +13,15 @@ from pkg.sqlalchemy import SQLAlchemy
 class Http(Flask):
     """Http服务"""
 
-    def __init__(self, *args, conf: Config, db: SQLAlchemy, router: Router, **kwargs):
+    def __init__(
+        self,
+        *args,
+        conf: Config,
+        db: SQLAlchemy,
+        migrate: Migrate,
+        router: Router,
+        **kwargs
+    ):
         # 调用父类的构造方法，传递所有位置参数和关键字参数
         super().__init__(*args, **kwargs)
 
@@ -26,8 +35,9 @@ class Http(Flask):
 
         # 初始化数据库
         db.init_app(self)
-        with self.app_context():
-            db.create_all()
+        migrate.init_app(self, db, directory="internal/migration")
+        # with self.app_context():
+        #     db.create_all()
 
         # 初始化路由器
         self.router = router

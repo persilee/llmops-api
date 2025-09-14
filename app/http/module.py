@@ -1,16 +1,21 @@
+from flask_migrate import Migrate
 from injector import Module, Binder, singleton
 
-from internal.extension.database_extension import db
+from internal.extension import db, migrate
 from pkg.sqlalchemy import SQLAlchemy
 
 
 class ExtensionModule(Module):
     def configure(self, binder: Binder):
-        """配置依赖注入绑定关系。
+        """
+        配置模块，绑定服务到注入器
 
-        将SQLAlchemy实例绑定到数据库连接对象db上，以便在需要时可以通过依赖注入获取数据库连接。
+        参数:
+            binder (Binder): 依赖注入绑定器，用于注册服务
 
-        Args:
-            binder (Binder): 依赖注入绑定器对象，用于建立类型和实例之间的映射关系。
+        功能:
+            1. 将SQLAlchemy服务绑定到db实例，并设置为单例模式
+            2. 将Migrate服务绑定到migrate实例
         """
         binder.bind(SQLAlchemy, to=db, scope=singleton)
+        binder.bind(Migrate, to=migrate)

@@ -7,6 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "dotenv>=0.9.9",
     "flask>=3.1.2",
+    "flask-migrate>=4.1.0",
     "flask-sqlalchemy>=3.1.1",
     "flask-wtf>=1.2.2",
     "injector>=0.22.0",
@@ -14,3 +15,9 @@ dependencies = [
     "psycopg2-binary>=2.9.10",
     "pytest>=8.4.2",
 ]
+
+[tool.rye.scripts]
+pipreqs = { cmd = "pipreqs --ignore .venv --force" }
+migrate = { cmd = "flask --app app.http.app db migrate" }
+upgrade = { cmd = "flask --app app.http.app db upgrade" }
+downgrade = { cmd = "flask --app app.http.app db downgrade" }

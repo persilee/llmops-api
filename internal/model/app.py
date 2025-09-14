@@ -11,7 +11,7 @@ from sqlalchemy import (
     Index,
 )
 
-from internal.extension.database_extension import db
+from internal.extension import db
 
 
 class App(db.Model):
