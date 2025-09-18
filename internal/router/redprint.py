@@ -55,10 +55,9 @@ def register_with_class(
             \\n - 换行符
     """
     # 获取所有方法（包括实例方法）
-    if isinstance(obj, type):
-        class_methods = inspect.getmembers(obj, predicate=inspect.isfunction)
-    else:
-        class_methods = inspect.getmembers(obj, predicate=inspect.ismethod)
+    class_methods = inspect.getmembers(obj,
+                                       predicate=inspect.isfunction) + inspect.getmembers(
+        obj, predicate=inspect.ismethod)
 
     # 收集所有带有路由缓存的方法
     route_methods: List[Tuple[Any, str, dict]] = []

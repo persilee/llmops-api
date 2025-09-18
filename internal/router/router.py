@@ -17,7 +17,7 @@ class Router:
     def register_route(self, app: Flask):
         """注册路由"""
         bp = Blueprint("llmops", __name__, url_prefix="")
-        
-        register_with_class(self.app_handler, bp, url_prefix="app")
+
+        register_with_class(self.app_handler, bp, url_prefix="apps")
 
         app.register_blueprint(bp)
