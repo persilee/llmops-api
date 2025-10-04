@@ -1,12 +1,13 @@
 import dotenv
+from flasgger import Swagger
 from flask_migrate import Migrate
 from injector import Injector
 
 from app.http.module import ExtensionModule
 from config import Config
-from internal.router.router import Router
-from internal.server import Http
 from pkg.sqlalchemy import SQLAlchemy
+from src.router.router import Router
+from src.server import Http
 
 # 加载环境变量
 dotenv.load_dotenv()
@@ -22,6 +23,7 @@ app = Http(
     conf=conf,
     db=injector.get(SQLAlchemy),
     migrate=injector.get(Migrate),
+    swag=injector.get(Swagger),
     router=injector.get(Router),
 )
 

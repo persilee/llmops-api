@@ -1,0 +1,28 @@
+{
+  "cSpell.words": [
+    "apidocs",
+    "dataclass",
+    "dotenv",
+    "flasgger",
+    "llmops",
+    "Redprint",
+    "sqla",
+    "uiversion"
+  ],
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/*.pyc": true,
+    "**/*.pyo": true,
+    "**/*.pyd": true,
+    "**/__pycache__/**": true,
+    ".pytest_cache": true,
+    ".idea": true
+  },
+  "python.autoComplete.extraPaths": [
+    "/Users/lishaoying/Documents/python/llmops/llmops-api/.venv/lib/python3.12/site-packages"
+  ],
+  "python.analysis.extraPaths": [
+    "/Users/lishaoying/Documents/python/llmops/llmops-api/.venv/lib/python3.12/site-packages"
+  ],
+  "python.analysis.typeCheckingMode": "off"
+}

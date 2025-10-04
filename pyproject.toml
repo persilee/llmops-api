@@ -18,6 +18,7 @@ dependencies = [
     "openai>=1.106.1",
     "psycopg2-binary>=2.9.10",
     "pytest>=8.4.2",
+    "flasgger>=0.9.7.1",
 ]
 
 [tool.rye.scripts]
@@ -25,3 +26,22 @@ pipreqs = { cmd = "pipreqs --ignore .venv --force" }
 migrate = { cmd = "flask --app app.http.app db migrate" }
 upgrade = { cmd = "flask --app app.http.app db upgrade" }
 downgrade = { cmd = "flask --app app.http.app db downgrade" }
+
+[tool.ruff]
+lint.extend-select = ["ALL"]
+ignore = [
+    "T201",
+    "RUF001",
+    "RUF002",
+    "RUF003",
+    "D100",
+    "D101",
+    "D102",
+    "D104",
+    "D106",
+    "D107",
+    "D400",
+    "D415",
+    "ERA001",
+    "C901",
+]

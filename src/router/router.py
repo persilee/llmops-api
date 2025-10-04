@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 
-from flask import Flask, Blueprint
+from flask import Blueprint, Flask
 from injector import inject
 
-from internal.handler import AppHandler
-from internal.router import register_with_class
+from src.handler import AppHandler
+from src.router import register_with_class
 
 
 @inject
@@ -14,7 +14,7 @@ class Router:
 
     app_handler: AppHandler
 
-    def register_route(self, app: Flask):
+    def register_route(self, app: Flask) -> None:
         """注册路由"""
         bp = Blueprint("llmops", __name__, url_prefix="")
 

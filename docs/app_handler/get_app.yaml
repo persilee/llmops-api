@@ -1,0 +1,29 @@
+获取 App 信息
+---
+tags:
+  - App管理
+description: 获取 App 信息
+operationId: get_app
+produces:
+  - application/json
+
+parameters:
+  - name: app_id
+    in: path
+    type: string
+    format: uuid
+    required: true
+    description: 应用的唯一标识符
+responses:
+  200:
+    description: 成功获取应用信息
+    schema:
+      type: object
+      properties:
+        code:
+          $ref: "#/definitions/StatusCode"
+        message:
+          type: string
+          example: "获取成功"
+        data:
+          $ref: "#/definitions/App"

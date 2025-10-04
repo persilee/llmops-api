@@ -1,0 +1,27 @@
+创建App
+---
+tags:
+  - App管理
+description: 创建App
+operationId: create_app
+produces:
+  - application/json
+
+responses:
+  200:
+    description: 创建成功
+    schema:
+      type: object
+      properties:
+        code:
+          $ref: "#/definitions/StatusCode"
+        message:
+          description: 消息
+          type: string
+        data:
+          description: 数据
+          type: object
+      example:
+        code: "success"
+        message: "创建成功，app id: 4648e320-4376-4158-8126-e4a2e646a3c0"
+        data: {}

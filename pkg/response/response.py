@@ -1,7 +1,8 @@
-from dataclasses import field, dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
-from flask import jsonify, Response as FlaskResponse
+from flask import Response as FlaskResponse
+from flask import jsonify
 
 from pkg.response.http_code import HttpCode
 
@@ -14,8 +15,7 @@ class Response:
 
 
 def json(data: Response = None) -> FlaskResponse:
-    """
-    将响应数据转换为 JSON 格式并返回
+    """将响应数据转换为 JSON 格式并返回
 
     Args:
         data (Response, optional): 需要转换为 JSON 格式的响应数据。默认为 None。
@@ -27,13 +27,13 @@ def json(data: Response = None) -> FlaskResponse:
         - 使用 jsonify 函数将输入数据转换为 JSON 格式
         - 固定返回 HTTP 状态码 200 表示请求成功
         - 支持处理特殊字符如 //t (制表符), //r (回车符) 和 //n (换行符)
+
     """
     return jsonify(data)
 
 
-def success_json(data: Any = None):
-    """
-    返回一个表示成功的 JSON 响应。
+def success_json(data: dict | None = None) -> Response:
+    """返回一个表示成功的 JSON 响应。
 
     该函数创建一个包含成功状态码、空消息和可选数据的 Response 对象，
     并将其转换为 JSON 格式返回。
@@ -51,9 +51,8 @@ def success_json(data: Any = None):
     return json(Response(code=HttpCode.SUCCESS, message="", data=data))
 
 
-def fail_json(data: Any = None):
-    """
-    返回一个表示失败的JSON响应。
+def fail_json(data: dict | None = None) -> Response:
+    """返回一个表示失败的JSON响应。
 
     该函数接收一个可选的数据参数，构造一个包含失败状态码的Response对象，
     并将其转换为JSON格式返回。默认情况下，消息字段为空字符串。
@@ -72,9 +71,8 @@ def fail_json(data: Any = None):
     return json(Response(code=HttpCode.FAIL, message="", data=data))
 
 
-def validate_error_json(errors: dict = None):
-    """
-    将验证错误信息格式化为 JSON 响应
+def validate_error_json(errors: dict | None) -> Response:
+    """将验证错误信息格式化为 JSON 响应
 
     该函数接收一个包含验证错误的字典，提取第一个错误消息，
     并将其包装成一个标准的 JSON 响应格式返回。
@@ -96,19 +94,16 @@ def validate_error_json(errors: dict = None):
         - 如果 errors 为 None 或空字典，message 将为空字符串
         - 使用 HttpCode.VALIDATE_ERROR 作为错误代码
         - 原始的错误字典会完整保存在返回的 data 字段中
+
     """
     first_key = next(iter(errors))
-    if first_key is not None:
-        msg = errors[first_key][0]
-    else:
-        msg = ""
+    msg = errors[first_key][0] if first_key is not None else ""
 
     return json(Response(code=HttpCode.VALIDATE_ERROR, message=msg, data=errors))
 
 
-def message_json(code: HttpCode = None, message: str = ""):
-    """
-    将响应信息转换为JSON格式
+def message_json(code: HttpCode = None, message: str = "") -> Response:
+    """将响应信息转换为JSON格式
 
     Args:
         code (HttpCode, optional): HTTP状态码. Defaults to None.
@@ -121,13 +116,13 @@ def message_json(code: HttpCode = None, message: str = ""):
                 "message": str,
                 "data": dict
             }
+
     """
     return json(Response(code=code, message=message, data={}))
 
 
-def success_message_json(message: str = ""):
-    """
-    生成一个表示操作成功的JSON消息。
+def success_message_json(message: str = "") -> Response:
+    """生成一个表示操作成功的JSON消息。
 
     该函数用于创建一个包含成功状态码和自定义消息的JSON响应。
     成功状态码使用HttpCode.SUCCESS枚举值。
@@ -149,13 +144,13 @@ def success_message_json(message: str = ""):
     Example:
         >>> success_message_json("操作成功")
         {'code': 200, 'message': '操作成功'}
+
     """
     return message_json(code=HttpCode.SUCCESS, message=message)
 
 
-def fail_message_json(message: str = ""):
-    """
-    生成表示失败的 JSON 格式消息
+def fail_message_json(message: str = "") -> Response:
+    """生成表示失败的 JSON 格式消息
 
     该函数用于创建一个表示操作失败的 JSON 格式消息对象，使用预设的失败状态码。
 
@@ -172,9 +167,8 @@ def fail_message_json(message: str = ""):
     return message_json(code=HttpCode.FAIL, message=message)
 
 
-def not_found_message_json(message: str = ""):
-    """
-    生成一个表示"未找到"的JSON格式消息响应。
+def not_found_message_json(message: str = "") -> Response:
+    """生成一个表示"未找到"的JSON格式消息响应。
 
     该函数用于创建一个标准的HTTP 404 Not Found响应，以JSON格式返回。
     可以自定义返回的消息内容。
@@ -188,13 +182,13 @@ def not_found_message_json(message: str = ""):
     Note:
         - 使用HttpCode.NOT_FOUND作为状态码
         - 返回格式符合message_json函数的规范
+
     """
     return message_json(code=HttpCode.NOT_FOUND, message=message)
 
 
-def unauthorized_message_json(message: str = ""):
-    """
-    生成未授权访问的JSON格式错误消息。
+def unauthorized_message_json(message: str = "") -> Response:
+    """生成未授权访问的JSON格式错误消息。
 
     该函数用于创建一个表示未授权访问的JSON格式错误响应消息。它使用预定义的HTTP状态码
     和自定义的错误消息来构建响应。
@@ -214,13 +208,13 @@ def unauthorized_message_json(message: str = ""):
     Note:
         - 该函数依赖message_json函数来构建最终的JSON响应
         - 使用HttpCode.UNAUTHORIZED作为默认的HTTP状态码
+
     """
     return message_json(code=HttpCode.UNAUTHORIZED, message=message)
 
 
-def forbidden_message_json(message: str = ""):
-    """
-    生成包含禁止访问信息的JSON响应消息。
+def forbidden_message_json(message: str = "") -> Response:
+    """生成包含禁止访问信息的JSON响应消息。
 
     该函数用于创建一个表示禁止访问(403 Forbidden)的JSON格式响应消息。
     使用HttpCode.FORBIDDEN作为状态码，并可以自定义错误消息。

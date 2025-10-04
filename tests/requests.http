@@ -1,0 +1,33 @@
+# app_handler API接口测试
+@hostname = http://127.0.0.1
+@port = 5000
+@host = {{hostname}}:{{port}}
+@module = apps
+# @app_id = eb5d06cd-db85-4755-acdf-92ad818bc429
+@app_id = b9887d7a-721a-41ec-87c3-a5bc94c3949d
+
+### 删除 App 记录
+POST {{host}}/{{module}}/{{app_id}}/delete
+Content-Type: application/json
+
+### 修改 App 记录
+POST {{host}}/{{module}}/{{app_id}}
+Content-Type: application/json
+
+### 获取 App 记录
+GET {{host}}/{{module}}/{{app_id}}
+Accept: application/json
+
+### 创建 App 记录
+POST {{host}}/{{module}}/create
+Content-Type: application/json
+
+### AI应用接口调试
+POST {{host}}/{{module}}/debug
+Content-Type: application/json
+
+{
+    "query": "你好，你是谁？"
+}
+
+###
