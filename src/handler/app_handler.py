@@ -10,7 +10,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 
 from pkg.response import success_message_json, validate_error_json
-from pkg.response.response import fail_message_json
+from pkg.response.response import fail_message_json, success_json
 from src.model import App
 from src.router import route
 from src.schemas.app_schema import CompletionReq
@@ -58,9 +58,9 @@ class AppHandler:
             return success_message_json(f"删除成功, app_id: {app.id}")
         return fail_message_json(f"删除失败,记录不存在，app_id: {app_id}")
 
-    @route("/debug", methods=["POST"])
+    @route("/<uuid:app_id>/debug", methods=["POST"])
     @swag_from("../../docs/app_handler/debug.yaml")
-    def completion(self) -> str:
+    def completion(self, app_id: UUID) -> str:
         """聊天机器人接口"""
         req = CompletionReq()
 
@@ -86,4 +86,4 @@ class AppHandler:
         content = chain.invoke({"query": req.query.data})
 
         # 返回包含处理内容的成功消息JSON
-        return success_message_json(content)
+        return success_json({"content": content})

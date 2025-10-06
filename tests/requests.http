@@ -23,7 +23,7 @@ POST {{host}}/{{module}}/create
 Content-Type: application/json
 
 ### AI应用接口调试
-POST {{host}}/{{module}}/debug
+POST {{host}}/{{module}}/{{app_id}}/debug
 Content-Type: application/json
 
 {

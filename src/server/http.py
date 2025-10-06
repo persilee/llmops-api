@@ -5,6 +5,7 @@ from typing import Any
 import yaml
 from flasgger import Swagger
 from flask import Flask
+from flask_cors import CORS
 from flask_migrate import Migrate
 
 from config import Config, swagger_config, swagger_template
@@ -43,6 +44,19 @@ class Http(Flask):
         # 初始化数据库
         db.init_app(self)
         migrate.init_app(self, db, directory="internal/migration")
+
+        # 配置跨域
+        CORS(
+            self,
+            resources={
+                r"/*": {
+                    "origins": "*",
+                    "supports_credentials": True,
+                    "methods": ["GET", "POST"],
+                    "allow_headers": ["Content-Type"],
+                },
+            },
+        )
 
         # 初始化Swagger
         self._init_swagger(swag, schemas)
