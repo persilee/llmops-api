@@ -1,12 +1,16 @@
 import os
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import UUID
 
 from flasgger import swag_from
 from injector import inject
+from langchain.memory import ConversationBufferWindowMemory
+from langchain_community.chat_message_histories import FileChatMessageHistory
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.runnables import RunnableLambda, RunnablePassthrough
 from langchain_openai import ChatOpenAI
 
 from pkg.response import success_message_json, validate_error_json
@@ -67,23 +71,43 @@ class AppHandler:
         if not req.validate():
             return validate_error_json(req.errors)
 
-        # 导入必要的模板和模型组件
-        prompt = ChatPromptTemplate.from_template(
-            "{query}",
+        prompt = ChatPromptTemplate(
+            [
+                ("system", "你是一个聊天机器人，请根据用户输入回答问题"),
+                MessagesPlaceholder("history"),
+                ("human", "{query}"),
+            ],
         )
-        # 创建一个基于模板的提示，使用query作为变量
+
+        memory_dir = Path("./storage/memory")
+        memory_dir.mkdir(parents=True, exist_ok=True)
+        chat_memory = FileChatMessageHistory("./storage/memory/chat_history.json")
+
+        memory = ConversationBufferWindowMemory(
+            k=3,
+            return_messages=True,
+            chat_memory=chat_memory,
+        )
+
         llm = ChatOpenAI(
             base_url=os.getenv("OPENAI_API_BASE_URL"),
             model="gpt-3.5-turbo-16k",
         )
-        # 初始化OpenAI的聊天模型，使用gpt-4-turbo版本
-        parser = StrOutputParser()  # 创建一个字符串输出解析器
 
-        # 将提示、语言模型和解析器连接成一个处理链
-        chain = prompt | llm | parser
+        chain = (
+            RunnablePassthrough.assign(
+                history=RunnableLambda(
+                    lambda x: memory.load_memory_variables(x)["history"],
+                ),
+            )
+            | prompt
+            | llm
+            | StrOutputParser()
+        )
 
-        # 使用用户查询调用处理链，获取处理后的内容
-        content = chain.invoke({"query": req.query.data})
+        chat_input = {"query": req.query.data}
+        content = chain.invoke(chat_input)
+        memory.save_context(chat_input, {"output": content})
 
         # 返回包含处理内容的成功消息JSON
         return success_json({"content": content})

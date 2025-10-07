@@ -91,12 +91,7 @@ class Http(Flask):
             return json(response)
 
         if self.debug or os.getenv("FLASK_ENV") == "development":
-            response = Response(
-                code=HttpCode.FAIL,
-                message=f"Debug error: {error!s}",
-                data={"debug": True, "error_type": type(error).__name__},
-            )
-            return json(response)
+            raise error
         response = Response(
             code=HttpCode.FAIL,
             message=str(error),
