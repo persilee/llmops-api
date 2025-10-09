@@ -22,6 +22,7 @@ from langchain_openai import ChatOpenAI
 
 from pkg.response import success_message_json, validate_error_json
 from pkg.response.response import fail_message_json, success_json
+from pkg.swagger.swagger import get_swagger_path
 from src.model import App
 from src.router import route
 from src.schemas.app_schema import CompletionReq
@@ -37,21 +38,21 @@ class AppHandler:
     app_service: AppService
 
     @route("/create", methods=["POST"])
-    @swag_from("../../docs/app_handler/create_app.yaml")
+    @swag_from(get_swagger_path("app_handler/create_app.yaml"))
     def create_app(self) -> str:
         app = self.app_service.create_app()
 
         return success_message_json(f"创建成功，app_id: {app.id}")
 
     @route("/<uuid:app_id>", methods=["GET"])
-    @swag_from("../../docs/app_handler/get_app.yaml")
+    @swag_from(get_swagger_path("app_handler/get_app.yaml"))
     def get_app(self, app_id: UUID) -> str:
         app: App = self.app_service.get_app(app_id)
 
         return success_message_json(f"获取成功, app_id: {app.id}")
 
     @route("/<uuid:app_id>", methods=["POST"])
-    @swag_from("../../docs/app_handler/update_app.yaml")
+    @swag_from(get_swagger_path("app_handler/update_app.yaml"))
     def update_app(self, app_id: UUID) -> str:
         """更新 App 表"""
         app: App = self.app_service.update_app(app_id)
@@ -59,7 +60,7 @@ class AppHandler:
         return success_message_json(f"更新成功, app_id: {app.id}")
 
     @route("/<uuid:app_id>/delete", methods=["POST"])
-    @swag_from("../../docs/app_handler/delete_app.yaml")
+    @swag_from(get_swagger_path("app_handler/delete_app.yaml"))
     def delete_app(self, app_id: UUID) -> str:
         app: App = self.app_service.get_app(app_id)
         if app is not None:
@@ -95,7 +96,7 @@ class AppHandler:
             configurable_memory.save_context(run_obj.inputs, run_obj.outputs)
 
     @route("/<uuid:app_id>/debug", methods=["POST"])
-    @swag_from("../../docs/app_handler/debug.yaml")
+    @swag_from(get_swagger_path("app_handler/debug.yaml"))
     def debug(self, app_id: UUID) -> str:
         """聊天机器人接口"""
         req = CompletionReq()
