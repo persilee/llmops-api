@@ -2,7 +2,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import Column, ColumnDefault
+from sqlalchemy import Column, DefaultClause
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.inspection import inspect
 from sqlalchemy.sql.sqltypes import (
@@ -74,35 +74,113 @@ def _get_column_description(column: Column) -> str:
     return column.doc or ""
 
 
-def _get_column_example(column: Column) -> str | None:
+def _get_column_example(column: Column) -> Any:
     """获取列的示例值"""
-    if column.default is None:
+    # 1. 优先使用模型中明确指定的 example
+    if hasattr(column, "info") and "example" in column.info:
+        return column.info["example"]
+
+    if hasattr(column, "server_default"):
+        try:
+            default_value = _extract_default_value(column.server_default)
+            return _process_default_value(default_value, column.type)
+        except (ValueError, TypeError, AttributeError):
+            return _generate_fallback_example(column.type)
+    else:
         return None
 
-    result = None
-    try:
-        if hasattr(column, "info") and "example" in column.info:
-            # 使用模型中定义的示例值
-            return column.info["example"]
 
-        if isinstance(column.default, ColumnDefault):
-            default_value = column.default.arg
-        else:
-            default_value = column.default
+def _extract_default_value(default) -> Any:
+    """提取默认值"""
+    if isinstance(default, DefaultClause):
+        return default.arg.text
+    return default
 
-        if callable(default_value):
-            if default_value.__name__ == "uuid4":
-                result = str(uuid.uuid4())
-            elif default_value.__name__ == "now":
-                result = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
-            elif default_value.__name__ == "func":
-                result = default_value()
-            elif default_value == "":
-                result = None
-        elif default_value is not None and default_value != "":
-            result = str(default_value)
 
-    except (ValueError, TypeError):
-        pass
+def _process_default_value(default_value, column_type) -> Any:
+    """处理默认值"""
+    if isinstance(default_value, str) and default_value.startswith(
+        ("CURRENT_TIMESTAMP", "uuid_generate_v4", "''::"),
+    ):
+        return _handle_text_clause(default_value)
 
-    return result
+    if callable(default_value):
+        return _handle_callable(default_value)
+
+    if default_value is not None:
+        return _handle_direct_value(default_value, column_type)
+
+    return None
+
+
+def _handle_text_clause(text_value: str) -> Any:
+    """处理文本条款"""
+    if text_value.startswith("CURRENT_TIMESTAMP"):
+        return datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
+    if text_value.startswith("uuid_generate_v4"):
+        return str(uuid.uuid4())
+    if text_value.startswith("''::"):
+        return ""
+    if text_value.isdigit():
+        return int(text_value)
+    if text_value.replace(".", "", 1).isdigit():
+        return float(text_value)
+    return text_value.strip("'\"").split("::")[0]
+
+
+def _handle_callable(default_value) -> Any:
+    """处理可调用对象"""
+    if default_value.__name__ in ("uuid4", "now"):
+        return (
+            str(uuid.uuid4())
+            if default_value.__name__ == "uuid4"
+            else datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
+        )
+
+    if (
+        hasattr(default_value, "__module__")
+        and default_value.__module__ == "sqlalchemy.sql.functions"
+    ):
+        return (
+            str(uuid.uuid4())
+            if default_value.name == "uuid_generate_v4"
+            else datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
+        )
+
+    return None
+
+
+def _handle_direct_value(default_value, column_type) -> Any:
+    """处理直接的默认值"""
+    type_handlers = {
+        UUID: lambda: str(uuid.uuid4()),
+        DateTime: lambda: datetime.now(UTC).isoformat(),
+        (String, Text): lambda: "示例文本"
+        if default_value == ""
+        else str(default_value),
+        Integer: lambda: int(default_value) if default_value != "" else 0,
+        Float: lambda: float(default_value) if default_value != "" else 0.0,
+        Boolean: lambda: bool(default_value),
+    }
+
+    for type_class, handler in type_handlers.items():
+        if isinstance(column_type, type_class):
+            return handler()
+    return str(default_value)
+
+
+def _generate_fallback_example(column_type) -> Any:
+    """生成后备示例值"""
+    type_examples = {
+        UUID: lambda: str(uuid.uuid4()),
+        DateTime: lambda: datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S"),
+        String: lambda: f"示例{column_type.name}",
+        Integer: lambda: 1,
+        Float: lambda: 1.0,
+        Boolean: lambda: True,
+    }
+
+    for type_class, example in type_examples.items():
+        if isinstance(column_type, type_class):
+            return example()
+    return None

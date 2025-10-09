@@ -4,9 +4,6 @@
 如ID、所属账户ID、名称、图标、描述以及时间戳等字段。
 """
 
-import uuid
-from datetime import UTC, datetime
-
 from sqlalchemy import (
     UUID,
     Column,
@@ -15,6 +12,7 @@ from sqlalchemy import (
     PrimaryKeyConstraint,
     String,
     Text,
+    text,
 )
 
 from src.extension import db
@@ -29,39 +27,45 @@ class App(db.Model):
 
     id = Column(
         UUID,
-        default=uuid.uuid4,
+        server_default=text("uuid_generate_v4()"),
         nullable=False,
         info={"description": "应用ID"},
     )
-    account_id = Column(UUID, nullable=False, info={"description": "所属账户ID"})
+    account_id = Column(UUID, info={"description": "所属账户ID"})
     name = Column(
         String(255),
-        default="",
+        server_default=text("''::character varying"),
         nullable=False,
         info={"description": "应用名称"},
     )
     icon = Column(
         String(255),
-        default="",
+        server_default=text("''::character varying"),
         nullable=False,
         info={"description": "应用图标"},
     )
     description = Column(
         Text,
-        default="",
+        server_default=text("''::text"),
         nullable=False,
         info={"description": "应用描述"},
     )
+    status = Column(
+        String(255),
+        server_default=text("''::character varying"),
+        nullable=False,
+        info={"description": "应用状态"},
+    )
     updated_at = Column(
         DateTime,
-        default=datetime.now,
-        onupdate=datetime.now(UTC),
+        server_default=text("CURRENT_TIMESTAMP(0)"),
+        server_onupdate=text("CURRENT_TIMESTAMP(0)"),
         nullable=False,
         info={"description": "更新时间"},
     )
     created_at = Column(
         DateTime,
-        default=datetime.now,
+        server_default=text("CURRENT_TIMESTAMP(0)"),
         nullable=False,
         info={"description": "创建时间"},
     )

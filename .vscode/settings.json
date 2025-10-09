@@ -19,10 +19,9 @@
     ".idea": true
   },
   "python.autoComplete.extraPaths": [
-    "/Users/lishaoying/Documents/python/llmops/llmops-api/.venv/lib/python3.12/site-packages"
+    "${workspaceFolder}/.venv/lib/python3.12/site-packages/"
   ],
-  "python.analysis.extraPaths": [
-    "/Users/lishaoying/Documents/python/llmops/llmops-api/.venv/lib/python3.12/site-packages"
-  ],
-  "python.analysis.typeCheckingMode": "off"
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python3.12",
+  "python-envs.pythonProjects": [],
+  "python.analysis.autoImportCompletions": true
 }

@@ -1,16 +1,23 @@
 import os
 from dataclasses import dataclass
+from operator import itemgetter
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from flasgger import swag_from
 from injector import inject
 from langchain.memory import ConversationBufferWindowMemory
 from langchain_community.chat_message_histories import FileChatMessageHistory
+from langchain_core.memory import BaseMemory
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.runnables import RunnableLambda, RunnablePassthrough
+from langchain_core.runnables import (
+    RunnableConfig,
+    RunnableLambda,
+    RunnablePassthrough,
+)
+from langchain_core.tracers import Run
 from langchain_openai import ChatOpenAI
 
 from pkg.response import success_message_json, validate_error_json
@@ -62,9 +69,34 @@ class AppHandler:
             return success_message_json(f"删除成功, app_id: {app.id}")
         return fail_message_json(f"删除失败,记录不存在，app_id: {app_id}")
 
+    @classmethod
+    def _load_memory_variables(
+        cls,
+        inputs: dict[str, Any],
+        config: RunnableConfig,
+    ) -> dict[str, Any]:
+        configurable = config.get("configurable", {})
+        configurable_memory = configurable.get("memory", None)
+        if configurable_memory is not None and isinstance(
+            configurable_memory,
+            BaseMemory,
+        ):
+            return configurable_memory.load_memory_variables(inputs)
+        return {"history", []}
+
+    @classmethod
+    def _save_context(cls, run_obj: Run, config: RunnableConfig) -> None:
+        configurable = config.get("configurable", {})
+        configurable_memory = configurable.get("memory", None)
+        if configurable_memory is not None and isinstance(
+            configurable_memory,
+            BaseMemory,
+        ):
+            configurable_memory.save_context(run_obj.inputs, run_obj.outputs)
+
     @route("/<uuid:app_id>/debug", methods=["POST"])
     @swag_from("../../docs/app_handler/debug.yaml")
-    def completion(self, app_id: UUID) -> str:
+    def debug(self, app_id: UUID) -> str:
         """聊天机器人接口"""
         req = CompletionReq()
 
@@ -97,17 +129,17 @@ class AppHandler:
         chain = (
             RunnablePassthrough.assign(
                 history=RunnableLambda(
-                    lambda x: memory.load_memory_variables(x)["history"],
-                ),
+                    self._load_memory_variables,
+                )
+                | itemgetter("history"),
             )
             | prompt
             | llm
             | StrOutputParser()
-        )
+        ).with_listeners(on_end=self._save_context)
 
         chat_input = {"query": req.query.data}
-        content = chain.invoke(chat_input)
-        memory.save_context(chat_input, {"output": content})
+        content = chain.invoke(chat_input, config={"configurable": {"memory": memory}})
 
         # 返回包含处理内容的成功消息JSON
         return success_json({"content": content})

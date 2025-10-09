@@ -43,7 +43,7 @@ class Http(Flask):
 
         # 初始化数据库
         db.init_app(self)
-        migrate.init_app(self, db, directory="internal/migration")
+        migrate.init_app(self, db, directory="src/migration")
 
         # 配置跨域
         CORS(
