@@ -21,9 +21,9 @@ responses:
       type: object
       properties:
         code:
-          $ref: "#/definitions/StatusCode"
+          $ref: "#/components/schemas/StatusCode"
         message:
           type: string
           example: "获取成功"
         data:
-          $ref: "#/definitions/App"
+          $ref: "#/components/schemas/App"

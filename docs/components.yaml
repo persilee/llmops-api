@@ -1,0 +1,41 @@
+components:
+  schemas:
+    StatusCode:
+      description: 状态码
+      type: string
+      enum:
+        [
+          success,
+          fail,
+          not_found,
+          unauthorized,
+          forbidden,
+          validate_error,
+          internal_server_error,
+          service_unavailable,
+        ]
+      x-apifox-enum:
+        - value: "success"
+          name: "success"
+          description: "成功状态"
+        - value: "fail"
+          name: "fail"
+          description: "失败状态"
+        - value: "not_found"
+          name: "not_found"
+          description: "资源未找到状态"
+        - value: "unauthorized"
+          name: "unauthorized"
+          description: "未授权状态"
+        - value: "forbidden"
+          name: "forbidden"
+          description: "禁止访问状态"
+        - value: "validate_error"
+          name: "validate_error"
+          description: "验证错误状态"
+        - value: "internal_server_error"
+          name: "internal_server_error"
+          description: "服务器内部错误状态"
+        - value: "service_unavailable"
+          name: "service_unavailable"
+          description: "服务不可用状态"

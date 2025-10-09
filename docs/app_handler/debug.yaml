@@ -1,23 +1,31 @@
 机器人调天接口
 ---
 tags:
-  - Debug
+  - App管理
 description: 机器人调天接口
 operationId: debug
 produces:
   - application/json
 
-requestBody:
-  content:
-    application/json:
-      schema:
-        type: object
-        properties:
-          query:
-            type: string
-            description: 聊天内容
-  required:
-    - query
+parameters:
+  - name: app_id
+    in: path
+    type: string
+    format: uuid
+    required: true
+    description: 应用的唯一标识符
+  - name: Request Body
+    in: body
+    description: 聊天内容
+    schema:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          description: 聊天内容
+          example: "你好"
 
 responses:
   200:
@@ -26,7 +34,7 @@ responses:
       type: object
       properties:
         code:
-          $ref: "#/definitions/StatusCode"
+          $ref: "#/components/schemas/StatusCode"
         message:
           type: string
           description: 消息
@@ -35,5 +43,6 @@ responses:
           description: 数据
       example:
         code: "success"
-        message: "你好！我是一个人工智能助手，可以回答你的问题，帮助你获取信息和完成各种任务。如果你有任何问题或需要帮助，可以随时告诉我！"
-        data: {}
+        message: ""
+        data:
+          content: "你好！我是一个人工智能助手，可以回答你的问题，帮助你获取信息和完成各种任务。如果你有任何问题或需要帮助，可以随时告诉我！"

@@ -105,15 +105,15 @@ class Http(Flask):
         schemas: dict[str, Any] | None = None,
     ) -> None:
         # 加载公共定义
-        with Path.open("docs/common_definitions.yaml", encoding="utf-8") as f:
+        with Path.open("docs/components.yaml", encoding="utf-8") as f:
             common_defs = yaml.safe_load(f)
         template = swagger_template
-        template["definitions"].update(common_defs.get("definitions", {}))
+        template["components"].update(common_defs.get("components", {}))
 
         # 加载数据类定义
         if schemas:
             for name, schema in schemas.items():
-                template["definitions"][name] = schema
+                template["components"]["schemas"][name] = schema
 
         swag.config = swagger_config
         swag.template = template

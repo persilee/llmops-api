@@ -21,7 +21,7 @@ responses:
       type: object
       properties:
         code:
-          $ref: "#/definitions/StatusCode"
+          $ref: "#/components/schemas/StatusCode"
         message:
           type: string
           description: 消息

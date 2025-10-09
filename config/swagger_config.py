@@ -1,5 +1,4 @@
 swagger_template = {
-    "swagger": "2.0",
     "info": {
         "title": "LLMops API",
         "description": "LLMops 项目 API 文档",
@@ -20,7 +19,7 @@ swagger_template = {
         "api_key": {"type": "apiKey", "in": "header", "name": "X-API-KEY"},
     },
     "security": [],
-    "definitions": {},
+    "components": {},
 }
 
 
