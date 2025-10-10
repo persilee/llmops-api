@@ -2,28 +2,11 @@
 ---
 tags:
   - App管理
-description: 获取 App 信息
+summary: 获取 App 信息
+description:
 operationId: get_app
-produces:
-  - application/json
-
 parameters:
-  - name: app_id
-    in: path
-    type: string
-    format: uuid
-    required: true
-    description: 应用的唯一标识符
+  - $ref: "#/components/parameters/appIdParam"
 responses:
-  200:
-    description: 成功获取应用信息
-    schema:
-      type: object
-      properties:
-        code:
-          $ref: "#/components/schemas/StatusCode"
-        message:
-          type: string
-          example: "获取成功"
-        data:
-          $ref: "#/components/schemas/App"
+  "200":
+    $ref: "#/components/responses/BaseResponse"

@@ -2,33 +2,18 @@
 ---
 tags:
   - App管理
-description: 删除 App
+summary: 删除 App
+description:
 operationId: delete_app
-produces:
-  - application/json
-
 parameters:
-  - name: app_id
-    in: path
-    type: string
-    format: uuid
-    required: true
-    description: 应用的唯一标识符
+  - $ref: "#/components/parameters/appIdParam"
 responses:
-  200:
-    description: 删除 App 成功
-    schema:
-      type: object
-      properties:
-        code:
-          $ref: "#/components/schemas/StatusCode"
-        message:
-          type: string
-          description: 消息
-        data:
-          type: object
-          description: 数据
-      example:
-        code: "success"
-        message: "删除成功，app_id: 123e4567-e89b-12d3-a456-426614174000"
-        data: {}
+  "200":
+    content:
+      application/json:
+        schema:
+          $ref: "#/components/schemas/BaseRespBody"
+        example:
+          code: "success"
+          message: "删除成功，app_id: 123e4567-e89b-12d3-a456-426614174000"
+          data: {}

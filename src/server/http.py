@@ -115,6 +115,10 @@ class Http(Flask):
             for name, schema in schemas.items():
                 template["components"]["schemas"][name] = schema
 
+        # 配置swagger标题和版本
+        self.config["SWAGGER"] = {"title": "LLMops API", "openapi": "3.0.4"}
+
+        # 初始化swagger
         swag.config = swagger_config
         swag.template = template
         swag.init_app(self)

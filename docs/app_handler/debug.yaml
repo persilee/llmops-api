@@ -2,47 +2,42 @@
 ---
 tags:
   - App管理
-description: 机器人调天接口
+summary: 机器人调天接口
+description: >
+  用于调试模型参数的接口，可以通过该接口获取模型参数的调试信息。
 operationId: debug
-produces:
-  - application/json
-
 parameters:
-  - name: app_id
-    in: path
-    type: string
-    format: uuid
-    required: true
-    description: 应用的唯一标识符
-  - name: Request Body
-    in: body
-    description: 聊天内容
-    schema:
-      type: object
-      required:
-        - query
-      properties:
-        query:
-          type: string
-          description: 聊天内容
-          example: "你好"
-
+  - $ref: "#/components/parameters/appIdParam"
+requestBody:
+  description: 聊天内容
+  required: true
+  content:
+    application/json:
+      schema:
+        type: object
+        required:
+          - query
+        properties:
+          query:
+            type: string
+            description: 聊天内容
+            example: "你好"
 responses:
-  200:
-    description: 更新 App 成功
-    schema:
-      type: object
-      properties:
-        code:
-          $ref: "#/components/schemas/StatusCode"
-        message:
-          type: string
-          description: 消息
-        data:
-          type: object
-          description: 数据
-      example:
-        code: "success"
-        message: ""
-        data:
-          content: "你好！我是一个人工智能助手，可以回答你的问题，帮助你获取信息和完成各种任务。如果你有任何问题或需要帮助，可以随时告诉我！"
+  "200":
+    content:
+      application/json:
+        schema:
+          allOf:
+            - $ref: "#/components/schemas/BaseRespBody"
+            - type: object
+              properties:
+                data:
+                  type: object
+                  properties:
+                    content:
+                      type: string
+        example:
+          code: "success"
+          message: ""
+          data:
+            content: "你好！我是一个人工智能助手，可以回答你的问题，帮助你获取信息和完成各种任务。如果你有任何问题或需要帮助，可以随时告诉我！"

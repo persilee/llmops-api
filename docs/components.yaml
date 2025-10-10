@@ -4,16 +4,14 @@ components:
       description: 状态码
       type: string
       enum:
-        [
-          success,
-          fail,
-          not_found,
-          unauthorized,
-          forbidden,
-          validate_error,
-          internal_server_error,
-          service_unavailable,
-        ]
+        - success
+        - fail
+        - not_found
+        - unauthorized
+        - forbidden
+        - validate_error
+        - internal_server_error
+        - service_unavailable
       x-apifox-enum:
         - value: "success"
           name: "success"
@@ -39,3 +37,39 @@ components:
         - value: "service_unavailable"
           name: "service_unavailable"
           description: "服务不可用状态"
+    BaseRespBody:
+      type: object
+      properties:
+        code:
+          $ref: "#/components/schemas/StatusCode"
+        message:
+          type: string
+          description: 消息
+        data:
+          type: object
+          description: 数据
+      required:
+        - code
+        - message
+        - data
+  parameters:
+    appIdParam:
+      in: path
+      name: app_id
+      schema:
+        type: string
+        default: "9495d2e2-2e7a-4484-8447-03f6b24627f7"
+      format: uuid
+      required: true
+      description: 应用的唯一标识符
+  responses:
+    BaseResponse:
+      description: 响应成功
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BaseRespBody"
+          example:
+            code: "success"
+            message: ""
+            data: {}

@@ -3,8 +3,7 @@
 @port = 5000
 @host = {{hostname}}:{{port}}
 @module = apps
-# @app_id = eb5d06cd-db85-4755-acdf-92ad818bc429
-@app_id = b9887d7a-721a-41ec-87c3-a5bc94c3949d
+@app_id = 9495d2e2-2e7a-4484-8447-03f6b24627f7
 
 ### 删除 App 记录
 POST {{host}}/{{module}}/{{app_id}}/delete

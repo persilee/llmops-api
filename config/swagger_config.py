@@ -1,4 +1,5 @@
 swagger_template = {
+    "openapi": "3.0.4",
     "info": {
         "title": "LLMops API",
         "description": "LLMops 项目 API 文档",
@@ -12,13 +13,13 @@ swagger_template = {
         },
         "termsOfService": "",
     },
-    "host": "localhost:5000",
-    "basePath": "/",
+    "servers": [
+        {
+            "url": "http://127.0.0.1:5000",
+            "description": "本地开发环境",
+        },
+    ],
     "schemes": ["http", "https"],
-    "securityDefinitions": {
-        "api_key": {"type": "apiKey", "in": "header", "name": "X-API-KEY"},
-    },
-    "security": [],
     "components": {},
 }
 
