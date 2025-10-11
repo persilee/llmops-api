@@ -1,8 +1,4 @@
-from pkg.swagger.swagger import model_to_swagger_schema
-from src.model.app import App
+from .app_schema import CompletionReq
+from .swag_schema import swag_schemas, swagger_schema
 
-schemas = {
-    "App": model_to_swagger_schema(App),
-}
-
-__all__ = ["schemas"]
+__all__ = ["CompletionReq", "swag_schemas", "swagger_schema"]

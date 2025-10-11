@@ -16,8 +16,10 @@ from sqlalchemy import (
 )
 
 from src.extension import db
+from src.schemas import swagger_schema
 
 
+@swagger_schema
 class App(db.Model):
     __tablename__ = "app"
     __table_args__ = (

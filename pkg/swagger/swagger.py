@@ -52,7 +52,15 @@ def model_to_swagger_schema(model: type[DeclarativeMeta]) -> dict[str, Any]:
         if not column.nullable:
             schema["required"].append(column.name)
 
-    return schema
+    data_warper: dict[str, Any] = {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+            "data": schema,
+        },
+    }
+
+    return data_warper
 
 
 def _map_column_type(column_type: TypeEngine) -> dict[str, Any]:

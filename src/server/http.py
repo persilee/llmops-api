@@ -13,7 +13,7 @@ from pkg.response import HttpCode, Response, json
 from pkg.sqlalchemy import SQLAlchemy
 from src.exception import CustomException
 from src.router import Router
-from src.schemas import schemas
+from src.schemas import swag_schemas
 
 
 class Http(Flask):
@@ -59,7 +59,7 @@ class Http(Flask):
         )
 
         # 初始化Swagger
-        self._init_swagger(swag, schemas)
+        self._init_swagger(swag, swag_schemas)
 
         # 初始化路由器
         self.router = router

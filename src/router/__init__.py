@@ -1,9 +1,9 @@
-from .redprint import Redprint, route, register_with_class
+from .redprint import Redprint, register_with_class, route
 from .router import Router
 
 __all__ = [
-    "Router",
     "Redprint",
+    "Router",
+    "register_with_class",
     "route",
-    "register_with_class"
 ]
