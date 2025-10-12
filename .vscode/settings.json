@@ -4,10 +4,12 @@
     "dataclass",
     "dotenv",
     "flasgger",
+    "huggingface",
     "llmops",
     "Redprint",
     "sqla",
-    "uiversion"
+    "uiversion",
+    "vectorstores"
   ],
   "files.exclude": {
     "**/__pycache__": true,
@@ -18,10 +20,20 @@
     ".pytest_cache": true,
     ".idea": true
   },
+  "python.analysis.enabled": true,
   "python.autoComplete.extraPaths": [
-    "${workspaceFolder}/.venv/lib/python3.12/site-packages/"
+    "${workspaceFolder}/.venv/lib/python3.12/site-packages"
+  ],
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/.venv/lib/python3.12/site-packages"
   ],
   "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python3.12",
-  "python-envs.pythonProjects": [],
-  "python.analysis.autoImportCompletions": true
+  "python.analysis.autoImportCompletions": true,
+  "python.pythonPath": "${workspaceFolder}/.venv/bin/python3.12",
+  "python.venvPath": "${workspaceFolder}/.venv",
+  "python.languageServer": "Pylance",
+  "python.analysis.completeFunctionParens": true,
+  "python.analysis.diagnosticMode": "workspace",
+  "python.analysis.userFileIndexingLimit": -1,
+  "python.analysis.indexing": true
 }

@@ -20,6 +20,9 @@ dependencies = [
     "pytest>=8.4.2",
     "flasgger>=0.9.7.1",
     "flask-cors>=6.0.1",
+    "langchain-huggingface>=0.3.1",
+    "sentence-transformers>=5.1.1",
+    "langchain-weaviate>=0.0.5",
 ]
 
 [tool.rye.scripts]

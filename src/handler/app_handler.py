@@ -1,4 +1,3 @@
-import os
 from dataclasses import dataclass
 from operator import itemgetter
 from pathlib import Path
@@ -26,7 +25,7 @@ from pkg.swagger.swagger import get_swagger_path
 from src.model import App
 from src.router import route
 from src.schemas.app_schema import CompletionReq
-from src.service import AppService
+from src.service import AppService, VectorDatabaseService
 
 if TYPE_CHECKING:
     from src.model import App
@@ -36,6 +35,7 @@ if TYPE_CHECKING:
 @dataclass
 class AppHandler:
     app_service: AppService
+    vector_database_service: VectorDatabaseService
 
     @route("/create", methods=["POST"])
     @swag_from(get_swagger_path("app_handler/create_app.yaml"))
@@ -104,9 +104,14 @@ class AppHandler:
         if not req.validate():
             return validate_error_json(req.errors)
 
+        system_prompt = (
+            "你是一个聊天机器人，能根据对应的上下文和历史对话信息回复用户信息。\n\n"
+            "<context>{context}</context>"
+        )
+
         prompt = ChatPromptTemplate(
             [
-                ("system", "你是一个聊天机器人，请根据用户输入回答问题"),
+                ("system", system_prompt),
                 MessagesPlaceholder("history"),
                 ("human", "{query}"),
             ],
@@ -123,7 +128,6 @@ class AppHandler:
         )
 
         llm = ChatOpenAI(
-            base_url=os.getenv("OPENAI_API_BASE_URL"),
             model="gpt-3.5-turbo-16k",
         )
 
@@ -133,6 +137,9 @@ class AppHandler:
                     self._load_memory_variables,
                 )
                 | itemgetter("history"),
+                context=itemgetter("query")
+                | self.vector_database_service.get_retriever()
+                | self.vector_database_service.combine_documents,
             )
             | prompt
             | llm
