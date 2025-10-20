@@ -1,0 +1,6 @@
+- name: google
+  label: google
+  description: Google 服务提供商，涵盖了谷歌搜索、谷歌地图、谷歌日历等众多服务。
+  icon: google.svg
+  background: "#e5e7eb"
+  category: 网络搜索

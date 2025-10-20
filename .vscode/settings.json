@@ -3,10 +3,12 @@
     "apidocs",
     "dataclass",
     "dotenv",
+    "duckduckgo",
     "flasgger",
     "huggingface",
     "llmops",
     "Redprint",
+    "serper",
     "sqla",
     "uiversion",
     "vectorstores"

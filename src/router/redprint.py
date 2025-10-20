@@ -49,10 +49,6 @@ def register_with_class(
     Note:
         - 类中的方法需要通过装饰器设置__rule_cache属性才能被识别为路由方法
         - 如果options中没有指定endpoint，默认使用方法名作为endpoint
-        - 特殊字符说明：
-            \\t - 制表符
-            \\r - 回车符
-            \\n - 换行符
 
     """
     # 获取所有方法（包括实例方法）
@@ -108,10 +104,6 @@ def route(rule: str, **options: Any) -> Callable[[Callable], Callable]:
     Note:
         该装饰器会在被装饰的函数上添加__rule_cache属性，
         用于存储URL规则和选项信息。
-        特殊字符支持：
-            \\t - 制表符
-            \\r - 回车符
-            \\n - 换行符
 
     Example:
         @route('/users/<int:user_id>', methods=['GET'])

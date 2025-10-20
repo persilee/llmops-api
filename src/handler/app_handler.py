@@ -20,8 +20,9 @@ from langchain_core.tracers import Run
 from langchain_openai import ChatOpenAI
 
 from pkg.response import success_message_json, validate_error_json
-from pkg.response.response import fail_message_json, success_json
+from pkg.response.response import Response, fail_message_json, success_json
 from pkg.swagger.swagger import get_swagger_path
+from src.core.tools.builtin_tolls.providers import ProviderFactory
 from src.model import App
 from src.router import route
 from src.schemas.app_schema import CompletionReq
@@ -36,6 +37,7 @@ if TYPE_CHECKING:
 class AppHandler:
     app_service: AppService
     vector_database_service: VectorDatabaseService
+    provider_factory: ProviderFactory
 
     @route("/create", methods=["POST"])
     @swag_from(get_swagger_path("app_handler/create_app.yaml"))
@@ -151,3 +153,10 @@ class AppHandler:
 
         # 返回包含处理内容的成功消息JSON
         return success_json({"content": content})
+
+    @route("/ping", methods=["GET"])
+    def ping(self) -> Response:
+        google_serper = self.provider_factory.get_tool("google", "google_serper")()
+        print(google_serper)
+        print(google_serper.invoke("python"))
+        return success_json({"content": "pong"})

@@ -29,4 +29,6 @@ Content-Type: application/json
     "query": "你好，你是谁？"
 }
 
-###
+### 测试接口
+GET {{host}}/{{module}}/ping
+Accept: application/json
