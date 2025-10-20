@@ -1,10 +1,17 @@
 {
   "cSpell.words": [
+    "adcode",
+    "AIDALLE",
     "apidocs",
+    "DALL",
+    "dalle",
     "dataclass",
+    "delle",
     "dotenv",
     "duckduckgo",
     "flasgger",
+    "gaode",
+    "goade",
     "huggingface",
     "llmops",
     "Redprint",
@@ -34,7 +41,6 @@
   "python.pythonPath": "${workspaceFolder}/.venv/bin/python3.12",
   "python.venvPath": "${workspaceFolder}/.venv",
   "python.languageServer": "Pylance",
-  "python.analysis.completeFunctionParens": true,
   "python.analysis.diagnosticMode": "workspace",
   "python.analysis.userFileIndexingLimit": -1,
   "python.analysis.indexing": true

@@ -1,0 +1,4 @@
+name: gaode_weather
+label: 高德天气
+description: 根据传递的城市名称获取天气信息
+params: []

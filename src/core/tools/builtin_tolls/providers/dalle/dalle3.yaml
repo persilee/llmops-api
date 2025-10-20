@@ -1,0 +1,24 @@
+name: dalle3
+label: Dalle绘图工具
+description: 使用DALL-E 3生成图像
+params:
+  - name: size
+    label: 图像尺寸
+    type: array
+    required: true
+    options:
+      - value: 1024x1024
+        label: "方形 1024x1024"
+      - value: 1792x1024
+        label: "横屏 1792x1024"
+      - value: 1024x1792
+        label: "竖屏 256x256"
+  - name: style
+    label: 图片风格
+    type: array
+    required: true
+    options:
+      - value: vivid
+        label: "生动"
+      - value: natural
+        label: "自然"

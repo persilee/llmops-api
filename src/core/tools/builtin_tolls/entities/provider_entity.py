@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from src.core.tools.builtin_tolls.entities.tool_entity import ToolEntity
 from src.lib.helper import dynamic_import
@@ -34,11 +34,15 @@ class Provider(BaseModel):
     tool_func_map: dict[
         str,
         Any,
-    ] = {}  # 工具函数映射字典，用于存储工具名称与对应函数的映射关系
+    ] = Field(
+        default_factory=dict,
+    )  # 工具函数映射字典，用于存储工具名称与对应函数的映射关系
     tool_entity_map: dict[
         str,
         ToolEntity,
-    ] = {}  # 工具实体映射字典，用于存储工具名称与对应工具实体的映射关系
+    ] = Field(
+        default_factory=dict,
+    )  # 工具实体映射字典，用于存储工具名称与对应工具实体的映射关系
 
     def __init__(self, **kwargs: dict[str, Any]) -> None:
         """初始化Provider实例。

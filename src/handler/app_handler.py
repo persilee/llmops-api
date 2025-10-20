@@ -156,7 +156,8 @@ class AppHandler:
 
     @route("/ping", methods=["GET"])
     def ping(self) -> Response:
-        google_serper = self.provider_factory.get_tool("google", "google_serper")()
-        print(google_serper)
-        print(google_serper.invoke("python"))
-        return success_json({"content": "pong"})
+        providers = self.provider_factory.get_provider_entities()
+
+        return success_json(
+            {"content": [provider.model_dump() for provider in providers]},
+        )

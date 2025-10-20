@@ -12,7 +12,7 @@ class GoogleSerperArgsSchema(BaseModel):
     query: str = Field(description="搜索关键词")
 
 
-def google_serper(**kwargs: dict[str, Any]) -> BaseTool:  # noqa: ARG001
+def google_serper(**kwargs: dict[str, Any]) -> BaseTool:
     """谷歌 serper 搜索"""
     return GoogleSerperRun(
         name="google_serper",

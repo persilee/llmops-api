@@ -1,0 +1,4 @@
+name: duckduckgo_search
+label: DuckDuckGo搜索
+description: DuckDuckGo 是一个隐私友好的搜索引擎，不跟踪用户搜索历史。
+params: []

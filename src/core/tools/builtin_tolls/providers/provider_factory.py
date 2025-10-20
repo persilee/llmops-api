@@ -27,7 +27,7 @@ class ProviderFactory:
         """获取所有服务提供者实例"""
         return list(self.provider_map.values())
 
-    def get_provider_entity(self) -> list[ProviderEntity]:
+    def get_provider_entities(self) -> list[ProviderEntity]:
         """获取所有服务提供者实体"""
         return [provider.provider_entity for provider in self.provider_map.values()]
 
