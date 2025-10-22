@@ -1,0 +1,29 @@
+获取提供商图标
+---
+tags:
+  - 内置工具
+summary: 获取提供商图标
+description:
+operationId: get_provider_icon
+parameters:
+  - in: path
+    name: provider_name
+    schema:
+      type: string
+      default: "google"
+    required: true
+    description: 提供商名称
+responses:
+  "200":
+    description: 获取图标成功
+    content:
+      image/svg+xml:
+        schema:
+          type: string
+          format: binary
+          description: 提供商图标
+  x-200:
+    content:
+      application/json:
+        schema:
+          $ref: "#/components/schemas/BaseRespBody"

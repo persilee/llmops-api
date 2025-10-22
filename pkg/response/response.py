@@ -9,6 +9,17 @@ from pkg.response.http_code import HttpCode
 
 @dataclass
 class Response:
+    """API响应封装类
+
+    用于统一API响应格式，包含状态码、消息和数据
+
+    Attributes:
+        code (HttpCode): HTTP状态码，默认为SUCCESS
+        message (str): 响应消息，默认为空字符串
+        data (Any): 响应数据，默认为空字典
+
+    """
+
     code: HttpCode = HttpCode.SUCCESS
     message: str = ""
     data: Any = field(default_factory=dict)

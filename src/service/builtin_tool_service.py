@@ -1,11 +1,14 @@
+import mimetypes
 from dataclasses import dataclass
 from typing import Any
 
 from injector import inject
 from pydantic import BaseModel
 
-from src.core.tools.builtin_tolls.providers import BuiltinProviderManager
+from src.core.tools.builtin_tools.categories import BuiltinCategoryManager
+from src.core.tools.builtin_tools.providers import BuiltinProviderManager
 from src.exception.exception import NotFoundException
+from src.lib.helper import get_root_path
 
 
 @inject
@@ -26,6 +29,7 @@ class BuiltinToolService:
     """
 
     builtin_provider_manager: BuiltinProviderManager
+    builtin_category_manager: BuiltinCategoryManager
 
     def get_builtin_tools(self) -> list[dict[str, Any]]:
         """获取所有内置工具的列表
@@ -150,3 +154,81 @@ class BuiltinToolService:
             "created_at": provider_entity.created_at,
             "inputs": self._build_tool_inputs(provider, tool_name),
         }
+
+    def get_provider_icon(self, provider_name: str) -> tuple[bytes, str]:
+        """获取指定提供商的图标文件内容和MIME类型
+
+        Args:
+            provider_name (str): 提供商名称
+
+        Returns:
+            tuple[bytes, str]: 返回一个元组，包含图标文件的字节数据和对应的MIME类型
+
+        Raises:
+            NotFoundException: 当提供商不存在或图标文件不存在时抛出
+
+        """
+        # 获取指定的提供商实例
+        provider = self.builtin_provider_manager.get_provider(provider_name)
+        # 检查提供商是否存在
+        if not provider:
+            error_message = f"提供商{provider_name}不存在"
+            # 如果提供商不存在，抛出 NotFoundException 异常
+            raise NotFoundException(error_message)
+
+        # 获取项目根路径
+        root_path = get_root_path()
+        # 构建提供商目录的完整路径
+        provider_path = (
+            root_path
+            / "src"
+            / "core"
+            / "tools"
+            / "builtin_tools"
+            / "providers"
+            / provider_name
+        )
+        # 构建图标文件的完整路径
+        icon_path = provider_path / "_asset" / provider.provider_entity.icon
+        # 检查图标文件是否存在
+        if not icon_path.exists():
+            error_message = f"提供商{provider_name}图标不存在"
+            # 如果图标文件不存在，抛出 NotFoundException 异常
+            raise NotFoundException(error_message)
+
+        # 根据文件扩展名猜测 MIME 类型
+        mimetype, _ = mimetypes.guess_type(icon_path)
+        # 如果无法猜测类型，使用默认的二进制流类型
+        mimetype = mimetype or "application/octet-stream"
+
+        # 以二进制模式打开图标文件
+        with icon_path.open("rb") as f:
+            # 读取文件内容并返回文件字节数据和对应的 MIME 类型
+            return f.read(), mimetype
+
+    def get_categories(self) -> list[str, Any]:
+        """获取所有内置工具的分类信息
+
+        Returns:
+            list[dict]: 返回分类信息列表，每个分类包含以下字段：
+                - name: 分类名称
+                - category: 分类类别
+                - icon: 分类图标
+
+        """
+        # 从分类管理器获取完整的分类映射
+        category_map = self.builtin_category_manager.get_category_map()
+
+        # 将分类映射转换为字典列表格式
+        return [
+            {
+                # 提取分类实体的名称
+                "name": category["entity"].name,
+                # 提取分类实体的类别
+                "category": category["entity"].category,
+                # 提取分类的图标信息
+                "icon": category["icon"],
+            }
+            # 遍历所有分类值
+            for category in category_map.values()
+        ]

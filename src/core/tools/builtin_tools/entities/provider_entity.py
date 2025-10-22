@@ -4,7 +4,7 @@ from typing import Any
 import yaml
 from pydantic import BaseModel, Field
 
-from src.core.tools.builtin_tolls.entities.tool_entity import ToolEntity
+from src.core.tools.builtin_tools.entities.tool_entity import ToolEntity
 from src.lib.helper import dynamic_import
 
 
@@ -129,7 +129,7 @@ class Provider(BaseModel):
 
                     # 动态导入工具函数并添加到映射字典
                     self.tool_func_map[tool_name] = dynamic_import(
-                        f"src.core.tools.builtin_tolls.providers.{self.name}",
+                        f"src.core.tools.builtin_tools.providers.{self.name}",
                         tool_name,
                     )
                 except (FileNotFoundError, yaml.YAMLError, ImportError) as e:

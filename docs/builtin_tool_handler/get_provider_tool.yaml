@@ -4,7 +4,7 @@ tags:
   - 内置工具
 summary: 获取所有内置工具的列表
 description:
-operationId: get_builtin_tools
+operationId: get_provider_tool
 parameters:
   - in: path
     name: provider_name

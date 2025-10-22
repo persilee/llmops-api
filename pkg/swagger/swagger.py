@@ -1,6 +1,5 @@
 import uuid
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import Any
 
 from sqlalchemy import Column, DefaultClause
@@ -17,12 +16,14 @@ from sqlalchemy.sql.sqltypes import (
 )
 from sqlalchemy.sql.type_api import TypeEngine
 
+from src.lib.helper import get_root_path
+
 
 def get_swagger_path(relative_path: str) -> str:
     """获取 Swagger 文档的绝对路径"""
-    # 获取项目根目录（假设 utils 目录在项目根目录下）
-    project_root = Path(__file__).resolve().parent.parent.parent
-    return str(project_root / "docs" / relative_path)
+    # 获取项目根目录
+    root_path = get_root_path()
+    return str(root_path / "docs" / relative_path)
 
 
 def model_to_swagger_schema(model: type[DeclarativeMeta]) -> dict[str, Any]:

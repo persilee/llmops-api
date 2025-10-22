@@ -1,9 +1,11 @@
+import io
 from dataclasses import dataclass
 
 from flasgger import swag_from
+from flask import send_file
 from injector import inject
 
-from pkg.response.response import success_json
+from pkg.response.response import Response, success_json
 from pkg.swagger.swagger import get_swagger_path
 from src.router.redprint import route
 from src.service.builtin_tool_service import BuiltinToolService
@@ -21,7 +23,7 @@ class BuiltinToolHandler:
 
     @route("/", methods=["GET"])
     @swag_from(get_swagger_path("builtin_tool_handler/get_builtin_tools.yaml"))
-    def get_builtin_tools(self) -> list:
+    def get_builtin_tools(self) -> Response:
         """获取所有内置工具列表
 
         Returns:
@@ -37,7 +39,7 @@ class BuiltinToolHandler:
         methods=["GET"],
     )
     @swag_from(get_swagger_path("builtin_tool_handler/get_provider_tool.yaml"))
-    def get_provider_tool(self, provider_name: str, tool_name: str) -> list:
+    def get_provider_tool(self, provider_name: str, tool_name: str) -> Response:
         """获取特定提供者的特定工具
 
         Args:
@@ -54,3 +56,32 @@ class BuiltinToolHandler:
         )
 
         return success_json(builtin_tool)
+
+    @route("/<string:provider_name>/icon", methods=["GET"])
+    @swag_from(get_swagger_path("builtin_tool_handler/get_provider_icon.yaml"))
+    def get_provider_icon(self, provider_name: str) -> Response:
+        """获取特定提供者的图标
+
+        Args:
+            provider_name (str): 提供者名称
+
+        Returns:
+            bytes: 图标数据
+
+        """
+        icon, mimetype = self.builtin_tool_service.get_provider_icon(provider_name)
+
+        return send_file(io.BytesIO(icon), mimetype)
+
+    @route("/categories", methods=["GET"])
+    @swag_from(get_swagger_path("builtin_tool_handler/get_categories.yaml"))
+    def get_categories(self) -> Response:
+        """获取所有内置工具的分类
+
+        Returns:
+            list: 所有内置工具的分类
+
+        """
+        categories = self.builtin_tool_service.get_categories()
+
+        return success_json(categories)
