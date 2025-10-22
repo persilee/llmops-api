@@ -4,11 +4,14 @@ from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field
 
+from src.lib.helper import add_attribute
+
 
 class DDGInput(BaseModel):
     query: str = Field(description="搜索查询字符串")
 
 
+@add_attribute("args_schema", DDGInput)
 def duckduckgo_search(**kwargs: dict[str, Any]) -> BaseTool:
     """创建 DuckDuckGo 搜索工具实例。
 

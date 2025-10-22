@@ -5,6 +5,7 @@ params:
   - name: size
     label: 图像尺寸
     type: array
+    default: 1024x1024
     required: true
     options:
       - value: 1024x1024
@@ -16,6 +17,7 @@ params:
   - name: style
     label: 图片风格
     type: array
+    default: vivid
     required: true
     options:
       - value: vivid

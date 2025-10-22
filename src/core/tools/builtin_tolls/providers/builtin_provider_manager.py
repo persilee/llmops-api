@@ -11,7 +11,7 @@ from src.core.tools.builtin_tolls.entities.provider_entity import Provider
 
 @inject
 @singleton
-class ProviderFactory:
+class BuiltinProviderManager:
     """服务提供者工厂"""
 
     provider_map: ClassVar[dict[str, Provider]] = {}

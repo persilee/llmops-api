@@ -32,7 +32,7 @@ def json(data: Response = None) -> FlaskResponse:
     return jsonify(data)
 
 
-def success_json(data: dict | None = None) -> Response:
+def success_json(data: Any | None = None) -> Response:
     """返回一个表示成功的 JSON 响应。
 
     该函数创建一个包含成功状态码、空消息和可选数据的 Response 对象，
@@ -51,7 +51,7 @@ def success_json(data: dict | None = None) -> Response:
     return json(Response(code=HttpCode.SUCCESS, message="", data=data))
 
 
-def fail_json(data: dict | None = None) -> Response:
+def fail_json(data: Any | None = None) -> Response:
     """返回一个表示失败的JSON响应。
 
     该函数接收一个可选的数据参数，构造一个包含失败状态码的Response对象，

@@ -20,6 +20,7 @@ class ProviderEntity(BaseModel):
     icon: str  # 提供者图标
     background: str  # 提供者背景色
     category: str  # 提供者类别
+    created_at: int = 0  # 提供者创建时间
 
 
 class Provider(BaseModel):

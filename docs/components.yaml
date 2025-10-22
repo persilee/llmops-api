@@ -46,8 +46,13 @@ components:
           type: string
           description: 消息
         data:
-          type: object
-          description: 数据
+          oneOf:
+            - type: object
+              description: 数据
+            - type: array
+              description: 数据
+              items:
+                type: object
       required:
         - code
         - message

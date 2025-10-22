@@ -4,33 +4,39 @@
   icon: google.svg
   background: "#e5e7eb"
   category: 网络搜索
+  created_at: 1761091375
 - name: time
   label: 时间
   description: 时间服务提供商，提供了世界时区、时间转换等功能。
   icon: time.svg
   background: "#e5e7eb"
   category: 生活服务
+  created_at: 1761091375
 - name: duckduckgo
   label: DuckDuckGo
   description: DuckDuckGo 是一个隐私友好的搜索引擎，不跟踪用户搜索历史。
   icon: duckduckgo.svg
   background: "#e5e7eb"
   category: 网络搜索
+  created_at: 1761091375
 - name: dalle
   label: Dalle绘图
   description: Dalle绘图服务提供商，提供了多种绘图工具和模板。
   icon: dalle.svg
   background: "#e5e7eb"
   category: 图形设计
+  created_at: 1761091375
 - name: gaode
   label: 高德工具包
   description: 内置了高德天气预报和 IP 查询功能。
   icon: gaode.svg
   background: "#e5e7eb"
   category: 生活服务
+  created_at: 1761091375
 - name: wikipedia
   label: 维基百科
   description: 维基百科是一个自由的、多语言的在线百科全书，提供各种主题的详细信息和知识。
   icon: wikipedia.svg
   background: "#e5e7eb"
   category: 知识查询
+  created_at: 1761091375
