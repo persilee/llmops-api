@@ -1,8 +1,8 @@
-获取所有内置工具的列表
+获取内置工具
 ---
 tags:
   - 内置工具
-summary: 获取所有内置工具的列表
+summary: 根据工具名称获取内置工具
 description:
 operationId: get_provider_tool
 parameters:
@@ -21,85 +21,84 @@ parameters:
     required: true
     description: 工具名称
 responses:
+  error-200:
+    $ref: "#/components/responses/ErrorResponse"
   "200":
     content:
       application/json:
         schema:
-          allOf:
-            - $ref: "#/components/schemas/BaseRespBody"
-            - type: object
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              required:
+                - "description"
+                - "inputs"
+                - "label"
+                - "name"
+                - "params"
+                - "provider"
               properties:
-                code:
+                created_at:
+                  type: "number"
+                  example: 1761091375
+                description:
                   type: "string"
-                  example: "success"
-                data:
+                  example: "使用谷歌 serper 进行搜索"
+                inputs:
+                  type: "array"
+                  items:
+                    type: "object"
+                    properties:
+                      description:
+                        type: "string"
+                        example: "搜索关键词"
+                      name:
+                        type: "string"
+                        example: "query"
+                      required:
+                        type: "boolean"
+                        example: true
+                      type:
+                        type: "string"
+                        example: "<class 'str'>"
+                label:
+                  type: "string"
+                  example: "谷歌 serper 搜索"
+                name:
+                  type: "string"
+                  example: "google_serper"
+                params:
+                  type: "array"
+                  items:
+                    type: "undefined"
+                  example: []
+                provider:
                   required:
+                    - "background"
+                    - "category"
                     - "description"
-                    - "inputs"
                     - "label"
                     - "name"
-                    - "params"
-                    - "provider"
                   properties:
-                    created_at:
-                      type: "number"
-                      example: 1761091375
+                    background:
+                      type: "string"
+                      example: "#e5e7eb"
+                    category:
+                      type: "string"
+                      example: "网络搜索"
                     description:
                       type: "string"
-                      example: "使用谷歌 serper 进行搜索"
-                    inputs:
-                      type: "array"
-                      items:
-                        type: "object"
-                        properties:
-                          description:
-                            type: "string"
-                            example: "搜索关键词"
-                          name:
-                            type: "string"
-                            example: "query"
-                          required:
-                            type: "boolean"
-                            example: true
-                          type:
-                            type: "string"
-                            example: "<class 'str'>"
+                      example: "Google 服务提供商，涵盖了谷歌搜索、谷歌地图、谷歌日历等众多服务。"
                     label:
                       type: "string"
-                      example: "谷歌 serper 搜索"
+                      example: "google"
                     name:
                       type: "string"
-                      example: "google_serper"
-                    params:
-                      type: "array"
-                      items:
-                        type: "undefined"
-                      example: []
-                    provider:
-                      required:
-                        - "background"
-                        - "category"
-                        - "description"
-                        - "label"
-                        - "name"
-                      properties:
-                        background:
-                          type: "string"
-                          example: "#e5e7eb"
-                        category:
-                          type: "string"
-                          example: "网络搜索"
-                        description:
-                          type: "string"
-                          example: "Google 服务提供商，涵盖了谷歌搜索、谷歌地图、谷歌日历等众多服务。"
-                        label:
-                          type: "string"
-                          example: "google"
-                        name:
-                          type: "string"
-                          example: "google"
-                      type: "object"
+                      example: "google"
                   type: "object"
-                message:
-                  type: "string"
-                  example: ""
+              type: "object"
+            message:
+              type: "string"
+              example: ""

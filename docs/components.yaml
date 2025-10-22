@@ -68,13 +68,12 @@ components:
       required: true
       description: 应用的唯一标识符
   responses:
-    BaseResponse:
-      description: 响应成功
+    ErrorResponse:
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/BaseRespBody"
           example:
             code: "success"
-            message: ""
+            message: "失败信息描述"
             data: {}

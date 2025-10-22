@@ -22,8 +22,5 @@ responses:
           type: string
           format: binary
           description: 提供商图标
-  x-200:
-    content:
-      application/json:
-        schema:
-          $ref: "#/components/schemas/BaseRespBody"
+  error-200:
+    $ref: "#/components/responses/ErrorResponse"
