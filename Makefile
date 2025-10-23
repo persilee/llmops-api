@@ -1,4 +1,8 @@
-.PHONY: pipreqs migrate upgrade downgrade
+.PHONY: test pipreqs migrate upgrade downgrade
+
+# 单元测试
+test:
+	uv run pytest tests
 
 # 生成项目依赖文件
 pipreqs:

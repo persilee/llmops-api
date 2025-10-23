@@ -1,6 +1,6 @@
 from asyncio.log import logger
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any
 
 import yaml
 from injector import inject, singleton
@@ -15,7 +15,7 @@ from src.core.tools.builtin_tools.entities.provider_entity import Provider
 class BuiltinProviderManager(BaseModel):
     """服务提供者工厂"""
 
-    provider_map: ClassVar[dict[str, Provider]] = Field(default_factory=dict)
+    provider_map: dict[str, Provider] = Field(default_factory=dict)
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)

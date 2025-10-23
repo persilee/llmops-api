@@ -1,6 +1,7 @@
 {
   "cSpell.words": [
     "adcode",
+    "addopts",
     "AIDALLE",
     "apidocs",
     "DALL",
@@ -17,6 +18,7 @@
     "Redprint",
     "serper",
     "sqla",
+    "testpaths",
     "uiversion",
     "vectorstores"
   ],
@@ -38,10 +40,95 @@
   ],
   "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python3.12",
   "python.analysis.autoImportCompletions": true,
+  "python.analysis.suggestFromUnimportedModules": true,
   "python.pythonPath": "${workspaceFolder}/.venv/bin/python3.12",
   "python.venvPath": "${workspaceFolder}/.venv",
   "python.languageServer": "Pylance",
   "python.analysis.diagnosticMode": "workspace",
   "python.analysis.userFileIndexingLimit": -1,
-  "python.analysis.indexing": true
+  "python.analysis.indexing": true,
+  "python.testing.pytestArgs": ["."],
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true,
+  "python.analysis.packageIndexDepths": [
+    // LangChain 核心包
+    {
+      "name": "langchain",
+      "depth": 6
+    },
+    {
+      "name": "langchain_core",
+      "depth": 6
+    },
+    {
+      "name": "langgraph",
+      "depth": 6
+    },
+
+    // LangChain 组件包
+    {
+      "name": "langchain.agents",
+      "depth": 5
+    },
+    {
+      "name": "langchain.chains",
+      "depth": 5
+    },
+    {
+      "name": "langchain.chat_models",
+      "depth": 4
+    },
+    {
+      "name": "langchain.embeddings",
+      "depth": 4
+    },
+    {
+      "name": "langchain.llms",
+      "depth": 4
+    },
+    {
+      "name": "langchain.memory",
+      "depth": 4
+    },
+    {
+      "name": "langchain.prompts",
+      "depth": 4
+    },
+    {
+      "name": "langchain.tools",
+      "depth": 5
+    },
+    {
+      "name": "langchain.vectorstores",
+      "depth": 5
+    },
+
+    // LangChain 社区包
+    {
+      "name": "langchain_community",
+      "depth": 5
+    },
+
+    // LangChain 实验性功能
+    {
+      "name": "langchain_experimental",
+      "depth": 4
+    },
+
+    // 常用集成包
+    {
+      "name": "langchain_openai",
+      "depth": 4
+    },
+    {
+      "name": "langchain_anthropic",
+      "depth": 4
+    },
+
+    // 默认设置（其他包）
+    {
+      "name": "*",
+      "depth": 3
+    }
+  ]
 }

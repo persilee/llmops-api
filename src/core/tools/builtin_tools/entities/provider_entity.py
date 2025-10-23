@@ -55,9 +55,6 @@ class Provider(BaseModel):
         super().__init__(**kwargs)
         self._provider_init()  # 调用提供者初始化方法，加载工具配置和函数
 
-    class Config:
-        protected_namespaces = ()
-
     def get_tool(self, tool_name: str) -> Any:
         """获取指定名称的工具函数。
 
