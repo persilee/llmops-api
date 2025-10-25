@@ -64,7 +64,10 @@
       "name": "langgraph",
       "depth": 6
     },
-
+    {
+      "name": "pydantic",
+      "depth": 6
+    },
     // LangChain 组件包
     {
       "name": "langchain.agents",
@@ -102,19 +105,16 @@
       "name": "langchain.vectorstores",
       "depth": 5
     },
-
     // LangChain 社区包
     {
       "name": "langchain_community",
       "depth": 5
     },
-
     // LangChain 实验性功能
     {
       "name": "langchain_experimental",
       "depth": 4
     },
-
     // 常用集成包
     {
       "name": "langchain_openai",
@@ -124,7 +124,10 @@
       "name": "langchain_anthropic",
       "depth": 4
     },
-
+    {
+      "name": "wtforms",
+      "depth": 5
+    },
     // 默认设置（其他包）
     {
       "name": "*",

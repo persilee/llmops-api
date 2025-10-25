@@ -22,5 +22,5 @@ responses:
           type: string
           format: binary
           description: 提供商图标
-  error-200:
-    $ref: "#/components/responses/ErrorResponse"
+  x-200:
+    $ref: "#/components/responses/BaseResponse"

@@ -6,8 +6,8 @@ summary: 获取内置工具分类信息
 description:
 operationId: get_categories
 responses:
-  error-200:
-    $ref: "#/components/responses/ErrorResponse"
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
   "200":
     content:
       application/json:

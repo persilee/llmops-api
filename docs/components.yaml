@@ -48,9 +48,9 @@ components:
         data:
           oneOf:
             - type: object
-              description: 数据
+              description: "{} 数据"
             - type: array
-              description: 数据
+              description: "[] 数据"
               items:
                 type: object
       required:
@@ -68,7 +68,7 @@ components:
       required: true
       description: 应用的唯一标识符
   responses:
-    ErrorResponse:
+    BaseResponse:
       content:
         application/json:
           schema:

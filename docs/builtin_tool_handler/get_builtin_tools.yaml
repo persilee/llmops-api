@@ -6,8 +6,8 @@ summary: 获取所有内置工具的列表
 description:
 operationId: get_builtin_tools
 responses:
-  error-200:
-    $ref: "#/components/responses/ErrorResponse"
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
   "200":
     content:
       application/json:

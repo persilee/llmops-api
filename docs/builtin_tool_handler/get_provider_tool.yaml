@@ -21,8 +21,8 @@ parameters:
     required: true
     description: 工具名称
 responses:
-  error-200:
-    $ref: "#/components/responses/ErrorResponse"
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
   "200":
     content:
       application/json:
