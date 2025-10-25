@@ -1,0 +1,80 @@
+创建自定义 API 工具
+---
+tags:
+  - 自定义 API 工具
+summary: 创建自定义 API 工具
+description: |
+  **创建API工具所需的表单数据**
+
+  **属性:**
+
+  name (StringField): 工具名称字段
+  - 必填字段
+  - 长度限制在1-30个字符之间
+
+  icon (StringField): 工具图标URL字段
+  - 必填字段
+  - 必须是有效的URL格式
+
+  openapi_schema (StringField): OpenAPI Schema字符串字段
+  - 必填字段
+  - 用于接收OpenAPI格式的API文档字符串
+  - 可参考 validate-openapi-schema 接口的验证规则
+
+  headers (ListField): HTTP请求头字段
+  - 可选字段
+  - 必须是包含key和value的字典列表
+operationId: create_api_tool
+requestBody:
+  content:
+    application/json:
+      schema:
+        type: object
+        required:
+          - "name"
+          - "icon"
+          - "openapi_schema"
+          - "headers"
+        properties:
+          name:
+            type: "string"
+            example: "自定义工具包"
+          icon:
+            type: "string"
+            example: "https://lishaoy.net/icon.svg"
+          openapi_schema:
+            type: "string"
+            example: '{ "server": "https://baidu.com",  "description": "123",  "paths": {    "/location": {      "get": {        "description": "获取本地位置",        "operationId": "xxx",        "parameters": [          {            "name": "location",            "in": "query",            "description": "参数描述",            "required": "true",            "type": "str"          }        ]      }    }  }}'
+          headers:
+            type: "array"
+            items:
+              type: "object"
+              properties:
+                key:
+                  type: "string"
+                  example: "Authorization"
+                value:
+                  type: "string"
+                  example: "Bearer Token"
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "validate_error"
+            data:
+              required: []
+              properties: {}
+              type: "object"
+            message:
+              type: "string"
+              example: "自定义API工具创建成功"

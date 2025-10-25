@@ -10,7 +10,7 @@ from pkg.response.response import (
 )
 from pkg.swagger.swagger import get_swagger_path
 from src.router.redprint import route
-from src.schemas.api_tool_schema import ValidateOpenAPISchemaReq
+from src.schemas.api_tool_schema import CreateApiToolReq, ValidateOpenAPISchemaReq
 from src.service.api_tool_service import ApiToolService
 
 
@@ -46,3 +46,22 @@ class ApiToolHandler:
 
         # 返回成功响应
         return success_message_json("数据效验成功")
+
+    @route("/create-api-tool", methods=["POST"])
+    @swag_from(get_swagger_path("api_tool_handler/create_api_tool.yaml"))
+    def create_api_tool(self) -> Response:
+        """创建自定义API工具接口
+
+        接收POST请求，根据传入的参数创建新的自定义API工具
+
+        Returns:
+            Response: 返回创建结果，成功时返回成功消息，失败时返回错误信息
+
+        """
+        req = CreateApiToolReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        self.api_tool_service.create_api_tool(req)
+
+        return success_message_json("自定义API工具创建成功")

@@ -11,6 +11,7 @@
     "dotenv",
     "duckduckgo",
     "flasgger",
+    "formdata",
     "gaode",
     "goade",
     "huggingface",
@@ -20,6 +21,7 @@
     "sqla",
     "testpaths",
     "uiversion",
+    "valuelist",
     "vectorstores"
   ],
   "files.exclude": {

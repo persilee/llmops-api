@@ -48,9 +48,9 @@ components:
         data:
           oneOf:
             - type: object
-              description: "{} 数据"
+              description: "object 数据"
             - type: array
-              description: "[] 数据"
+              description: "array 数据"
               items:
                 type: object
       required:
