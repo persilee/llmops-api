@@ -15,7 +15,7 @@ from src.router.redprint import route
 from src.schemas.api_tool_schema import (
     CreateApiToolReq,
     GetApiToolProviderResp,
-    ValidateGetToolAPIProviderReq,
+    GetApiToolResp,
     ValidateOpenAPISchemaReq,
 )
 from src.service.api_tool_service import ApiToolService
@@ -73,7 +73,7 @@ class ApiToolHandler:
 
         return success_message_json("自定义API工具创建成功")
 
-    @route("/get-api-tool-provider/<provider_id>", methods=["GET"])
+    @route("/get-api-tool-provider/<uuid:provider_id>", methods=["GET"])
     @swag_from(get_swagger_path("api_tool_handler/get_api_tool_provider.yaml"))
     def get_api_tool_provider(self, provider_id: UUID) -> Response:
         """获取API工具提供者信息接口
@@ -87,12 +87,29 @@ class ApiToolHandler:
             Response: 返回获取结果，成功时返回提供者详细信息，失败时返回错误信息
 
         """
-        req = ValidateGetToolAPIProviderReq(data={"provider_id": provider_id})
-        if not req.validate():
-            return validate_error_json(req.errors)
-
         api_tool_provider = self.api_tool_service.get_api_tool_provider(provider_id)
 
         resp = GetApiToolProviderResp()
 
         return success_json(resp.dump(api_tool_provider))
+
+    @route("/get-api-tool/<uuid:provider_id>/tools/<string:tool_name>", methods=["GET"])
+    @swag_from(get_swagger_path("api_tool_handler/get_api_tool.yaml"))
+    def get_api_tool(self, provider_id: UUID, tool_name: str) -> Response:
+        """获取API工具信息接口
+
+        通过提供者ID和工具名称获取对应的API工具详细信息
+
+        Args:
+            provider_id (UUID): API工具提供者的唯一标识符
+            tool_name (str): API工具的名称
+
+        Returns:
+            Response: 返回获取结果，成功时返回工具详细信息，失败时返回错误信息
+
+        """
+        api_tool = self.api_tool_service.get_api_tool(provider_id, tool_name)
+
+        resp = GetApiToolResp()
+
+        return success_json(resp.dump(api_tool))

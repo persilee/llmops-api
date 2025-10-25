@@ -11,6 +11,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB
 
 from src.extension.database_extension import db
+from src.model.api_tool_provider import ApiToolProvider
 from src.schemas.swag_schema import swagger_schema
 
 
@@ -84,3 +85,7 @@ class ApiTool(db.Model):
         server_default=text("CURRENT_TIMESTAMP(0)"),
         info={"description": "创建时间"},
     )
+
+    @property
+    def provider(self) -> "ApiToolProvider":
+        return db.session.query(ApiToolProvider).get(self.provider_id)

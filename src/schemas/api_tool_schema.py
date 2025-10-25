@@ -1,27 +1,11 @@
 from flask_wtf import FlaskForm
 from marshmallow import Schema, fields, pre_dump
 from wtforms import StringField, ValidationError
-from wtforms.validators import URL, UUID, DataRequired, Length
+from wtforms.validators import URL, DataRequired, Length
 
+from src.model.api_tool import ApiTool
 from src.model.api_tool_provider import ApiToolProvider
 from src.schemas.schema import ListField
-
-
-class ValidateGetToolAPIProviderReq(FlaskForm):
-    """获取工具API提供者请求的表单验证类
-
-    用于验证获取特定工具API提供者时的请求参数
-    """
-
-    provider_id = StringField(
-        "provider_id",
-        validators=[
-            DataRequired(message="provider_id不能为空"),  # 验证provider_id字段不能为空
-            UUID(
-                message="provider_id必须是有效的UUID格式",
-            ),  # 验证provider_id必须是有效的UUID格式
-        ],
-    )
 
 
 class ValidateOpenAPISchemaReq(FlaskForm):
@@ -140,4 +124,49 @@ class GetApiToolProviderResp(Schema):
             "openapi_schema": data.openapi_schema,
             "headers": data.headers,
             "created_at": int(data.created_at.timestamp()),
+        }
+
+
+class GetApiToolResp(Schema):
+    """API工具响应模式类，用于序列化API工具数据"""
+
+    id = fields.UUID()  # 工具的唯一标识符
+    name = fields.String()  # 工具名称
+    description = fields.String()  # 工具描述
+    inputs = fields.List(fields.Dict, default=[])  # 工具输入参数列表
+    provider = fields.Dict()  # 工具提供者信息
+
+    @pre_dump
+    def process_data(self, data: ApiTool, **kwargs: dict) -> dict:
+        """在序列化前处理API工具数据
+
+        Args:
+            data: ApiTool对象，包含工具的基本信息和参数
+            **kwargs: 额外的关键字参数
+
+        Returns:
+            dict: 处理后的工具数据字典，包含以下字段：
+                - id: 工具ID
+                - name: 工具名称
+                - description: 工具描述
+                - inputs: 处理后的输入参数列表（移除了"in"字段）
+                - provider: 提供者详细信息，包括ID、名称、图标、描述和请求头配置
+
+        """
+        provider = data.provider
+        return {
+            "id": data.id,
+            "name": data.name,
+            "description": data.description,
+            "inputs": [
+                {k: v for k, v in parameter.items() if k != "in"}
+                for parameter in data.parameters
+            ],
+            "provider": {
+                "id": provider.id,
+                "name": provider.name,
+                "icon": provider.icon,
+                "description": provider.description,
+                "headers": provider.headers,
+            },
         }

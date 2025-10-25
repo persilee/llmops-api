@@ -20,6 +20,45 @@ class ApiToolService:
 
     db: SQLAlchemy
 
+    def get_api_tool(self, provider_id: UUID, tool_name: str) -> ApiTool:
+        """根据提供者ID和工具名称获取API工具。
+
+        Args:
+            provider_id (UUID): API工具提供者的唯一标识符
+            tool_name (str): API工具的名称
+
+        Returns:
+            ApiTool: 查询到的API工具对象
+
+        Raises:
+            ValidateErrorException: 当API工具不存在或无权限访问时抛出
+
+        Note:
+            当前使用硬编码的账户ID进行权限验证，实际应用中应该从认证信息中获取
+
+        """
+        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
+        account_id = (
+            "9495d2e2-2e7a-4484-8447-03f6b24627f7"  # 临时硬编码的账户ID，用于权限验证
+        )
+
+        # 使用SQLAlchemy查询API工具
+        api_tool = (
+            self.db.session.query(ApiTool)  # 创建ApiTool模型的查询对象
+            .filter_by(
+                provider_id=provider_id,  # 根据提供者ID筛选
+                name=tool_name,  # 根据工具名称筛选
+            )
+            .one_or_none()  # 返回单个结果或None
+        )
+
+        # 验证API工具是否存在且属于当前账户
+        if api_tool is None or str(api_tool.account_id) != account_id:
+            error_msg = f"API工具 {tool_name} 不存在"  # 构造错误信息
+            raise ValidateErrorException(error_msg)  # 抛出验证错误异常
+
+        return api_tool  # 返回查询到的API工具对象
+
     def get_api_tool_provider(self, provider_id: UUID) -> ApiToolProvider:
         """根据提供者ID获取API工具提供者信息。
 
