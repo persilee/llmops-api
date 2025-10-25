@@ -25,6 +25,7 @@ dependencies = [
     "langchain-weaviate>=0.0.5",
     "unstructured>=0.18.15",
     "markdown>=3.9",
+    "marshmallow>=3.26.1",
 ]
 
 [tool.rye.scripts]
@@ -57,4 +58,5 @@ ignore = [
     "S101",
     "TD002",
     "TD003",
+    "FIX002",
 ]

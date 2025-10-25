@@ -1,16 +1,23 @@
 from dataclasses import dataclass
+from uuid import UUID
 
 from flasgger import swag_from
 from injector import inject
 
 from pkg.response.response import (
     Response,
+    success_json,
     success_message_json,
     validate_error_json,
 )
 from pkg.swagger.swagger import get_swagger_path
 from src.router.redprint import route
-from src.schemas.api_tool_schema import CreateApiToolReq, ValidateOpenAPISchemaReq
+from src.schemas.api_tool_schema import (
+    CreateApiToolReq,
+    GetApiToolProviderResp,
+    ValidateGetToolAPIProviderReq,
+    ValidateOpenAPISchemaReq,
+)
 from src.service.api_tool_service import ApiToolService
 
 
@@ -65,3 +72,27 @@ class ApiToolHandler:
         self.api_tool_service.create_api_tool(req)
 
         return success_message_json("自定义API工具创建成功")
+
+    @route("/get-api-tool-provider/<provider_id>", methods=["GET"])
+    @swag_from(get_swagger_path("api_tool_handler/get_api_tool_provider.yaml"))
+    def get_api_tool_provider(self, provider_id: UUID) -> Response:
+        """获取API工具提供者信息接口
+
+        通过提供者ID获取对应的API工具提供者详细信息
+
+        Args:
+            provider_id (UUID): API工具提供者的唯一标识符
+
+        Returns:
+            Response: 返回获取结果，成功时返回提供者详细信息，失败时返回错误信息
+
+        """
+        req = ValidateGetToolAPIProviderReq(data={"provider_id": provider_id})
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        api_tool_provider = self.api_tool_service.get_api_tool_provider(provider_id)
+
+        resp = GetApiToolProviderResp()
+
+        return success_json(resp.dump(api_tool_provider))

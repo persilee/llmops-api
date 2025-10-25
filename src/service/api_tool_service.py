@@ -1,6 +1,7 @@
 import json
 from dataclasses import dataclass
 from typing import Any
+from uuid import UUID
 
 from injector import inject
 
@@ -18,6 +19,34 @@ class ApiToolService:
     """API工具服务类，用于处理OpenAPI规范相关的操作"""
 
     db: SQLAlchemy
+
+    def get_api_tool_provider(self, provider_id: UUID) -> ApiToolProvider:
+        """根据提供者ID获取API工具提供者信息。
+
+        Args:
+            provider_id (UUID): API工具提供者的唯一标识符
+
+        Returns:
+            ApiToolProvider: API工具提供者对象
+
+        Raises:
+            ValidateErrorException: 当API工具提供者不存在或不属于当前账户时抛出
+
+        """
+        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
+        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
+
+        # 根据provider_id查询API工具提供者
+        api_tool_provider = self.db.session.query(ApiToolProvider).get(provider_id)
+        # 验证API工具提供者是否存在且属于当前账户
+        if api_tool_provider is None or str(api_tool_provider.account_id) != account_id:
+            # 构造错误信息
+            error_msg = f"API工具提供者不存在: {provider_id}"
+            # 抛出验证错误异常
+            raise ValidateErrorException(error_msg)
+
+        # 返回查询到的API工具提供者
+        return api_tool_provider
 
     @classmethod
     def _validate_dict_format(cls, data: Any) -> None:
@@ -74,7 +103,7 @@ class ApiToolService:
             None
 
         """
-        # 设置账户ID，实际应用中应该从认证信息中获取
+        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
         account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
         # 解析OpenAPI schema字符串为结构化对象
         openapi_schema = self.parse_openapi_schema(req.openapi_schema.data)

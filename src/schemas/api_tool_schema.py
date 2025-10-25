@@ -1,8 +1,27 @@
 from flask_wtf import FlaskForm
+from marshmallow import Schema, fields, pre_dump
 from wtforms import StringField, ValidationError
-from wtforms.validators import URL, DataRequired, Length
+from wtforms.validators import URL, UUID, DataRequired, Length
 
+from src.model.api_tool_provider import ApiToolProvider
 from src.schemas.schema import ListField
+
+
+class ValidateGetToolAPIProviderReq(FlaskForm):
+    """获取工具API提供者请求的表单验证类
+
+    用于验证获取特定工具API提供者时的请求参数
+    """
+
+    provider_id = StringField(
+        "provider_id",
+        validators=[
+            DataRequired(message="provider_id不能为空"),  # 验证provider_id字段不能为空
+            UUID(
+                message="provider_id必须是有效的UUID格式",
+            ),  # 验证provider_id必须是有效的UUID格式
+        ],
+    )
 
 
 class ValidateOpenAPISchemaReq(FlaskForm):
@@ -85,3 +104,40 @@ class CreateApiToolReq(FlaskForm):
             if set(header.keys()) != {"key", "value"}:
                 error_msg = "每个header字典必须包含key和value字段"
                 raise ValidationError(error_msg)
+
+
+class GetApiToolProviderResp(Schema):
+    """API工具提供者响应模式类
+
+    用于序列化API工具提供者的响应数据，定义了返回给客户端的数据结构
+    """
+
+    id = fields.UUID()  # 工具提供者的唯一标识符
+    name = fields.String()  # 工具提供者的名称
+    icon = fields.String()  # 工具提供者的图标URL
+    openapi_schema = fields.String()  # OpenAPI规范的模式定义
+    headers = fields.List(fields.Dict(), default=[])  # API请求头配置列表
+    created_at = fields.Integer(default=0)  # 创建时间戳
+
+    @pre_dump
+    def process_data(self, data: ApiToolProvider, **kwargs: dict) -> dict:
+        """处理ApiToolProvider对象数据
+
+        在序列化前将ApiToolProvider对象转换为字典格式
+
+        Args:
+            data: ApiToolProvider对象实例
+            **kwargs: 额外的关键字参数
+
+        Returns:
+            dict: 包含序列化数据的字典
+
+        """
+        return {
+            "id": data.id,
+            "name": data.name,
+            "icon": data.icon,
+            "openapi_schema": data.openapi_schema,
+            "headers": data.headers,
+            "created_at": int(data.created_at.timestamp()),
+        }
