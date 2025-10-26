@@ -5,6 +5,22 @@ tags:
 summary: 获取 API 工具提供商列表
 description:
 operationId: get_api_tool_providers_with_page
+parameters:
+  - name: current_page
+    in: query
+    description: 当前页码
+    schema:
+      type: number
+  - name: page_size
+    in: query
+    description: 每页的条数
+    schema:
+      type: number
+  - name: search_word
+    in: query
+    description: 搜索关键词
+    schema:
+      type: string
 responses:
   x-200:
     $ref: "#/components/responses/BaseResponse"

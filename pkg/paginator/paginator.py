@@ -77,7 +77,7 @@ class Paginator:
             select,
             page=self.current_page,
             per_page=self.page_size,
-            error_out=True,
+            error_out=False,
         )
 
         self.total_record = p.total

@@ -20,6 +20,7 @@ from src.schemas.api_tool_schema import (
     GetApiToolProvidersWithPageReq,
     GetApiToolProvidersWithPageResp,
     GetApiToolResp,
+    UpdateApiToolProviderReq,
     ValidateOpenAPISchemaReq,
 )
 from src.service.api_tool_service import ApiToolService
@@ -170,3 +171,27 @@ class ApiToolHandler:
         return success_json(
             PageModel(list=resp.dump(api_tool_providers), paginator=paginator),
         )
+
+    @route("/<uuid:provider_id>", methods=["POST"])
+    @swag_from(get_swagger_path("api_tool_handler/update_api_tool_provider.yaml"))
+    def update_api_tool_provider(self, provider_id: UUID) -> Response:
+        """更新API工具提供者信息
+
+        Args:
+            provider_id (UUID): API工具提供者的唯一标识符
+
+        Returns:
+            Response: 更新操作的响应结果，成功时返回成功消息
+
+        """
+        # 创建更新请求对象
+        req = UpdateApiToolProviderReq()
+        # 验证请求数据
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        # 调用服务层执行更新操作
+        self.api_tool_service.update_api_tool_provider(provider_id, req)
+
+        # 返回成功响应
+        return success_message_json("更新成功")

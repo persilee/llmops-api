@@ -11,7 +11,11 @@ from pkg.sqlalchemy.sqlalchemy import SQLAlchemy
 from src.core.tools.api_tool.entities.openapi_schema import OpenAPISchema
 from src.exception.exception import NotFoundException, ValidateErrorException
 from src.model.api_tool import ApiTool, ApiToolProvider
-from src.schemas.api_tool_schema import CreateApiToolReq, GetApiToolProvidersWithPageReq
+from src.schemas.api_tool_schema import (
+    CreateApiToolReq,
+    GetApiToolProvidersWithPageReq,
+    UpdateApiToolProviderReq,
+)
 
 
 @inject
@@ -20,6 +24,79 @@ class ApiToolService:
     """API工具服务类，用于处理OpenAPI规范相关的操作"""
 
     db: SQLAlchemy
+
+    def update_api_tool_provider(
+        self,
+        provider_id: UUID,
+        req: UpdateApiToolProviderReq,
+    ) -> None:
+        """更新API工具提供者信息
+
+        Args:
+            provider_id: API工具提供者ID
+            req: 更新API工具提供者的请求对象，包含名称、OpenAPI schema、
+            图标和请求头等信息
+
+        Raises:
+            ValidateErrorException: 当API工具提供者不存在或名称重复时抛出
+
+        """
+        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
+        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
+
+        # 查询并验证API工具提供者是否存在且属于当前账户
+        provider = self.db.session.query(ApiToolProvider).get(provider_id)
+        if not provider or str(provider.account_id) != account_id:
+            error_msg = f"未找到ID为{provider_id}的API工具提供者"
+            raise ValidateErrorException(error_msg)
+
+        # 解析OpenAPI schema字符串为结构化对象
+        openapi_schema = self.parse_openapi_schema(req.openapi_schema.data)
+
+        # 检查是否存在同名的API工具提供者
+        check_api_tool_provider = (
+            self.db.session.query(ApiToolProvider)
+            .filter(
+                ApiToolProvider.account_id == account_id,
+                ApiToolProvider.name == req.name.data,
+                ApiToolProvider.id != provider_id,
+            )
+            .one_or_none()
+        )
+        if check_api_tool_provider:
+            error_msg = f"名称为{req.name.data}的API工具提供者已存在"
+            raise ValidateErrorException(error_msg)
+
+        # 使用事务更新API工具提供者和相关API工具
+        with self.db.auto_commit():
+            # 删除原有的API工具记录
+            self.db.session.query(ApiTool).filter(
+                ApiTool.provider_id == provider.id,
+                ApiTool.account_id == account_id,
+            ).delete()
+
+            # 更新API工具提供者的基本信息
+            provider.name = req.name.data
+            provider.openapi_schema = req.openapi_schema.data
+            provider.icon = req.icon.data
+            provider.headers = req.headers.data
+
+            # 遍历OpenAPI schema中的所有路径和方法，创建新的API工具记录
+            for path, path_item in openapi_schema.paths.items():
+                for method, method_item in path_item.items():
+                    # 为每个API方法创建对应的API工具记录
+                    api_tool = ApiTool(
+                        account_id=account_id,
+                        provider_id=provider.id,
+                        name=method_item.get("operationId"),
+                        description=method_item.get("description"),
+                        # 组合服务器基础URL和路径形成完整的API端点
+                        url=f"{openapi_schema.server}{path}",
+                        method=method,
+                        parameters=method_item.get("parameters", []),
+                    )
+                    # 将API工具添加到会话中
+                    self.db.session.add(api_tool)
 
     def get_api_tool_providers_with_page(
         self,
