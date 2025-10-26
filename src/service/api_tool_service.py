@@ -4,13 +4,14 @@ from typing import Any
 from uuid import UUID
 
 from injector import inject
+from sqlalchemy import desc
 
+from pkg.paginator.paginator import Paginator
 from pkg.sqlalchemy.sqlalchemy import SQLAlchemy
 from src.core.tools.api_tool.entities.openapi_schema import OpenAPISchema
 from src.exception.exception import NotFoundException, ValidateErrorException
-from src.model.api_tool import ApiTool
-from src.model.api_tool_provider import ApiToolProvider
-from src.schemas.api_tool_schema import CreateApiToolReq
+from src.model.api_tool import ApiTool, ApiToolProvider
+from src.schemas.api_tool_schema import CreateApiToolReq, GetApiToolProvidersWithPageReq
 
 
 @inject
@@ -19,6 +20,42 @@ class ApiToolService:
     """API工具服务类，用于处理OpenAPI规范相关的操作"""
 
     db: SQLAlchemy
+
+    def get_api_tool_providers_with_page(
+        self,
+        req: GetApiToolProvidersWithPageReq,
+    ) -> tuple[list[Any], Paginator]:
+        """获取API工具提供者分页列表。
+
+        Args:
+            req: 获取API工具提供者分页列表的请求对象，包含分页参数和搜索条件
+
+        Returns:
+            tuple[list[Any], Paginator]: 返回一个元组，包含：
+                - API工具提供者列表
+                - 分页器对象，包含分页相关信息
+
+        """
+        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
+        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
+
+        # 初始化分页器，用于处理分页逻辑
+        paginator = Paginator(db=self.db, req=req)
+        # 构建基础过滤条件，只查询当前账户的API工具提供者
+        filters = [ApiToolProvider.account_id == account_id]
+        # 如果存在搜索关键词，添加名称模糊匹配的过滤条件
+        if req.search_word.data:
+            filters.append(ApiToolProvider.name.ilike(f"%{req.search_word.data}%"))
+
+        # 执行分页查询，应用过滤条件并按创建时间倒序排序
+        api_tool_providers = paginator.paginate(
+            self.db.session.query(ApiToolProvider)
+            .filter(*filters)
+            .order_by(desc("created_at")),
+        )
+
+        # 返回查询结果和分页器对象
+        return api_tool_providers, paginator
 
     def delete_api_tool_provider(self, provider_id: UUID) -> None:
         """删除API工具提供者及其相关的API工具

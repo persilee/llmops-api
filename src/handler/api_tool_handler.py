@@ -2,8 +2,10 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from flasgger import swag_from
+from flask import request
 from injector import inject
 
+from pkg.paginator.paginator import PageModel
 from pkg.response.response import (
     Response,
     success_json,
@@ -15,6 +17,8 @@ from src.router.redprint import route
 from src.schemas.api_tool_schema import (
     CreateApiToolReq,
     GetApiToolProviderResp,
+    GetApiToolProvidersWithPageReq,
+    GetApiToolProvidersWithPageResp,
     GetApiToolResp,
     ValidateOpenAPISchemaReq,
 )
@@ -131,3 +135,38 @@ class ApiToolHandler:
         self.api_tool_service.delete_api_tool_provider(provider_id)
 
         return success_message_json("删除自定义 API 插件成功")
+
+    @route("", methods=["GET"])
+    @swag_from(
+        get_swagger_path("api_tool_handler/get_api_tool_providers_with_page.yaml"),
+    )
+    def get_api_tool_providers_with_page(self) -> Response:
+        """分页获取API工具提供者列表。
+
+        通过请求参数进行分页查询，返回API工具提供者列表和分页信息。
+
+        Returns:
+            Response: 包含分页数据和分页信息的响应对象
+                - 成功时返回分页的API工具提供者列表数据
+                - 验证失败时返回验证错误信息
+
+        """
+        # 从请求参数中创建分页查询请求对象
+        req = GetApiToolProvidersWithPageReq(request.args)
+        # 验证请求数据是否符合要求
+        if not req.validate():
+            # 如果验证失败，返回验证错误信息
+            return validate_error_json(req.errors)
+
+        # 调用服务层方法，获取API工具提供者列表和分页器
+        api_tool_providers, paginator = (
+            self.api_tool_service.get_api_tool_providers_with_page(req)
+        )
+
+        # 创建响应对象，设置many=True表示处理多个对象
+        resp = GetApiToolProvidersWithPageResp(many=True)
+
+        # 返回成功响应，包含分页数据和分页信息
+        return success_json(
+            PageModel(list=resp.dump(api_tool_providers), paginator=paginator),
+        )

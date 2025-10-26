@@ -1,10 +1,10 @@
 from flask_wtf import FlaskForm
 from marshmallow import Schema, fields, pre_dump
 from wtforms import StringField, ValidationError
-from wtforms.validators import URL, DataRequired, Length
+from wtforms.validators import URL, DataRequired, Length, Optional
 
-from src.model.api_tool import ApiTool
-from src.model.api_tool_provider import ApiToolProvider
+from pkg.paginator.paginator import PaginatorReq
+from src.model.api_tool import ApiTool, ApiToolProvider
 from src.schemas.schema import ListField
 
 
@@ -169,4 +169,68 @@ class GetApiToolResp(Schema):
                 "description": provider.description,
                 "headers": provider.headers,
             },
+        }
+
+
+class GetApiToolProvidersWithPageReq(PaginatorReq):
+    """分页获取API工具提供者的请求参数类"""
+
+    # 搜索关键词，用于筛选工具提供者
+    search_word = StringField(
+        "search_word",
+        validators=[Optional()],
+    )
+
+
+class GetApiToolProvidersWithPageResp(Schema):
+    """API工具提供者分页查询响应模式类
+
+    用于定义分页查询API工具提供者时的响应数据结构，包含：
+    - 工具提供者基本信息（id、名称、图标等）
+    - 工具提供者的API请求头配置
+    - 工具提供者下的工具列表
+    - 创建时间戳
+    """
+
+    id = fields.UUID()  # 工具提供者的唯一标识符
+    name = fields.String()  # 工具提供者的名称
+    icon = fields.String()  # 工具提供者的图标URL
+    description = fields.String()  # 工具提供者的描述信息
+    headers = fields.List(fields.Dict, default=[])  # API请求头配置列表
+    tools = fields.List(fields.Dict, default=[])  # 工具提供者下的工具列表
+    created_at = fields.Integer(default=0)  # 创建时间戳
+
+    @pre_dump
+    def process_data(self, data: ApiToolProvider, **kwargs: dict) -> dict:
+        """处理API工具提供者数据，转换为响应格式
+
+        Args:
+            data: ApiToolProvider对象，包含工具提供者的原始数据
+            **kwargs: 额外的关键字参数
+
+        Returns:
+            dict: 格式化后的响应数据字典
+
+        """
+        tools = data.tools  # 获取工具提供者下的所有工具
+        return {
+            "id": data.id,
+            "name": data.name,
+            "icon": data.icon,
+            "description": data.description,
+            "headers": data.headers,
+            "tools": [
+                {
+                    "id": tool.id,
+                    "name": tool.name,
+                    "description": tool.description,
+                    # 处理工具参数，过滤掉"in"字段
+                    "inputs": [
+                        {k: v for k, v in parameter.items() if k != "in"}
+                        for parameter in tool.parameters
+                    ],
+                }
+                for tool in tools  # 遍历所有工具，构建工具列表
+            ],
+            "created_at": int(data.created_at.timestamp()),  # 转换时间戳为整数
         }

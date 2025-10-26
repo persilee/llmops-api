@@ -115,9 +115,6 @@ def route(rule: str, **options: Any) -> Callable[[Callable], Callable]:
     if not isinstance(rule, str):
         raise RuleValidationError(str, type(rule).__name__)
 
-    if not rule.startswith("/"):
-        raise ValueError(ErrorMessages.INVALID_URL_PREFIX)
-
     # 验证options中的关键参数
     if "methods" in options:
         if not isinstance(options["methods"], (list, tuple)):

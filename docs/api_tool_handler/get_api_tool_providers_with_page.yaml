@@ -1,0 +1,113 @@
+获取 API 工具提供商列表
+---
+tags:
+  - 自定义 API 工具
+summary: 获取 API 工具提供商列表
+description:
+operationId: get_api_tool_providers_with_page
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              required:
+                - "list"
+                - "paginator"
+              properties:
+                list:
+                  type: "array"
+                  items:
+                    type: "object"
+                    properties:
+                      created_at:
+                        type: "number"
+                        example: 1761362062
+                      description:
+                        type: "string"
+                        example: "123"
+                      headers:
+                        type: "array"
+                        items:
+                          type: "object"
+                          properties:
+                            key:
+                              type: "string"
+                              example: "Authorization"
+                            value:
+                              type: "string"
+                              example: "Bearer Token"
+                      icon:
+                        type: "string"
+                        example: "https://lishaoy.net/icon.svg"
+                      id:
+                        type: "string"
+                        example: "6aa64a60-014b-473b-89d3-4005ac0a825c"
+                      name:
+                        type: "string"
+                        example: "自定义工具包"
+                      tools:
+                        type: "array"
+                        items:
+                          type: "object"
+                          properties:
+                            description:
+                              type: "string"
+                              example: "获取本地位置"
+                            id:
+                              type: "string"
+                              example: "f79d1e0f-b0fd-4c23-a7db-02ea86d39c96"
+                            inputs:
+                              type: "array"
+                              items:
+                                type: "object"
+                                properties:
+                                  description:
+                                    type: "string"
+                                    example: "参数描述"
+                                  name:
+                                    type: "string"
+                                    example: "location"
+                                  required:
+                                    type: "string"
+                                    example: "true"
+                                  type:
+                                    type: "string"
+                                    example: "str"
+                            name:
+                              type: "string"
+                              example: "get_position"
+                paginator:
+                  required:
+                    - "current_page"
+                    - "page_size"
+                    - "total_page"
+                    - "total_record"
+                  properties:
+                    current_page:
+                      type: "number"
+                      example: 1
+                    page_size:
+                      type: "number"
+                      example: 20
+                    total_page:
+                      type: "number"
+                      example: 1
+                    total_record:
+                      type: "number"
+                      example: 1
+                  type: "object"
+              type: "object"
+            message:
+              type: "string"
+              example: ""

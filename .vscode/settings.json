@@ -15,6 +15,7 @@
     "gaode",
     "goade",
     "huggingface",
+    "ilike",
     "llmops",
     "Redprint",
     "serper",
@@ -128,6 +129,10 @@
     },
     {
       "name": "wtforms",
+      "depth": 5
+    },
+    {
+      "name": "wtforms.validators",
       "depth": 5
     },
     // 默认设置（其他包）

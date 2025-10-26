@@ -21,7 +21,7 @@ class BuiltinToolHandler:
 
     builtin_tool_service: BuiltinToolService
 
-    @route("/", methods=["GET"])
+    @route("", methods=["GET"])
     @swag_from(get_swagger_path("builtin_tool_handler/get_builtin_tools.yaml"))
     def get_builtin_tools(self) -> Response:
         """获取所有内置工具列表
