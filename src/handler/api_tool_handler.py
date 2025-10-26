@@ -59,9 +59,9 @@ class ApiToolHandler:
         # 返回成功响应
         return success_message_json("数据效验成功")
 
-    @route("/create-api-tool", methods=["POST"])
-    @swag_from(get_swagger_path("api_tool_handler/create_api_tool.yaml"))
-    def create_api_tool(self) -> Response:
+    @route("/create-api-tool-provider", methods=["POST"])
+    @swag_from(get_swagger_path("api_tool_handler/create_api_tool_provider.yaml"))
+    def create_api_tool_provider(self) -> Response:
         """创建自定义API工具接口
 
         接收POST请求，根据传入的参数创建新的自定义API工具
@@ -74,7 +74,7 @@ class ApiToolHandler:
         if not req.validate():
             return validate_error_json(req.errors)
 
-        self.api_tool_service.create_api_tool(req)
+        self.api_tool_service.create_api_tool_provider(req)
 
         return success_message_json("自定义API工具创建成功")
 

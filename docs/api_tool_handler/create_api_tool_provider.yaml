@@ -1,4 +1,4 @@
-创建自定义 API 工具
+创建自定义 API 工具供应商
 ---
 tags:
   - 自定义 API 工具
@@ -24,7 +24,7 @@ description: |
   headers (ListField): HTTP请求头字段
   - 可选字段
   - 必须是包含key和value的字典列表
-operationId: create_api_tool
+operationId: create_api_tool_provider
 requestBody:
   content:
     application/json:

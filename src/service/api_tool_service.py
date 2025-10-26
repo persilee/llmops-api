@@ -16,11 +16,12 @@ from src.schemas.api_tool_schema import (
     GetApiToolProvidersWithPageReq,
     UpdateApiToolProviderReq,
 )
+from src.service.base_service import BaseService
 
 
 @inject
 @dataclass
-class ApiToolService:
+class ApiToolService(BaseService):
     """API工具服务类，用于处理OpenAPI规范相关的操作"""
 
     db: SQLAlchemy
@@ -45,7 +46,7 @@ class ApiToolService:
         account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
 
         # 查询并验证API工具提供者是否存在且属于当前账户
-        provider = self.db.session.query(ApiToolProvider).get(provider_id)
+        provider = self.get(ApiToolProvider, provider_id)
         if not provider or str(provider.account_id) != account_id:
             error_msg = f"未找到ID为{provider_id}的API工具提供者"
             raise ValidateErrorException(error_msg)
@@ -75,28 +76,30 @@ class ApiToolService:
                 ApiTool.account_id == account_id,
             ).delete()
 
-            # 更新API工具提供者的基本信息
-            provider.name = req.name.data
-            provider.openapi_schema = req.openapi_schema.data
-            provider.icon = req.icon.data
-            provider.headers = req.headers.data
+        # 更新API工具提供者的基本信息
+        self.update(
+            provider,
+            name=req.name.data,
+            icon=req.icon.data,
+            headers=req.headers.data,
+            openapi_schema=req.openapi_schema.data,
+        )
 
-            # 遍历OpenAPI schema中的所有路径和方法，创建新的API工具记录
-            for path, path_item in openapi_schema.paths.items():
-                for method, method_item in path_item.items():
-                    # 为每个API方法创建对应的API工具记录
-                    api_tool = ApiTool(
-                        account_id=account_id,
-                        provider_id=provider.id,
-                        name=method_item.get("operationId"),
-                        description=method_item.get("description"),
-                        # 组合服务器基础URL和路径形成完整的API端点
-                        url=f"{openapi_schema.server}{path}",
-                        method=method,
-                        parameters=method_item.get("parameters", []),
-                    )
-                    # 将API工具添加到会话中
-                    self.db.session.add(api_tool)
+        # 遍历OpenAPI schema中的所有路径和方法，创建新的API工具记录
+        for path, path_item in openapi_schema.paths.items():
+            for method, method_item in path_item.items():
+                # 为每个API方法创建对应的API工具记录
+                self.create(
+                    ApiTool,
+                    account_id=account_id,
+                    provider_id=provider.id,
+                    name=method_item.get("operationId"),
+                    description=method_item.get("description"),
+                    # 组合服务器基础URL和路径形成完整的API端点
+                    url=f"{openapi_schema.server}{path}",
+                    method=method,
+                    parameters=method_item.get("parameters", []),
+                )
 
     def get_api_tool_providers_with_page(
         self,
@@ -147,7 +150,7 @@ class ApiToolService:
         # TODO: 设置账户ID，实际应用中应该从认证信息中获取
         account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
         # 查询API工具提供者
-        api_tool_provider = self.db.session.query(ApiToolProvider).get(provider_id)
+        api_tool_provider = self.get(ApiToolProvider, provider_id)
         # 验证API工具提供者是否存在且属于当前账户
         if api_tool_provider is None or str(api_tool_provider.account_id) != account_id:
             error_msg = f"API工具提供者 {provider_id} 不存在"
@@ -218,7 +221,7 @@ class ApiToolService:
         account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
 
         # 根据provider_id查询API工具提供者
-        api_tool_provider = self.db.session.query(ApiToolProvider).get(provider_id)
+        api_tool_provider = self.get(ApiToolProvider, provider_id)
         # 验证API工具提供者是否存在且属于当前账户
         if api_tool_provider is None or str(api_tool_provider.account_id) != account_id:
             # 构造错误信息
@@ -267,7 +270,7 @@ class ApiToolService:
 
         return OpenAPISchema(**data)
 
-    def create_api_tool(self, req: CreateApiToolReq) -> None:
+    def create_api_tool_provider(self, req: CreateApiToolReq) -> None:
         """创建API工具提供者和相关的API工具
 
         Args:
@@ -303,34 +306,28 @@ class ApiToolService:
             raise ValidateErrorException(error_msg)
 
         # 使用自动提交事务创建API工具提供者和相关API工具
-        with self.db.auto_commit():
-            # 创建API工具提供者记录
-            api_tool_provider = ApiToolProvider(
-                account_id=account_id,
-                name=req.name.data,
-                icon=req.icon.data,
-                openapi_schema=req.openapi_schema.data,
-                description=openapi_schema.description,
-                headers=req.headers.data,
-            )
-            # 将API工具提供者添加到会话中
-            self.db.session.add(api_tool_provider)
-            # 刷新会话以获取新创建的提供者ID
-            self.db.session.flush()
+        api_tool_provider = self.create(
+            ApiToolProvider,
+            account_id=account_id,
+            name=req.name.data,
+            icon=req.icon.data,
+            openapi_schema=req.openapi_schema.data,
+            description=openapi_schema.description,
+            headers=req.headers.data,
+        )
 
-            # 遍历OpenAPI schema中的所有路径和方法
-            for path, path_item in openapi_schema.paths.items():
-                for method, method_item in path_item.items():
-                    # 为每个API方法创建对应的API工具记录
-                    api_tool = ApiTool(
-                        account_id=account_id,
-                        provider_id=api_tool_provider.id,
-                        name=method_item.get("operationId"),
-                        description=method_item.get("description"),
-                        # 组合服务器基础URL和路径形成完整的API端点
-                        url=f"{openapi_schema.server}{path}",
-                        method=method,
-                        parameters=method_item.get("parameters", []),
-                    )
-                    # 将API工具添加到会话中
-                    self.db.session.add(api_tool)
+        # 遍历OpenAPI schema中的所有路径和方法
+        for path, path_item in openapi_schema.paths.items():
+            for method, method_item in path_item.items():
+                # 为每个API方法创建对应的API工具记录
+                self.create(
+                    ApiTool,
+                    account_id=account_id,
+                    provider_id=api_tool_provider.id,
+                    name=method_item.get("operationId"),
+                    description=method_item.get("description"),
+                    # 组合服务器基础URL和路径形成完整的API端点
+                    url=f"{openapi_schema.server}{path}",
+                    method=method,
+                    parameters=method_item.get("parameters", []),
+                )
