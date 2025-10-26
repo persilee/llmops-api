@@ -113,3 +113,21 @@ class ApiToolHandler:
         resp = GetApiToolResp()
 
         return success_json(resp.dump(api_tool))
+
+    @route("/<uuid:provider_id>/delete", methods=["POST"])
+    @swag_from(get_swagger_path("api_tool_handler/delete_api_tool_provider.yaml"))
+    def delete_api_tool_provider(self, provider_id: UUID) -> Response:
+        """删除API工具提供者接口
+
+        通过提供者ID删除对应的API工具提供者
+
+        Args:
+            provider_id (UUID): API工具提供者的唯一标识符
+
+        Returns:
+            Response: 返回删除结果，成功时返回成功信息，失败时返回错误信息
+
+        """
+        self.api_tool_service.delete_api_tool_provider(provider_id)
+
+        return success_message_json("删除自定义 API 插件成功")

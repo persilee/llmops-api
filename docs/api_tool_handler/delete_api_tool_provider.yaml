@@ -1,0 +1,18 @@
+删除指定 API 工具和工具提供商
+---
+tags:
+  - 自定义 API 工具
+summary: 删除指定 API 工具和工具提供商
+description:
+operationId: delete_api_tool_provider
+parameters:
+  - name: provider_id
+    in: path
+    required: true
+    schema:
+      type: string
+      default: "6aa64a60-014b-473b-89d3-4005ac0a825c"
+    format: uuid
+responses:
+  "200":
+    $ref: "#/components/responses/BaseResponse"

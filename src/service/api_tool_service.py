@@ -7,7 +7,7 @@ from injector import inject
 
 from pkg.sqlalchemy.sqlalchemy import SQLAlchemy
 from src.core.tools.api_tool.entities.openapi_schema import OpenAPISchema
-from src.exception.exception import ValidateErrorException
+from src.exception.exception import NotFoundException, ValidateErrorException
 from src.model.api_tool import ApiTool
 from src.model.api_tool_provider import ApiToolProvider
 from src.schemas.api_tool_schema import CreateApiToolReq
@@ -19,6 +19,35 @@ class ApiToolService:
     """API工具服务类，用于处理OpenAPI规范相关的操作"""
 
     db: SQLAlchemy
+
+    def delete_api_tool_provider(self, provider_id: UUID) -> None:
+        """删除API工具提供者及其相关的API工具
+
+        Args:
+            provider_id: API工具提供者的唯一标识符
+
+        Raises:
+            NotFoundException: 当API工具提供者不存在或不属于当前账户时抛出
+
+        """
+        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
+        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
+        # 查询API工具提供者
+        api_tool_provider = self.db.session.query(ApiToolProvider).get(provider_id)
+        # 验证API工具提供者是否存在且属于当前账户
+        if api_tool_provider is None or str(api_tool_provider.account_id) != account_id:
+            error_msg = f"API工具提供者 {provider_id} 不存在"
+            raise NotFoundException(error_msg)
+
+        # 使用自动提交事务删除相关数据
+        with self.db.auto_commit():
+            # 删除该提供者下的所有API工具
+            self.db.session.query(ApiTool).filter(
+                ApiTool.provider_id == provider_id,
+                ApiTool.account_id == account_id,
+            ).delete()
+            # 删除API工具提供者
+            self.db.session.delete(api_tool_provider)
 
     def get_api_tool(self, provider_id: UUID, tool_name: str) -> ApiTool:
         """根据提供者ID和工具名称获取API工具。
@@ -38,9 +67,7 @@ class ApiToolService:
 
         """
         # TODO: 设置账户ID，实际应用中应该从认证信息中获取
-        account_id = (
-            "9495d2e2-2e7a-4484-8447-03f6b24627f7"  # 临时硬编码的账户ID，用于权限验证
-        )
+        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
 
         # 使用SQLAlchemy查询API工具
         api_tool = (
@@ -55,9 +82,10 @@ class ApiToolService:
         # 验证API工具是否存在且属于当前账户
         if api_tool is None or str(api_tool.account_id) != account_id:
             error_msg = f"API工具 {tool_name} 不存在"  # 构造错误信息
-            raise ValidateErrorException(error_msg)  # 抛出验证错误异常
+            raise NotFoundException(error_msg)  # 抛出验证错误异常
 
-        return api_tool  # 返回查询到的API工具对象
+        # 返回查询到的API工具对象
+        return api_tool
 
     def get_api_tool_provider(self, provider_id: UUID) -> ApiToolProvider:
         """根据提供者ID获取API工具提供者信息。
@@ -82,7 +110,7 @@ class ApiToolService:
             # 构造错误信息
             error_msg = f"API工具提供者不存在: {provider_id}"
             # 抛出验证错误异常
-            raise ValidateErrorException(error_msg)
+            raise NotFoundException(error_msg)
 
         # 返回查询到的API工具提供者
         return api_tool_provider

@@ -10,11 +10,13 @@ description: |
   - server 验证: 确保服务地址不为空
   - description 验证: 确保描述信息不为空
   - paths 验证: 确保接口路径定义不为空
+
   ### 接口操作验证
   验证每个接口的基本信息：
   - description: 接口描述（字符串类型，不能为空）
   - operationId: 接口唯一标识（字符串类型，不能为空且唯一）
   - parameters: 参数列表（列表类型，不能为空）
+
   ### 参数验证
   验证每个参数的详细信息：
   - name: 参数名称（字符串类型，不能为空）
@@ -22,6 +24,7 @@ description: |
   - required: 是否必填（布尔类型，不能为空）
   - in: 参数位置（必须是 ParameterIn 枚举值之一）
   - type: 参数类型（必须是 ParameterType 枚举值之一）
+
   例如：
   ```json
   {

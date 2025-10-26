@@ -75,5 +75,5 @@ components:
             $ref: "#/components/schemas/BaseRespBody"
           example:
             code: "success"
-            message: "失败信息描述"
+            message: "操作信息描述"
             data: {}
