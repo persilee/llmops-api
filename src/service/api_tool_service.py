@@ -4,7 +4,7 @@ from typing import Any
 from uuid import UUID
 
 from injector import inject
-from sqlalchemy import desc
+from sqlalchemy import select
 
 from pkg.paginator.paginator import Paginator
 from pkg.sqlalchemy.sqlalchemy import SQLAlchemy
@@ -122,17 +122,14 @@ class ApiToolService(BaseService):
         # 初始化分页器，用于处理分页逻辑
         paginator = Paginator(db=self.db, req=req)
         # 构建基础过滤条件，只查询当前账户的API工具提供者
-        filters = [ApiToolProvider.account_id == account_id]
+        stmt = select(ApiToolProvider).where(ApiToolProvider.account_id == account_id)
         # 如果存在搜索关键词，添加名称模糊匹配的过滤条件
         if req.search_word.data:
-            filters.append(ApiToolProvider.name.ilike(f"%{req.search_word.data}%"))
-
-        # 执行分页查询，应用过滤条件并按创建时间倒序排序
-        api_tool_providers = paginator.paginate(
-            self.db.session.query(ApiToolProvider)
-            .filter(*filters)
-            .order_by(desc("created_at")),
-        )
+            stmt = stmt.where(ApiToolProvider.name.ilike(f"%{req.search_word.data}%"))
+        # 添加过滤条件并按创建时间倒序排序
+        stmt = stmt.order_by(ApiToolProvider.created_at.desc())
+        # 执行分页查询
+        api_tool_providers = paginator.paginate(stmt)
 
         # 返回查询结果和分页器对象
         return api_tool_providers, paginator

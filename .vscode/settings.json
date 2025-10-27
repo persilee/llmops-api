@@ -19,6 +19,7 @@
     "llmops",
     "Redprint",
     "serper",
+    "sessionmaker",
     "sqla",
     "testpaths",
     "uiversion",

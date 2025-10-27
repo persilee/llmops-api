@@ -100,8 +100,8 @@ class GetApiToolProviderResp(Schema):
     name = fields.String()  # 工具提供者的名称
     icon = fields.String()  # 工具提供者的图标URL
     openapi_schema = fields.String()  # OpenAPI规范的模式定义
-    headers = fields.List(fields.Dict(), default=[])  # API请求头配置列表
-    created_at = fields.Integer(default=0)  # 创建时间戳
+    headers = fields.List(fields.Dict(), dump_default=[])  # API请求头配置列表
+    created_at = fields.Integer(dump_default=0)  # 创建时间戳
 
     @pre_dump
     def process_data(self, data: ApiToolProvider, **kwargs: dict) -> dict:
@@ -133,7 +133,7 @@ class GetApiToolResp(Schema):
     id = fields.UUID()  # 工具的唯一标识符
     name = fields.String()  # 工具名称
     description = fields.String()  # 工具描述
-    inputs = fields.List(fields.Dict, default=[])  # 工具输入参数列表
+    inputs = fields.List(fields.Dict, dump_default=[])  # 工具输入参数列表
     provider = fields.Dict()  # 工具提供者信息
 
     @pre_dump
@@ -196,9 +196,9 @@ class GetApiToolProvidersWithPageResp(Schema):
     name = fields.String()  # 工具提供者的名称
     icon = fields.String()  # 工具提供者的图标URL
     description = fields.String()  # 工具提供者的描述信息
-    headers = fields.List(fields.Dict, default=[])  # API请求头配置列表
-    tools = fields.List(fields.Dict, default=[])  # 工具提供者下的工具列表
-    created_at = fields.Integer(default=0)  # 创建时间戳
+    headers = fields.List(fields.Dict, dump_default=[])  # API请求头配置列表
+    tools = fields.List(fields.Dict, dump_default=[])  # 工具提供者下的工具列表
+    created_at = fields.Integer(dump_default=0)  # 创建时间戳
 
     @pre_dump
     def process_data(self, data: ApiToolProvider, **kwargs: dict) -> dict:

@@ -87,7 +87,7 @@ class ApiTool(db.Model):
 
     @property
     def provider(self) -> "ApiToolProvider":
-        return db.session.query(ApiToolProvider).get(self.provider_id)
+        return db.session.get(ApiToolProvider, self.provider_id)
 
 
 @swagger_schema

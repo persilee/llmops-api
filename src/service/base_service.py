@@ -76,4 +76,4 @@ class BaseService:
             Any | None: 找到的模型实例，如果不存在则返回None
 
         """
-        return self.db.session.query(model).get(primary_key)
+        return self.db.session.get(model, primary_key)
