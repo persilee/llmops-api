@@ -59,8 +59,8 @@ class OpenAPISchema(BaseModel):
         description="工具的接口路径参数描述",
     )
 
-    @classmethod
     @field_validator("server", mode="before")
+    @classmethod
     def validate_server(cls, server: str) -> str:
         """验证server字段的有效性
 
@@ -79,8 +79,8 @@ class OpenAPISchema(BaseModel):
             raise ValidateErrorException(error_msg)
         return server
 
-    @classmethod
     @field_validator("description", mode="before")
+    @classmethod
     def validate_description(cls, description: str) -> str:
         """验证description字段的有效性
 
@@ -179,8 +179,8 @@ class OpenAPISchema(BaseModel):
             }
         return normalized_paths
 
-    @classmethod
     @field_validator("paths", mode="before")
+    @classmethod
     def validate_paths(cls, paths: dict[str, dict]) -> dict[str, dict]:
         """验证paths字段的有效性，包括接口路径、方法、参数等"""
         if paths is None or paths == {}:
