@@ -9,6 +9,7 @@ from sqlalchemy import select
 from pkg.paginator.paginator import Paginator
 from pkg.sqlalchemy.sqlalchemy import SQLAlchemy
 from src.core.tools.api_tool.entities.openapi_schema import OpenAPISchema
+from src.core.tools.providers.api_provider_manager import ApiProviderManager
 from src.exception.exception import NotFoundException, ValidateErrorException
 from src.model.api_tool import ApiTool, ApiToolProvider
 from src.schemas.api_tool_schema import (
@@ -25,6 +26,7 @@ class ApiToolService(BaseService):
     """API工具服务类，用于处理OpenAPI规范相关的操作"""
 
     db: SQLAlchemy
+    api_provider_manager: ApiProviderManager
 
     def update_api_tool_provider(
         self,
@@ -328,3 +330,34 @@ class ApiToolService(BaseService):
                     method=method,
                     parameters=method_item.get("parameters", []),
                 )
+
+    def api_tool_invoke(self) -> None:
+        provider_id = "6db32d9b-cf5c-4df8-9ecf-7a4e7339e53e"
+        tool_name = "getWordSuggestions"
+
+        api_tool = (
+            self.db.session.query(ApiTool)
+            .filter(
+                ApiTool.provider_id == provider_id,
+                ApiTool.name == tool_name,
+            )
+            .one_or_none()
+        )
+
+        api_tool_provider = api_tool.provider
+
+        from src.core.tools.api_tool.entities import ToolEntity
+
+        tool = self.api_provider_manager.get_tool(
+            ToolEntity(
+                id=provider_id,
+                name=tool_name,
+                url=api_tool.url,
+                method=api_tool.method,
+                parameters=api_tool.parameters,
+                headers=api_tool_provider.headers,
+                description=api_tool.description,
+            ),
+        )
+
+        return tool.invoke({"q": "dog", "doctype": "json"})

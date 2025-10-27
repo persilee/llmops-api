@@ -14,6 +14,15 @@ class ParameterType(str, Enum):
     BOOL: str = "bool"  # 布尔类型
 
 
+# 参数类型映射字典：将OpenAPI参数类型枚举映射到对应的Python类型
+ParameterTypeMap = {
+    ParameterType.STR: str,  # 字符串类型映射
+    ParameterType.INT: int,  # 整数类型映射
+    ParameterType.FLOAT: float,  # 浮点数类型映射
+    ParameterType.BOOL: bool,  # 布尔类型映射
+}
+
+
 class ParameterIn(str, Enum):
     """API参数位置枚举类"""
 

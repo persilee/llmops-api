@@ -26,6 +26,7 @@ from src.model import App
 from src.router import route
 from src.schemas.app_schema import CompletionReq
 from src.service import AppService, VectorDatabaseService
+from src.service.api_tool_service import ApiToolService
 
 if TYPE_CHECKING:
     from src.model import App
@@ -36,6 +37,7 @@ if TYPE_CHECKING:
 class AppHandler:
     app_service: AppService
     vector_database_service: VectorDatabaseService
+    api_tool_service: ApiToolService
 
     @route("/create", methods=["POST"])
     @swag_from(get_swagger_path("app_handler/create_app.yaml"))
@@ -154,4 +156,5 @@ class AppHandler:
 
     @route("/ping", methods=["GET"])
     def ping(self) -> Response:
-        return success_json({"content": "pong"})
+        # return success_json({"content": "pong"})
+        return self.api_tool_service.api_tool_invoke()
