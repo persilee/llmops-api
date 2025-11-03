@@ -85,8 +85,8 @@ class CreateApiToolReq(FlaskForm):
             if not isinstance(header, dict):
                 error_msg = "headers字段必须是一个字典列表"
                 raise ValidationError(error_msg)
-            if set(header.keys()) != {"key", "value"}:
-                error_msg = "每个header字典必须包含key和value字段"
+            if set(header.keys()) != {"name", "value"}:
+                error_msg = "每个header字典必须包含name和value字段"
                 raise ValidationError(error_msg)
 
 
@@ -294,6 +294,6 @@ class UpdateApiToolProviderReq(FlaskForm):
             if not isinstance(header, dict):
                 error_msg = "headers字段必须是一个字典列表"
                 raise ValidationError(error_msg)
-            if set(header.keys()) != {"key", "value"}:
-                error_msg = "每个header字典必须包含key和value字段"
+            if set(header.keys()) != {"name", "value"}:
+                error_msg = "每个header字典必须包含name和value字段"
                 raise ValidationError(error_msg)

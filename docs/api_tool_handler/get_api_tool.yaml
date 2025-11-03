@@ -84,7 +84,7 @@ responses:
                       items:
                         type: "object"
                         properties:
-                          key:
+                          name:
                             type: "string"
                             example: "Authorization"
                           value:

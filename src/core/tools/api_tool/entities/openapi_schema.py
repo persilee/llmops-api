@@ -1,5 +1,6 @@
 from enum import Enum
 
+import pydash as _
 from pydantic import BaseModel, Field, field_validator
 
 from src.exception.exception import ValidateErrorException
@@ -118,6 +119,14 @@ class OpenAPISchema(BaseModel):
             raise ValidateErrorException(error_msg)
 
     @classmethod
+    def _is_boolean(cls, value) -> bool:
+        if _.is_boolean(value):
+            return True
+        if _.is_string(value):
+            return value.strip().lower() in ("true", "false")
+        return False
+
+    @classmethod
     def _validate_parameter(cls, path: str, method: str, parameter: dict) -> None:
         """验证单个参数的字段"""
         if not isinstance(parameter.get("name"), str):
@@ -131,7 +140,7 @@ class OpenAPISchema(BaseModel):
                 "parameters字段中的description字段不能为空且为字符串"
             )
             raise ValidateErrorException(error_msg)
-        if not isinstance(parameter.get("required"), bool):
+        if not cls._is_boolean(parameter.get("required")):
             error_msg = (
                 f"接口{path}的{method}方法"
                 "parameters字段中的required字段不能为空且为布尔值"

@@ -141,5 +141,7 @@
       "name": "*",
       "depth": 3
     }
-  ]
+  ],
+  "editor.colorDecoratorsActivatedOn": "click",
+  "editor.defaultColorDecorators": "never"
 }

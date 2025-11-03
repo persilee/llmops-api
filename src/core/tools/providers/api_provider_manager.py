@@ -72,7 +72,8 @@ class ApiProviderManager(BaseModel):
             }
             # 创建请求头映射字典，将请求头键映射到对应的值
             header_map = {
-                header.get("key"): header.get("value") for header in tool_entity.headers
+                header.get("name"): header.get("value")
+                for header in tool_entity.headers
             }
 
             # 遍历传入的关键字参数

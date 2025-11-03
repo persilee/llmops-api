@@ -26,6 +26,7 @@ dependencies = [
     "unstructured>=0.18.15",
     "markdown>=3.9",
     "marshmallow>=3.26.1",
+    "pydash>=8.0.5",
 ]
 
 [tool.rye.scripts]

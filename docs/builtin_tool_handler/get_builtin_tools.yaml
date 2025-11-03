@@ -27,6 +27,9 @@ responses:
                   category:
                     type: "string"
                     example: "图形设计"
+                  created_at:
+                    type: "number"
+                    example: 1761091375
                   description:
                     type: "string"
                     example: "Dalle绘图服务提供商，提供了多种绘图工具和模板。"

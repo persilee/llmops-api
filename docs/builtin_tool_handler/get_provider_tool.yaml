@@ -39,6 +39,7 @@ responses:
                 - "name"
                 - "params"
                 - "provider"
+                - "created_at"
               properties:
                 created_at:
                   type: "number"
