@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 import requests
 from injector import inject
-from langchain.tools import BaseTool, StructuredTool
+from langchain_core.tools import BaseTool, StructuredTool
 from pydantic import BaseModel, Field, create_model
 
 from src.core.tools.api_tool.entities.openapi_schema import (

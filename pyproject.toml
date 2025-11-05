@@ -27,6 +27,7 @@ dependencies = [
     "markdown>=3.9",
     "marshmallow>=3.26.1",
     "pydash>=8.0.5",
+    "cos-python-sdk-v5>=1.9.38",
 ]
 
 [tool.rye.scripts]

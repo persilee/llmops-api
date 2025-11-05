@@ -1,0 +1,43 @@
+上传图片
+---
+tags:
+  - 文件管理
+summary: 上传图片接口
+description:
+operationId: upload_image
+requestBody:
+  content:
+    multipart/form-data:
+      schema:
+        type: object
+        properties:
+          file:
+            type: string
+            format: binary
+            description: 图片
+        required:
+          - file
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              properties:
+                url:
+                  type: "string"
+                  example: "https://llmops-dev-1253877543.cos.ap-guangzhou.myqcloud.com/2025/11/05/dd61aaff-a83f-463b-8564-736f379b870b.png"
+              type: "object"
+            message:
+              type: "string"
+              example: ""

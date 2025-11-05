@@ -5,6 +5,7 @@ from injector import inject
 
 from src.handler import AppHandler, BuiltinToolHandler
 from src.handler.api_tool_handler import ApiToolHandler
+from src.handler.upload_file_handler import UploadFileHandler
 from src.router import register_with_class
 
 
@@ -16,6 +17,7 @@ class Router:
     app_handler: AppHandler
     builtin_tool_handler: BuiltinToolHandler
     api_tool_handler: ApiToolHandler
+    upload_file_handler: UploadFileHandler
 
     def register_route(self, app: Flask) -> None:
         """注册路由"""
@@ -24,5 +26,6 @@ class Router:
         register_with_class(self.app_handler, bp, url_prefix="apps")
         register_with_class(self.builtin_tool_handler, bp, url_prefix="builtin-tools")
         register_with_class(self.api_tool_handler, bp, url_prefix="api-tools")
+        register_with_class(self.upload_file_handler, bp, url_prefix="upload-files")
 
         app.register_blueprint(bp)

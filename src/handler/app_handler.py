@@ -6,9 +6,8 @@ from uuid import UUID
 
 from flasgger import swag_from
 from injector import inject
-from langchain.memory import ConversationBufferWindowMemory
 from langchain_community.chat_message_histories import FileChatMessageHistory
-from langchain_core.memory import BaseMemory
+from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import (
@@ -16,7 +15,7 @@ from langchain_core.runnables import (
     RunnableLambda,
     RunnablePassthrough,
 )
-from langchain_core.tracers import Run
+from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_openai import ChatOpenAI
 
 from pkg.response import success_message_json, validate_error_json
@@ -75,27 +74,22 @@ class AppHandler:
     @classmethod
     def _load_memory_variables(
         cls,
-        inputs: dict[str, Any],
+        _inputs: dict[str, Any],
         config: RunnableConfig,
     ) -> dict[str, Any]:
         configurable = config.get("configurable", {})
-        configurable_memory = configurable.get("memory", None)
-        if configurable_memory is not None and isinstance(
-            configurable_memory,
-            BaseMemory,
-        ):
-            return configurable_memory.load_memory_variables(inputs)
-        return {"history", []}
+        session_id = configurable.get("session_id", "")
 
-    @classmethod
-    def _save_context(cls, run_obj: Run, config: RunnableConfig) -> None:
-        configurable = config.get("configurable", {})
-        configurable_memory = configurable.get("memory", None)
-        if configurable_memory is not None and isinstance(
-            configurable_memory,
-            BaseMemory,
-        ):
-            configurable_memory.save_context(run_obj.inputs, run_obj.outputs)
+        if session_id:
+            # 获取对应会话的历史记录
+            history_file = f"./storage/memory/chat_history_{session_id}.json"
+            try:
+                chat_history = FileChatMessageHistory(history_file)
+                messages = chat_history.messages
+            except (FileNotFoundError, OSError, ValueError):
+                messages = []
+
+        return {"history": messages}
 
     @route("/<uuid:app_id>/debug", methods=["POST"])
     @swag_from(get_swagger_path("app_handler/debug.yaml"))
@@ -123,11 +117,8 @@ class AppHandler:
         memory_dir.mkdir(parents=True, exist_ok=True)
         chat_memory = FileChatMessageHistory("./storage/memory/chat_history.json")
 
-        memory = ConversationBufferWindowMemory(
-            k=3,
-            return_messages=True,
-            chat_memory=chat_memory,
-        )
+        def get_session_history(session_id: str) -> BaseChatMessageHistory:
+            return chat_memory
 
         llm = ChatOpenAI(
             model="gpt-3.5-turbo-16k",
@@ -136,7 +127,10 @@ class AppHandler:
         chain = (
             RunnablePassthrough.assign(
                 history=RunnableLambda(
-                    self._load_memory_variables,
+                    lambda x: self._load_memory_variables(
+                        x,
+                        RunnableConfig(configurable={"session_id": str(app_id)}),
+                    ),
                 )
                 | itemgetter("history"),
                 context=itemgetter("query")
@@ -146,10 +140,20 @@ class AppHandler:
             | prompt
             | llm
             | StrOutputParser()
-        ).with_listeners(on_end=self._save_context)
+        )
+
+        runnable_with_history = RunnableWithMessageHistory(
+            chain,
+            get_session_history,
+            input_messages_key="query",
+            history_messages_key="history",
+        )
 
         chat_input = {"query": req.query.data}
-        content = chain.invoke(chat_input, config={"configurable": {"memory": memory}})
+        content = runnable_with_history.invoke(
+            chat_input,
+            config={"configurable": {"session_id": str(app_id)}},
+        )
 
         # 返回包含处理内容的成功消息JSON
         return success_json({"content": content})
