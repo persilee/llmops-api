@@ -1,3 +1,4 @@
+import uuid
 from dataclasses import dataclass
 from operator import itemgetter
 from pathlib import Path
@@ -26,6 +27,7 @@ from src.router import route
 from src.schemas.app_schema import CompletionReq
 from src.service import AppService, VectorDatabaseService
 from src.service.api_tool_service import ApiToolService
+from src.task import test_task
 
 if TYPE_CHECKING:
     from src.model import App
@@ -160,5 +162,5 @@ class AppHandler:
 
     @route("/ping", methods=["GET"])
     def ping(self) -> Response:
-        # return success_json({"content": "pong"})
-        return self.api_tool_service.api_tool_invoke()
+        test_task.delay(uuid.uuid4())
+        return "pong"

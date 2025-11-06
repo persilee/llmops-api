@@ -19,6 +19,8 @@
     "ilike",
     "levelname",
     "llmops",
+    "logfile",
+    "loglevel",
     "msecs",
     "myqcloud",
     "nosetests",

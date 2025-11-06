@@ -1,4 +1,12 @@
-.PHONY: test pipreqs migrate upgrade downgrade
+.PHONY: run celery test pipreqs migrate upgrade downgrade
+
+# 启动项目
+run:
+	uv run flask --app app.http.app run --debug
+
+# 启动 Celery 服务
+celery:
+	uv run celery -A app.http.app.celery worker --loglevel INFO --pool=threads --logfile storage/logs/celery.log
 
 # 单元测试
 test:

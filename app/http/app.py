@@ -18,6 +18,7 @@ conf = Config()
 # 创建依赖注入器
 injector = Injector([ExtensionModule])
 
+# 创建Flask应用实例
 app = Http(
     __name__,
     conf=conf,
@@ -26,6 +27,9 @@ app = Http(
     swag=injector.get(Swagger),
     router=injector.get(Router),
 )
+
+# 从Flask应用的扩展中获取Celery实例
+celery = app.extensions["celery"]
 
 if __name__ == "__main__":
     app.run(debug=True)

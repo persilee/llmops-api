@@ -13,7 +13,7 @@ from config import Config, swagger_config, swagger_template
 from pkg.response import HttpCode, Response, json
 from pkg.sqlalchemy import SQLAlchemy
 from src.exception import CustomException
-from src.extension import logging_extension, redis_extension
+from src.extension import celery_extension, logging_extension, redis_extension
 from src.router import Router
 from src.schemas import swag_schemas
 
@@ -51,6 +51,9 @@ class Http(Flask):
 
         # 初始化 Redis
         redis_extension.init_app(self)
+
+        # 初始化 Celery
+        celery_extension.init_app(self)
 
         # 初始化日志记录
         logging_extension.init_app(self)
