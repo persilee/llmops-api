@@ -28,6 +28,7 @@ dependencies = [
     "marshmallow>=3.26.1",
     "pydash>=8.0.5",
     "cos-python-sdk-v5>=1.9.38",
+    "redis>=7.0.1",
 ]
 
 [tool.rye.scripts]

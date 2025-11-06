@@ -1,9 +1,10 @@
 from flasgger import Swagger
 from flask_migrate import Migrate
 from injector import Binder, Module, singleton
+from redis import Redis
 
 from pkg.sqlalchemy import SQLAlchemy
-from src.extension import db, migrate, swag
+from src.extension import db, migrate, redis_client, swag
 
 
 class ExtensionModule(Module):
@@ -20,3 +21,4 @@ class ExtensionModule(Module):
         binder.bind(SQLAlchemy, to=db, scope=singleton)
         binder.bind(Migrate, to=migrate)
         binder.bind(Swagger, to=swag)
+        binder.bind(Redis, to=redis_client, scope=singleton)
