@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 from typing import Any
@@ -12,6 +13,7 @@ from config import Config, swagger_config, swagger_template
 from pkg.response import HttpCode, Response, json
 from pkg.sqlalchemy import SQLAlchemy
 from src.exception import CustomException
+from src.extension import logging_extension
 from src.router import Router
 from src.schemas import swag_schemas
 
@@ -31,6 +33,8 @@ class Http(Flask):
     ) -> None:
         # 调用父类的构造方法，传递所有位置参数和关键字参数
         super().__init__(*args, **kwargs)
+        # 获取模块特定的 logger 对象
+        self.logger = logging.getLogger(__name__)
 
         # 从配置对象中加载配置
         # from_object()方法会从给定的配置对象中加载配置项
@@ -44,6 +48,9 @@ class Http(Flask):
         # 初始化数据库
         db.init_app(self)
         migrate.init_app(self, db, directory="src/migration")
+
+        # 初始化日志记录
+        logging_extension.init_app(self)
 
         # 配置跨域
         CORS(
@@ -82,6 +89,10 @@ class Http(Flask):
             - 在生产环境下，只返回基本的错误信息
 
         """
+        # 记录错误日志
+        self.logger.error("Error: %s", error)
+
+        # 根据异常类型返回相应的错误响应
         if isinstance(error, CustomException):
             response = Response(
                 code=error.code,
@@ -90,6 +101,7 @@ class Http(Flask):
             )
             return json(response)
 
+        # 如果异常不是CustomException类型，则返回通用错误响应
         if self.debug or os.getenv("FLASK_ENV") == "development":
             raise error
         response = Response(

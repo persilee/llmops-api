@@ -14,10 +14,14 @@
     "formdata",
     "gaode",
     "goade",
+    "htmlcov",
     "huggingface",
     "ilike",
+    "levelname",
     "llmops",
+    "msecs",
     "myqcloud",
+    "nosetests",
     "pydash",
     "qcloud",
     "Redprint",
@@ -27,7 +31,8 @@
     "testpaths",
     "uiversion",
     "valuelist",
-    "vectorstores"
+    "vectorstores",
+    "webassets"
   ],
   "files.exclude": {
     "**/__pycache__": true,
