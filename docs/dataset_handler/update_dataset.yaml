@@ -1,0 +1,36 @@
+更新知识库信息
+---
+tags:
+  - 知识库管理
+summary: 根据 id 更新知识库信息
+description:
+operationId: update_dataset
+parameters:
+  - name: dataset_id
+    in: path
+    required: true
+    schema:
+      type: string
+      default: "6aa64a60-014b-473b-89d3-4005ac0a825c"
+    format: uuid
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              type: "string"
+              example: ""
+            message:
+              type: "string"
+              example: "数据解析成功"

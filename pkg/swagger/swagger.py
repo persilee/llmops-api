@@ -15,6 +15,9 @@ from sqlalchemy.sql.sqltypes import (
     Text,
 )
 from sqlalchemy.sql.type_api import TypeEngine
+from wtforms import EmailField, IntegerField
+from wtforms.fields.core import UnboundField
+from wtforms.validators import URL, DataRequired, Email, Length, NumberRange
 
 from src.lib.helper import get_root_path
 
@@ -201,3 +204,127 @@ def _generate_fallback_example(column_type) -> Any:
         if isinstance(column_type, type_class):
             return example()
     return None
+
+
+def _process_validator(
+    field_def: dict,
+    validator,
+    field_name: str,
+    definition: dict,
+) -> None:
+    """处理单个验证器"""
+    validator_handlers = {
+        DataRequired: lambda: _handle_data_required(
+            validator,
+            field_name,
+            definition,
+            field_def,
+        ),
+        Length: lambda: _handle_length(validator, field_def),
+        URL: lambda: _handle_url(validator, field_def),
+        Email: lambda: _handle_email(validator, field_def),
+        NumberRange: lambda: _handle_number_range(validator, field_def),
+    }
+
+    handler = validator_handlers.get(type(validator))
+    if handler:
+        handler()
+
+
+def _handle_data_required(
+    validator,
+    field_name: str,
+    definition: dict,
+    field_def: dict,
+) -> None:
+    """处理DataRequired验证器"""
+    if field_name not in definition["required"]:
+        definition["required"].append(field_name)
+    if hasattr(validator, "message") and validator.message:
+        field_def["description"] = validator.message
+
+
+def _handle_length(validator, field_def: dict) -> None:
+    """处理Length验证器"""
+    if validator.max:
+        field_def["maxLength"] = validator.max
+    if validator.min:
+        field_def["minLength"] = validator.min
+    if hasattr(validator, "message") and validator.message:
+        field_def["description"] = validator.message
+
+
+def _handle_url(validator, field_def: dict) -> None:
+    """处理URL验证器"""
+    field_def["format"] = "uri"
+    if hasattr(validator, "message") and validator.message:
+        field_def["description"] = validator.message
+
+
+def _handle_email(validator, field_def: dict) -> None:
+    """处理Email验证器"""
+    field_def["format"] = "email"
+    if hasattr(validator, "message") and validator.message:
+        field_def["description"] = validator.message
+
+
+def _handle_number_range(validator, field_def: dict) -> None:
+    """处理NumberRange验证器"""
+    if validator.max:
+        field_def["maximum"] = validator.max
+    if validator.min:
+        field_def["minimum"] = validator.min
+    if hasattr(validator, "message") and validator.message:
+        field_def["description"] = validator.message
+
+
+def wtform_to_flasgger_definition(form_class) -> dict[str, Any]:
+    """将WTForms表单类转换为Flasgger定义（支持WTForms 3.2.1版本）
+
+    Args:
+        form_class: WTForms表单类
+
+    Returns:
+        dict: Flasgger定义
+
+    """
+    definition = {"type": "object", "properties": {}, "required": []}
+
+    # 遍历表单类的所有属性
+    for name in dir(form_class):
+        if not name.startswith("_"):
+            attr = getattr(form_class, name)
+
+            # 检查是否是UnboundField
+            if isinstance(attr, UnboundField):
+                field_name = name
+                field_type = attr.field_class
+                field_args = attr.kwargs
+
+                # 创建字段定义
+                field_def = {
+                    "type": "string",
+                    "description": field_args.get("description", field_name),
+                }
+
+                # 根据字段类型设置格式
+                if field_type == EmailField:
+                    field_def["format"] = "email"
+                elif field_type == IntegerField:
+                    field_def["type"] = "integer"
+
+                # 处理验证器
+                validators = field_args.get("validators", [])
+                for validator in validators:
+                    _process_validator(field_def, validator, field_name, definition)
+
+                # 添加默认值
+                if "default" in field_args:
+                    field_def["default"] = field_args["default"]
+
+                # 添加示例值（可选）
+                field_def["example"] = field_args.get("example", "")
+
+                definition["properties"][field_name] = field_def
+
+    return definition

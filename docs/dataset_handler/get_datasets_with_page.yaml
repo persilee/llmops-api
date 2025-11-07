@@ -1,0 +1,28 @@
+获取知识库列表
+---
+tags:
+  - 知识库管理
+summary: 获取知识库列表和分页数据
+description:
+operationId: get_datasets_with_page
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              type: "string"
+              example: ""
+            message:
+              type: "string"
+              example: "数据解析成功"

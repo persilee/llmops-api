@@ -35,7 +35,8 @@
     "uiversion",
     "valuelist",
     "vectorstores",
-    "webassets"
+    "webassets",
+    "wtform"
   ],
   "files.exclude": {
     "**/__pycache__": true,
@@ -48,10 +49,10 @@
   },
   "python.analysis.enabled": true,
   "python.autoComplete.extraPaths": [
-    "${workspaceFolder}/.venv/lib/python3.12/site-packages"
+    "${workspaceFolder}/.venv/lib/python3.12/site-packages/"
   ],
   "python.analysis.extraPaths": [
-    "${workspaceFolder}/.venv/lib/python3.12/site-packages"
+    "${workspaceFolder}/.venv/lib/python3.12/site-packages/"
   ],
   "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python3.12",
   "python.analysis.autoImportCompletions": true,
@@ -141,11 +142,11 @@
     },
     {
       "name": "wtforms",
-      "depth": 5
+      "depth": 6
     },
     {
       "name": "wtforms.validators",
-      "depth": 5
+      "depth": 6
     },
     // 默认设置（其他包）
     {

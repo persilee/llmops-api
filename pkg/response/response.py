@@ -107,6 +107,10 @@ def validate_error_json(errors: dict | None) -> Response:
         - 原始的错误字典会完整保存在返回的 data 字段中
 
     """
+    if not errors:  # 添加空字典检查
+        return json(
+            Response(code=HttpCode.VALIDATE_ERROR, message="验证失败", data=errors),
+        )
     first_key = next(iter(errors))
     msg = errors[first_key][0] if first_key is not None else ""
 
