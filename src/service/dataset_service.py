@@ -2,12 +2,18 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from injector import inject
+from sqlalchemy import select
 
+from pkg.paginator.paginator import Paginator
 from pkg.sqlalchemy import SQLAlchemy
 from src.entity.dataset_entity import DEFAULT_DATASET_DESCRIPTION_FORMATTER
 from src.exception.exception import NotFoundException, ValidateErrorException
 from src.model.dataset import Dataset
-from src.schemas.dataset_schema import CreateDatasetReq, UpdateDatasetReq
+from src.schemas.dataset_schema import (
+    CreateDatasetReq,
+    GetDatasetsWithPageReq,
+    UpdateDatasetReq,
+)
 from src.service.base_service import BaseService
 
 
@@ -147,3 +153,42 @@ class DatasetService(BaseService):
 
         # 返回更新后的知识库信息
         return dataset
+
+    def get_datasets_with_page(
+        self,
+        req: GetDatasetsWithPageReq,
+    ) -> tuple[list[Dataset], Paginator]:
+        """分页获取知识库列表。
+
+        Args:
+            req: 分页查询请求对象，包含分页参数和搜索条件
+
+        Returns:
+            tuple[list[Dataset], Paginator]: 返回一个元组，包含知识库列表和分页器对象
+                - list[Dataset]: 符合条件的知识库列表
+                - Paginator: 包含分页信息的分页器对象
+
+        Note:
+            当前使用固定的账户ID，实际应用中应该从认证信息中获取
+
+        """
+        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
+        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
+
+        # 创建分页器实例，用于处理分页逻辑
+        paginator = Paginator(db=self.db, req=req)
+
+        # 构建基础查询语句，筛选属于当前账户的知识库
+        stmt = select(Dataset).where(Dataset.account_id == account_id)
+        # 如果提供了搜索关键词，添加模糊搜索条件
+        if req.search_word.data:
+            stmt = stmt.where(Dataset.name.ilike(f"%{req.search_word.data}%"))
+
+        # 按创建时间降序排序
+        stmt = stmt.order_by(Dataset.created_at.desc())
+
+        # 执行分页查询
+        datasets = paginator.paginate(stmt)
+
+        # 返回查询结果和分页器信息
+        return datasets, paginator

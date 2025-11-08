@@ -5,6 +5,10 @@ tags:
 summary: 获取知识库列表和分页数据
 description:
 operationId: get_datasets_with_page
+parameters:
+  - $ref: "#/components/parameters/currentPageParam"
+  - $ref: "#/components/parameters/pageSizeParam"
+  - $ref: "#/components/parameters/searchWordParam"
 responses:
   x-200:
     $ref: "#/components/responses/BaseResponse"
@@ -21,8 +25,8 @@ responses:
               type: "string"
               example: "success"
             data:
-              type: "string"
-              example: ""
+              type: "object"
+              example: {}
             message:
               type: "string"
-              example: "数据解析成功"
+              example: ""
