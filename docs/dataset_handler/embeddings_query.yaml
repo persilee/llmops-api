@@ -1,0 +1,47 @@
+向量查询
+---
+tags:
+  - 知识库管理
+summary: 向量查询接口
+description:
+operationId: embeddings_query
+parameters:
+  - name: query
+    in: query
+    required: true
+    description: 搜索关键词
+    schema:
+      type: string
+      default: ""
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              required:
+                - "vectors"
+              properties:
+                vectors:
+                  type: "array"
+                  items:
+                    type: "number"
+                  example:
+                    - -0.02176164835691452
+                    - 0.05487813800573349
+                    - -0.009378940798342228
+                    - 0.002827577292919159
+              type: "object"
+            message:
+              type: "string"
+              example: ""

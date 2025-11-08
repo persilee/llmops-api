@@ -22,12 +22,22 @@ from src.schemas.dataset_schema import (
     UpdateDatasetReq,
 )
 from src.service.dataset_service import DatasetService
+from src.service.embeddings_service import EmbeddingsService
 
 
 @inject
 @dataclass
 class DatasetHandler:
     dataset_service: DatasetService
+    embeddings_service: EmbeddingsService
+
+    @route("/embeddings", methods=["GET"])
+    @swag_from(get_swagger_path("dataset_handler/embeddings_query.yaml"))
+    def embeddings_query(self) -> Response:
+        query = request.args.get("query")
+        vectors = self.embeddings_service.embeddings.embed_query(query)
+
+        return success_json({"vectors": vectors})
 
     @route("", methods=["POST"])
     @swag_from(get_swagger_path("dataset_handler/create_dataset.yaml"))
@@ -121,9 +131,6 @@ class DatasetHandler:
                     }
                 }
                 失败时返回验证错误信息
-
-        Raises:
-            无
 
         Notes:
             - 通过请求参数获取分页信息

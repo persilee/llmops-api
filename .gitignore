@@ -67,3 +67,4 @@ Thumbs.db
 
 # Other
 storage/logs/
+src/core/embeddings/
