@@ -11,10 +11,8 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB
 
 from src.extension.database_extension import db
-from src.schemas.swag_schema import swagger_schema
 
 
-@swagger_schema
 class ApiTool(db.Model):
     """API工具模型"""
 
@@ -90,7 +88,6 @@ class ApiTool(db.Model):
         return db.session.get(ApiToolProvider, self.provider_id)
 
 
-@swagger_schema
 class ApiToolProvider(db.Model):
     """API工具提供者模型"""
 

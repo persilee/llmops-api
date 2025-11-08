@@ -11,10 +11,8 @@ from sqlalchemy import (
 )
 
 from src.extension.database_extension import db
-from src.schemas.swag_schema import swagger_schema
 
 
-@swagger_schema
 class UploadFile(db.Model):
     """上传文件表模型"""
 

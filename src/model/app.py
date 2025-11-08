@@ -17,10 +17,8 @@ from sqlalchemy import (
 )
 
 from src.extension import db
-from src.schemas import swagger_schema
 
 
-@swagger_schema
 class App(db.Model):
     __tablename__ = "app"
     __table_args__ = (
@@ -74,7 +72,6 @@ class App(db.Model):
     )
 
 
-@swagger_schema
 class AppDatasetJoin(db.Model):
     """知识库关联表模型（应用与知识库的关联关系）"""
 

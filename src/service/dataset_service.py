@@ -7,7 +7,7 @@ from pkg.sqlalchemy import SQLAlchemy
 from src.entity.dataset_entity import DEFAULT_DATASET_DESCRIPTION_FORMATTER
 from src.exception.exception import NotFoundException, ValidateErrorException
 from src.model.dataset import Dataset
-from src.schemas.dataset_schema import CreateDatasetReq
+from src.schemas.dataset_schema import CreateDatasetReq, UpdateDatasetReq
 from src.service.base_service import BaseService
 
 
@@ -66,6 +66,22 @@ class DatasetService(BaseService):
         )
 
     def get_dataset(self, dataset_id: UUID) -> Dataset:
+        """获取指定的知识库。
+
+        Args:
+            dataset_id (UUID): 要获取的数据集的唯一标识符。
+
+        Returns:
+            Dataset: 获取到的数据集对象。
+
+        Raises:
+            NotFoundException: 当数据集不存在或不属于当前账户时抛出此异常。
+
+        Note:
+            - 当前账户ID是硬编码的，实际应用中应该从认证信息中获取。
+            - 会同时验证数据集是否存在以及是否属于当前账户。
+
+        """
         # TODO: 设置账户ID，实际应用中应该从认证信息中获取
         account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
         dataset = self.get(Dataset, dataset_id)
@@ -73,4 +89,61 @@ class DatasetService(BaseService):
             error_msg = f"知识库ID为 {dataset_id} 不存在"
             raise NotFoundException(error_msg)
 
+        return dataset
+
+    def update_dataset(self, dataset_id: UUID, req: UpdateDatasetReq) -> Dataset:
+        """更新知识库信息。
+
+        Args:
+            dataset_id (UUID): 要更新的知识库ID
+            req (UpdateDatasetReq): 更新请求对象，包含新的知识库信息
+
+        Returns:
+            Dataset: 更新后的知识库对象
+
+        Raises:
+            NotFoundException: 当知识库不存在或不属于当前账户时
+            ValidateErrorException: 当知识库名称已存在时
+
+        """
+        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
+        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
+        # 根据知识库ID获取知识库信息
+        dataset = self.get(Dataset, dataset_id)
+        # 验证知识库是否存在且属于当前账户
+        if dataset is None or str(dataset.account_id) != account_id:
+            error_msg = f"知识库ID为 {dataset_id} 不存在"
+            raise NotFoundException(error_msg)
+
+        # 查询是否存在同名的知识库（排除当前知识库）
+        check_dataset = (
+            self.db.session.query(Dataset)
+            .filter(
+                Dataset.account_id == account_id,  # 限定在同一账户下
+                Dataset.name == req.name.data,  # 检查名称是否重复
+                Dataset.id != dataset_id,  # 排除当前知识库
+            )
+            .one_or_none()
+        )
+        # 如果存在同名知识库，抛出验证错误异常
+        if check_dataset:
+            error_msg = f"知识库名称为 {req.name.data} 已存在"
+            raise ValidateErrorException(error_msg)
+
+        # 如果描述信息为空或仅包含空白字符，使用默认格式生成描述
+        if req.description.data is None or req.description.data.strip() == "":
+            # 使用知识库名称格式化默认描述信息
+            req.description.data = DEFAULT_DATASET_DESCRIPTION_FORMATTER.format(
+                name=req.name.data,
+            )
+
+        # 更新知识库信息
+        self.update(
+            dataset,
+            name=req.name.data,  # 更新名称
+            icon=req.icon.data,  # 更新图标
+            description=req.description.data,  # 更新描述
+        )
+
+        # 返回更新后的知识库信息
         return dataset

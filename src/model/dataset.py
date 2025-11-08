@@ -16,10 +16,8 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 from src.extension.database_extension import db
 from src.model.app import AppDatasetJoin
-from src.schemas.swag_schema import swagger_schema
 
 
-@swagger_schema
 class Dataset(db.Model):
     """知识库模型"""
 
@@ -113,7 +111,6 @@ class Dataset(db.Model):
         )
 
 
-@swagger_schema
 class Document(db.Model):
     """文档模型"""
 
@@ -252,7 +249,6 @@ class Document(db.Model):
     )
 
 
-@swagger_schema
 class Segment(db.Model):
     """文档片段模型"""
 
@@ -394,7 +390,6 @@ class Segment(db.Model):
     )
 
 
-@swagger_schema
 class KeywordTable(db.Model):
     """关键词表模型"""
 
@@ -436,7 +431,6 @@ class KeywordTable(db.Model):
     )
 
 
-@swagger_schema
 class DatasetQuery(db.Model):
     """知识库查询表模型"""
 
@@ -496,7 +490,6 @@ class DatasetQuery(db.Model):
     )
 
 
-@swagger_schema
 class ProcessRule(db.Model):
     """文档处理规则表模型"""
 
