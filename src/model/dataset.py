@@ -9,11 +9,13 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    func,
     text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 
 from src.extension.database_extension import db
+from src.model.app import AppDatasetJoin
 from src.schemas.swag_schema import swagger_schema
 
 
@@ -69,6 +71,46 @@ class Dataset(db.Model):
         server_default=text("CURRENT_TIMESTAMP(0)"),
         info={"description": "创建时间"},
     )
+
+    @property
+    def document_count(self) -> int:
+        return (
+            db.session.query(func.count(Document.id))
+            .filter(
+                Document.dataset_id == self.id,
+            )
+            .scalar()
+        )
+
+    @property
+    def hit_count(self) -> int:
+        return (
+            db.session.query(func.coalesce(func.sum(Segment.hit_count), 0))
+            .filter(
+                Segment.dataset_id == self.id,
+            )
+            .scalar()
+        )
+
+    @property
+    def character_count(self) -> int:
+        return (
+            db.session.query(func.coalesce(func.sum(Document.character_count), 0))
+            .filter(
+                Document.dataset_id == self.id,
+            )
+            .scalar()
+        )
+
+    @property
+    def related_app_count(self) -> int:
+        return (
+            db.session.query(func.count(AppDatasetJoin.id))
+            .filter(
+                AppDatasetJoin.dataset_id == self.id,
+            )
+            .scalar()
+        )
 
 
 @swagger_schema

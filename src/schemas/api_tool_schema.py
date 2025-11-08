@@ -6,6 +6,7 @@ from wtforms.validators import URL, DataRequired, Length, Optional
 from pkg.paginator.paginator import PaginatorReq
 from src.model.api_tool import ApiTool, ApiToolProvider
 from src.schemas.schema import ListField
+from src.schemas.swag_schema import resp_schema
 
 
 class ValidateOpenAPISchemaReq(FlaskForm):
@@ -182,6 +183,7 @@ class GetApiToolProvidersWithPageReq(PaginatorReq):
     )
 
 
+@resp_schema()
 class GetApiToolProvidersWithPageResp(Schema):
     """API工具提供者分页查询响应模式类
 

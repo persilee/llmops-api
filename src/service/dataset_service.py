@@ -1,10 +1,11 @@
 from dataclasses import dataclass
+from uuid import UUID
 
 from injector import inject
 
 from pkg.sqlalchemy import SQLAlchemy
 from src.entity.dataset_entity import DEFAULT_DATASET_DESCRIPTION_FORMATTER
-from src.exception.exception import ValidateErrorException
+from src.exception.exception import NotFoundException, ValidateErrorException
 from src.model.dataset import Dataset
 from src.schemas.dataset_schema import CreateDatasetReq
 from src.service.base_service import BaseService
@@ -63,3 +64,13 @@ class DatasetService(BaseService):
             icon=req.icon.data,  # 设置数据集图标
             description=req.description.data,  # 设置数据集描述
         )
+
+    def get_dataset(self, dataset_id: UUID) -> Dataset:
+        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
+        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
+        dataset = self.get(Dataset, dataset_id)
+        if dataset is None or str(dataset.account_id) != account_id:
+            error_msg = f"知识库ID为 {dataset_id} 不存在"
+            raise NotFoundException(error_msg)
+
+        return dataset

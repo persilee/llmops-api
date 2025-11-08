@@ -2,6 +2,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
+from marshmallow import fields
 from sqlalchemy import Column, DefaultClause
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.inspection import inspect
@@ -328,3 +329,211 @@ def wtform_to_flasgger_definition(form_class) -> dict[str, Any]:
                 definition["properties"][field_name] = field_def
 
     return definition
+
+
+def clean_schema_for_json(schema_dict) -> dict | list | str | int | float | bool | None:
+    """清理Schema字典中的不可JSON序列化的值"""
+    if isinstance(schema_dict, dict):
+        cleaned = {}
+        for k, v in schema_dict.items():
+            if v is not None:
+                cleaned_v = clean_schema_for_json(v)
+                if cleaned_v is not None:
+                    cleaned[k] = cleaned_v
+        return cleaned
+    if isinstance(schema_dict, list):
+        cleaned = []
+        for item in schema_dict:
+            cleaned_item = clean_schema_for_json(item)
+            if cleaned_item is not None:
+                cleaned.append(cleaned_item)
+        return cleaned
+    # 检查是否是可JSON序列化的基本类型
+    if isinstance(schema_dict, (str, int, float, bool)):
+        return schema_dict
+    # 对于不可序列化的类型，返回None或转换为字符串
+    try:
+        return str(schema_dict)
+    except (ValueError, TypeError):
+        return None
+
+
+def get_field_schema(field_obj, field_name=None) -> dict:  # noqa: PLR0912, PLR0915
+    """递归获取字段的OpenAPI Schema定义
+
+    Args:
+        field_obj: Marshmallow字段对象
+        field_name: 字段名称（用于生成示例）
+
+    Returns:
+        dict: 字段的OpenAPI Schema定义
+
+    """
+    field_schema = {}
+
+    # 处理List类型
+    if isinstance(field_obj, fields.List):
+        field_schema["type"] = "array"
+        # 获取列表项的Schema
+        if hasattr(field_obj, "_inner") and field_obj._inner:  # noqa: SLF001
+            inner_schema = get_field_schema(
+                field_obj._inner,  # noqa: SLF001
+                f"{field_name}_item" if field_name else "item",
+            )
+            field_schema["items"] = inner_schema
+        else:
+            # 默认数组项为object类型
+            field_schema["items"] = {"type": "object"}
+
+        # 添加示例值
+        field_schema["example"] = []
+        if field_name == "headers":
+            field_schema["example"] = [
+                {"Authorization": "Bearer token", "Content-Type": "application/json"},
+            ]
+        elif field_name == "tools":
+            field_schema["example"] = [
+                {"id": "tool1", "name": "示例工具", "description": "这是一个示例工具"},
+            ]
+
+        return field_schema
+
+    # 处理Dict类型
+    if isinstance(field_obj, fields.Dict):
+        field_schema["type"] = "object"
+        field_schema["additionalProperties"] = True
+
+        # 添加示例值
+        if field_name and "header" in field_name.lower():
+            field_schema["example"] = {"Authorization": "Bearer token"}
+        else:
+            field_schema["example"] = {"key": "value"}
+
+        return field_schema
+
+    # 处理UUID类型
+    if isinstance(field_obj, fields.UUID):
+        field_schema["type"] = "string"
+        field_schema["format"] = "uuid"
+        field_schema["example"] = "123e4567-e89b-12d3-a456-426614174000"
+
+    # 处理String类型
+    elif isinstance(field_obj, fields.String):
+        field_schema["type"] = "string"
+        if field_name and "url" in field_name.lower():
+            field_schema["format"] = "uri"
+            field_schema["example"] = "https://example.com/icon.png"
+        else:
+            field_schema["example"] = (
+                f"example_{field_name}" if field_name else "example_value"
+            )
+
+    # 处理Integer类型
+    elif isinstance(field_obj, fields.Integer):
+        field_schema["type"] = "integer"
+        if field_name and "timestamp" in field_name.lower():
+            field_schema["description"] = "时间戳（秒）"
+            field_schema["example"] = 1620000000
+        else:
+            field_schema["example"] = 0
+
+    # 处理Boolean类型
+    elif isinstance(field_obj, fields.Boolean):
+        field_schema["type"] = "boolean"
+        field_schema["example"] = False
+
+    # 处理Float类型
+    elif isinstance(field_obj, fields.Float):
+        field_schema["type"] = "number"
+        field_schema["format"] = "float"
+        field_schema["example"] = 0.0
+
+    # 处理DateTime类型
+    elif isinstance(field_obj, fields.DateTime):
+        field_schema["type"] = "string"
+        field_schema["format"] = "date-time"
+        field_schema["example"] = "2024-01-01T00:00:00Z"
+
+    # 处理Date类型
+    elif isinstance(field_obj, fields.Date):
+        field_schema["type"] = "string"
+        field_schema["format"] = "date"
+        field_schema["example"] = "2024-01-01"
+
+    # 处理Time类型
+    elif isinstance(field_obj, fields.Time):
+        field_schema["type"] = "string"
+        field_schema["format"] = "time"
+        field_schema["example"] = "00:00:00"
+
+    # 处理Email类型
+    elif isinstance(field_obj, fields.Email):
+        field_schema["type"] = "string"
+        field_schema["format"] = "email"
+        field_schema["example"] = "user@example.com"
+
+    # 处理URL类型
+    elif isinstance(field_obj, fields.URL):
+        field_schema["type"] = "string"
+        field_schema["format"] = "uri"
+        field_schema["example"] = "https://example.com"
+
+    # 默认类型处理
+    else:
+        field_schema["type"] = "string"
+        field_schema["example"] = (
+            f"example_{field_name}" if field_name else "example_value"
+        )
+
+    return field_schema
+
+
+def marshmallow_to_openapi_schema(schema_class) -> dict[str, Any]:
+    """将Marshmallow Schema类转换为OpenAPI 3 Schema
+
+    Args:
+        schema_class: Marshmallow Schema类
+
+    Returns:
+        dict: OpenAPI 3 Schema
+
+    """
+    openapi_schema = {"type": "object", "properties": {}, "required": []}
+
+    # 获取Schema类的所有字段
+    schema_instance = schema_class()
+    fields_dict = schema_instance.fields
+
+    for field_name, field_obj in fields_dict.items():
+        # 获取字段的详细Schema
+        field_schema = get_field_schema(field_obj, field_name)
+
+        # 添加描述 - 使用字段名的友好版本作为默认描述
+        field_schema["description"] = field_name.replace("_", " ")
+
+        # 添加默认值（处理特殊情况）
+        if hasattr(field_obj, "dump_default") and field_obj.dump_default is not None:
+            # 处理dump_default是函数的情况
+            if callable(field_obj.dump_default):
+                try:
+                    default_value = field_obj.dump_default()
+                    # 清理默认值，确保可JSON序列化
+                    cleaned_default = clean_schema_for_json(default_value)
+                    if cleaned_default is not None:
+                        field_schema["default"] = cleaned_default
+                except (ValueError, TypeError):
+                    # 如果函数调用失败，不设置默认值
+                    pass
+            else:
+                # 清理默认值，确保可JSON序列化
+                cleaned_default = clean_schema_for_json(field_obj.dump_default)
+                if cleaned_default is not None:
+                    field_schema["default"] = cleaned_default
+
+        # 检查是否为必填字段
+        if hasattr(field_obj, "required") and field_obj.required:
+            openapi_schema["required"].append(field_name)
+
+        openapi_schema["properties"][field_name] = field_schema
+
+    return openapi_schema

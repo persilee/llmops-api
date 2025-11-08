@@ -7,7 +7,7 @@ from injector import inject
 from pkg.response.response import Response, success_json, validate_error_json
 from pkg.swagger.swagger import get_swagger_path
 from src.router.redprint import route
-from src.schemas.dataset_schema import CreateDatasetReq
+from src.schemas.dataset_schema import CreateDatasetReq, GetDatasetResp
 from src.service.dataset_service import DatasetService
 
 
@@ -44,7 +44,10 @@ class DatasetHandler:
     @route("/<uuid:dataset_id>", methods=["GET"])
     @swag_from(get_swagger_path("dataset_handler/get_dataset.yaml"))
     def get_dataset(self, dataset_id: UUID) -> Response:
-        pass
+        dataset = self.dataset_service.get_dataset(dataset_id)
+        resp = GetDatasetResp()
+
+        return success_json(resp.dump(dataset))
 
     @route("/<uuid:dataset_id>", methods=["POST"])
     @swag_from(get_swagger_path("dataset_handler/update_dataset.yaml"))
