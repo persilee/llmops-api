@@ -12,7 +12,10 @@ from pkg.response.response import (
     success_message_json,
     validate_error_json,
 )
+from pkg.sqlalchemy import SQLAlchemy
 from pkg.swagger.swagger import get_swagger_path
+from src.core.file_extractor.file_extractor import FileExtractor
+from src.model.upload_file import UploadFile
 from src.router.redprint import route
 from src.schemas.dataset_schema import (
     CreateDatasetReq,
@@ -32,15 +35,24 @@ class DatasetHandler:
     dataset_service: DatasetService
     embeddings_service: EmbeddingsService
     jieba_service: JiebaService
+    file_extractor: FileExtractor
+    db: SQLAlchemy
 
     @route("/embeddings", methods=["GET"])
     @swag_from(get_swagger_path("dataset_handler/embeddings_query.yaml"))
     def embeddings_query(self) -> Response:
-        query = request.args.get("query")
-        vectors = self.embeddings_service.embeddings.embed_query(query)
-        keywords = self.jieba_service.extract_keywords(query)
+        upload_file = self.db.session.query(UploadFile).get(
+            "0e0de749-f407-4640-89a1-197144928e35",
+        )
+        content = self.file_extractor.load(
+            upload_file,
+            return_text=True,
+        )
+        # query = request.args.get("query")
+        # vectors = self.embeddings_service.embeddings.embed_query(query)
+        # keywords = self.jieba_service.extract_keywords(query)
 
-        return success_json({"vectors": vectors, "keywords": keywords})
+        return success_json({"content": content})
 
     @route("", methods=["POST"])
     @swag_from(get_swagger_path("dataset_handler/create_dataset.yaml"))
