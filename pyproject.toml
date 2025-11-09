@@ -30,6 +30,7 @@ dependencies = [
     "cos-python-sdk-v5>=1.9.38",
     "redis>=7.0.1",
     "celery>=5.5.3",
+    "jieba>=0.42.1",
 ]
 
 [tool.rye.scripts]

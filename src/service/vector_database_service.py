@@ -54,8 +54,8 @@ class VectorDatabaseService:
 
         # 以下是连接到Weaviate云服务的配置（当前被注释）
         # self.client = weaviate.connect_to_weaviate_cloud(
-        #     cluster_url=os.getenv("WEAVIATE_CLUSTER_URL"),  # 云服务集群URL
-        #     auth_credentials=Auth.api_key(os.getenv("WEAVIATE_API_KEY")),  # API密钥认证
+        #     cluster_url=os.getenv("WEAVIATE_CLUSTER_URL"),
+        #     auth_credentials=Auth.api_key(os.getenv("WEAVIATE_API_KEY")),
         # )
 
         # 初始化Weaviate向量存储

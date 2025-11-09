@@ -23,6 +23,7 @@ from src.schemas.dataset_schema import (
 )
 from src.service.dataset_service import DatasetService
 from src.service.embeddings_service import EmbeddingsService
+from src.service.jieba_service import JiebaService
 
 
 @inject
@@ -30,14 +31,16 @@ from src.service.embeddings_service import EmbeddingsService
 class DatasetHandler:
     dataset_service: DatasetService
     embeddings_service: EmbeddingsService
+    jieba_service: JiebaService
 
     @route("/embeddings", methods=["GET"])
     @swag_from(get_swagger_path("dataset_handler/embeddings_query.yaml"))
     def embeddings_query(self) -> Response:
         query = request.args.get("query")
         vectors = self.embeddings_service.embeddings.embed_query(query)
+        keywords = self.jieba_service.extract_keywords(query)
 
-        return success_json({"vectors": vectors})
+        return success_json({"vectors": vectors, "keywords": keywords})
 
     @route("", methods=["POST"])
     @swag_from(get_swagger_path("dataset_handler/create_dataset.yaml"))
