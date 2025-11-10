@@ -1,0 +1,113 @@
+创建知识库文档
+---
+tags:
+  - 知识库管理
+summary: 创建知识库文档
+description:
+operationId: create_documents
+requestBody:
+  content:
+    application/json:
+      schema:
+        required:
+          - "upload_file_ids"
+          - "process_type"
+          - "rule"
+        properties:
+          upload_file_ids:
+            type: "array"
+            items:
+              type: "string"
+          process_type:
+            type: "string"
+          rule:
+            required:
+              - "pre_process_rules"
+              - "segment"
+            properties:
+              pre_process_rules:
+                type: "array"
+                items:
+                  type: "object"
+                  properties:
+                    id:
+                      type: "string"
+                    enabled:
+                      type: "boolean"
+              segment:
+                required:
+                  - "separators"
+                  - "chunk_size"
+                  - "chunk_overlap"
+                properties:
+                  separators:
+                    type: "array"
+                    items:
+                      type: "string"
+                  chunk_size:
+                    type: "number"
+                  chunk_overlap:
+                    type: "number"
+                type: "object"
+            type: "object"
+      examples:
+        CustomProcessingExample:
+          value:
+            {
+              "upload_file_ids": ["0e0de749-f407-4640-89a1-197144928e35"],
+              "process_type": "custom",
+              "rule":
+                {
+                  "pre_process_rules":
+                    [
+                      { "id": "remove_extra_space", "enabled": true },
+                      { "id": "remove_url_and_email", "enabled": true },
+                    ],
+                  "segment":
+                    { "separators": ["\n"], "chunk_size": 500, "chunk_overlap": 50 },
+                },
+            }
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              required:
+                - "batch"
+                - "documents"
+              properties:
+                batch:
+                  type: "string"
+                  example: "20251111014353904310"
+                documents:
+                  type: "array"
+                  items:
+                    type: "object"
+                    properties:
+                      created_at:
+                        type: "number"
+                        example: 1762796634
+                      id:
+                        type: "string"
+                        example: "94efeecb-b133-43ba-afa7-2be5b64045e4"
+                      name:
+                        type: "string"
+                        example: "llmops_prd.md"
+                      status:
+                        type: "string"
+                        example: "waiting"
+              type: "object"
+            message:
+              type: "string"
+              example: ""

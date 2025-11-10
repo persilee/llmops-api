@@ -30,4 +30,4 @@ responses:
               example: ""
             message:
               type: "string"
-              example: "数据解析成功"
+              example: "创建知识库成功"

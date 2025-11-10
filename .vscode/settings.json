@@ -51,7 +51,9 @@
     ".idea": true
   },
   "python.analysis.enabled": true,
+  "python.analysis.indexing": true,
   "python.autoComplete.extraPaths": [
+    "${workspaceFolder}/pkg",
     "${workspaceFolder}/.venv/lib/python3.12/site-packages/"
   ],
   "python.analysis.extraPaths": [
@@ -65,7 +67,6 @@
   "python.languageServer": "Pylance",
   "python.analysis.diagnosticMode": "workspace",
   "python.analysis.userFileIndexingLimit": -1,
-  "python.analysis.indexing": true,
   "python.testing.pytestArgs": ["."],
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
@@ -160,5 +161,6 @@
   "editor.colorDecoratorsActivatedOn": "click",
   "editor.defaultColorDecorators": "never",
   "ruff.exclude": ["src/embeddings/**"],
-  "python.analysis.exclude": ["src/core/embeddings", ".venv/**"]
+  "python.analysis.exclude": ["src/core/embeddings", ".venv/**"],
+  "python.analysis.logLevel": "Trace"
 }
