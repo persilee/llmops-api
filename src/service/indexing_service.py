@@ -1,10 +1,12 @@
 import logging
 import re
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import UUID
 
+from flask import Flask, current_app
 from injector import inject
 from langchain_core.documents import Document as LCDocument
 from sqlalchemy import func
@@ -145,31 +147,83 @@ class IndexingService(BaseService):
             lc_segment.metadata["document_enabled"] = True  # 启用文档
             lc_segment.metadata["segment_enabled"] = True  # 启用段落
 
-        # 分批处理文档段落，每批10个
-        for i in range(0, len(lc_segments), 10):
-            chunks = lc_segments[i : i + 10]  # 获取当前批次的段落
-            ids = [chunk.metadata["node_id"] for chunk in chunks]  # 提取段落ID
+        def thread_func(
+            flask_app: Flask,
+            chunks: list[LCDocument],
+            ids: list[UUID],
+        ) -> None:
+            # 创建Flask应用上下文，确保可以访问应用配置和数据库连接
+            with flask_app.app_context():
+                try:
+                    # 将当前批次的文档段落添加到向量数据库中
+                    self.vector_database_service.vector_store.aadd_documents(
+                        chunks,
+                        ids=ids,
+                    )
 
-            # 将当前批次的段落添加到向量数据库
-            self.vector_database_service.vector_store.aadd_documents(chunks, ids=ids)
+                    # 使用自动提交事务更新数据库
+                    with self.db.auto_commit():
+                        # 查询并更新指定ID的段落状态
+                        self.db.session.query(Segment).filter(
+                            Segment.node_id.in_(ids),  # 筛选指定ID的段落
+                        ).update(
+                            {
+                                # 设置段落状态为已完成
+                                "status": SegmentStatus.COMPLETED,
+                                # 记录完成时间（使用UTC时间）
+                                "completed_at": datetime.now(UTC),
+                                # 启用该段落，使其可用于搜索
+                                "enabled": True,
+                            },
+                        )
+                except Exception as e:
+                    # 构造错误信息，包含具体的异常内容
+                    error_msg = f"构建文档片段异常：{e!s}"
+                    # 记录异常日志，包含完整的错误堆栈信息
+                    logger.exception(error_msg)
+                    # 在发生异常时，使用自动提交事务更新数据库
+                    with self.db.auto_commit():
+                        # 查询并更新出错段落的状态
+                        self.db.session.query(Segment).filter(
+                            Segment.node_id.in_(ids),
+                        ).update(
+                            {
+                                # 设置段落状态为错误
+                                "status": SegmentStatus.ERROR,
+                                # 记录错误发生时间（使用UTC时间）
+                                "completed_at": datetime.now(UTC),
+                                # 禁用该段落，使其不可用于搜索
+                                "enabled": False,
+                            },
+                        )
 
-            # 更新数据库中对应段落的状态
-            self.db.session.query(Segment).filter(
-                Segment.node_id.in_(ids),
-            ).update(
-                {
-                    "status": SegmentStatus.COMPLETED,  # 设置为已完成状态
-                    "completed_at": datetime.now(UTC),  # 记录完成时间
-                    "enabled": True,  # 启用段落
-                },
-            )
+        # 创建线程池，最大工作线程数为5
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            # 用于存储所有异步任务的Future对象
+            futures = []
+            # 分批处理文档段落，每批10个
+            for i in range(0, len(lc_segments), 10):
+                chunks = lc_segments[i : i + 10]  # 获取当前批次的段落
+                ids = [chunk.metadata["node_id"] for chunk in chunks]  # 提取段落ID列表
+                # 提交异步任务到线程池
+                futures.append(
+                    executor.submit(
+                        thread_func,
+                        current_app.app_context(),
+                        chunks,
+                        ids,
+                    ),
+                )
+            # 等待所有异步任务完成
+            for future in futures:
+                future.result()  # 获取任务结果，如果任务抛出异常，这里会重新抛出
 
         # 更新整个文档的状态
         self.update(
             document,
-            status=DocumentStatus.COMPLETED,  # 设置文档为已完成状态
-            completed_at=datetime.now(UTC),  # 记录文档完成时间
-            enabled=True,  # 启用文档
+            status=DocumentStatus.COMPLETED,
+            completed_at=datetime.now(UTC),
+            enabled=True,
         )
 
     def _indexing(
@@ -347,12 +401,20 @@ class IndexingService(BaseService):
             4. 更新文档状态为SPLITTING，记录字符数和处理开始时间
 
         """
+        # 获取文档的上传文件对象
         upload_file = document.upload_file
+        # 使用文件提取器加载文件内容，is_unstructured=True表示使用非结构化方式解析
         lc_documents = self.file_extractor.load(upload_file, is_unstructured=True)
 
+        # 遍历每个解析后的文档
         for lc_document in lc_documents:
+            # 清理文档中的多余文本，如特殊字符、空白等
             lc_document.page_content = self._clean_extra_text(lc_document.page_content)
 
+        # 更新文档信息：
+        # - character_count: 计算所有文档内容的总字符数
+        # - status: 将文档状态更新为SPLITTING（分割中）
+        # - parsing_completed_at: 记录解析完成的时间
         self.update(
             document,
             character_count=sum(
@@ -362,6 +424,7 @@ class IndexingService(BaseService):
             parsing_completed_at=datetime.now(UTC),
         )
 
+        # 返回处理后的文档列表
         return lc_documents
 
     @classmethod
