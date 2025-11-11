@@ -35,6 +35,7 @@
     "STOPWORD",
     "testpaths",
     "tfidf",
+    "ufffe",
     "uiversion",
     "valuelist",
     "vectorstores",

@@ -1,6 +1,6 @@
 from flasgger import Swagger
 from flask_migrate import Migrate
-from injector import Binder, Module, singleton
+from injector import Binder, Injector, Module, singleton
 from redis import Redis
 
 from pkg.sqlalchemy import SQLAlchemy
@@ -24,3 +24,7 @@ class ExtensionModule(Module):
         binder.bind(Migrate, to=migrate)
         binder.bind(Swagger, to=swag)
         binder.bind(Redis, to=redis_client, scope=singleton)
+
+
+# 创建依赖注入器
+injector = Injector([ExtensionModule])

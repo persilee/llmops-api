@@ -14,6 +14,7 @@ from src.exception.exception import FailException, ForbiddenException
 from src.model.dataset import Dataset, Document, ProcessRule
 from src.model.upload_file import UploadFile
 from src.service.base_service import BaseService
+from src.task.document_task import build_documents
 
 logger = logging.getLogger(__name__)
 
@@ -114,6 +115,9 @@ class DocumentService(BaseService):
                 position=position,
             )
             documents.append(document)
+
+        # 异步处理文档：将文档ID列表传递给Celery任务队列，进行后台文档处理
+        build_documents.delay([document.id for document in documents])
 
         return documents, batch
 

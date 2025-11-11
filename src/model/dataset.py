@@ -16,6 +16,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 from src.extension.database_extension import db
 from src.model.app import AppDatasetJoin
+from src.model.upload_file import UploadFile
 
 
 class Dataset(db.Model):
@@ -247,6 +248,26 @@ class Document(db.Model):
         server_default=text("CURRENT_TIMESTAMP(0)"),
         info={"description": "创建时间"},
     )
+
+    @property
+    def upload_file(self) -> "UploadFile":
+        return (
+            db.session.query(UploadFile)
+            .filter(
+                UploadFile.id == self.upload_file_id,
+            )
+            .one_or_none()
+        )
+
+    @property
+    def process_rule(self) -> "ProcessRule":
+        return (
+            db.session.query(ProcessRule)
+            .filter(
+                ProcessRule.id == self.process_rule_id,
+            )
+            .one_or_none()
+        )
 
 
 class Segment(db.Model):

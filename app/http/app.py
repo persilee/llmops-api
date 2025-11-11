@@ -1,13 +1,13 @@
 import dotenv
 from flasgger import Swagger
 from flask_migrate import Migrate
-from injector import Injector
 
-from app.http.module import ExtensionModule
 from config import Config
 from pkg.sqlalchemy import SQLAlchemy
 from src.router.router import Router
 from src.server import Http
+
+from .module import injector
 
 # 加载环境变量
 dotenv.load_dotenv()
@@ -15,8 +15,6 @@ dotenv.load_dotenv()
 # 创建一个Config类的实例对象
 conf = Config()
 
-# 创建依赖注入器
-injector = Injector([ExtensionModule])
 
 # 创建Flask应用实例
 app = Http(

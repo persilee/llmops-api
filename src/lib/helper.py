@@ -1,5 +1,6 @@
 import importlib
 from collections.abc import Callable
+from hashlib import sha3_256
 from pathlib import Path
 from typing import Any
 
@@ -60,3 +61,17 @@ def get_root_path() -> str:
         return Path(current_app.root_path).parent.parent
     except RuntimeError:
         return Path(__file__).parent.parent.parent
+
+
+def generate_text_hash(text: str) -> str:
+    """生成文本的哈希值
+
+    Args:
+        text (str): 要生成哈希值的文本
+
+    Returns:
+        str: 生成的哈希值
+
+    """
+    text = str(text) + "None"
+    return sha3_256(text.encode()).hexdigest()
