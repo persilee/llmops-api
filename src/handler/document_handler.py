@@ -44,3 +44,20 @@ class DocumentHandler:
 
         # 返回成功响应，包含创建的文档和批次信息
         return success_json(resp.dump((documents, batch)))
+
+    @route("/<uuid:dataset_id>/documents/batch/<string:batch>", methods=["POST"])
+    @swag_from(get_swagger_path("dataset_handler/get_documents_status.yaml"))
+    def get_documents_status(self, dataset_id: UUID, batch: str) -> Response:
+        """获取文档状态接口
+
+        Args:
+            dataset_id (UUID): 数据集ID
+            batch (str): 批次
+
+        Returns:
+            Response: 包含文档状态的响应对象
+
+        """
+        documents_status = self.document_service.get_documents_status(dataset_id, batch)
+
+        return success_json(documents_status)

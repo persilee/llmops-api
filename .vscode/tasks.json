@@ -1,0 +1,41 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "make",
+      "fileName": "Makefile",
+      "isDefault": false,
+      "name": "migrate",
+      "path": "Makefile",
+      "pathAbs": "/Users/lishaoying/Documents/python/llmops/llmops-api/Makefile",
+      "project": "llmops-api",
+      "scriptFile": false,
+      "takesArgs": false,
+      "taskFileId": "",
+      "taskItemId": "",
+      "te": true,
+      "problemMatcher": ["$gcc"],
+      "label": "make: migrate",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "type": "make",
+      "fileName": "Makefile",
+      "isDefault": false,
+      "name": "upgrade",
+      "path": "Makefile",
+      "pathAbs": "/Users/lishaoying/Documents/python/llmops/llmops-api/Makefile",
+      "project": "llmops-api",
+      "scriptFile": false,
+      "takesArgs": false,
+      "taskFileId": "",
+      "taskItemId": "",
+      "te": true,
+      "problemMatcher": ["$gcc"],
+      "label": "make: upgrade"
+    }
+  ]
+}

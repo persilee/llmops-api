@@ -207,7 +207,7 @@ class Document(db.Model):
         nullable=True,
         info={"description": "完成时间"},
     )
-    stopped = Column(
+    stopped_at = Column(
         DateTime,
         nullable=True,
         info={"description": "停止时间"},
@@ -379,7 +379,7 @@ class Segment(db.Model):
         nullable=True,
         info={"description": "完成时间"},
     )
-    stopped = Column(
+    stopped_at = Column(
         DateTime,
         nullable=True,
         info={"description": "停止时间"},

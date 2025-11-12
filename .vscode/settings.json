@@ -163,5 +163,8 @@
   "editor.defaultColorDecorators": "never",
   "ruff.exclude": ["src/embeddings/**"],
   "python.analysis.exclude": ["src/core/embeddings", ".venv/**"],
-  "python.analysis.logLevel": "Trace"
+  "python.analysis.logLevel": "Trace",
+  "taskexplorer.pathToPrograms": {
+    "make": "make"
+  }
 }

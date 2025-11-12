@@ -5,13 +5,14 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from injector import inject
-from sqlalchemy import desc
+from sqlalchemy import asc, desc, func
 
 from pkg.sqlalchemy import SQLAlchemy
-from src.entity.dataset_entity import ProcessType
+from src.entity.dataset_entity import ProcessType, SegmentStatus
 from src.entity.upload_file_entity import ALLOWED_DOCUMENT_EXTENSION
-from src.exception.exception import FailException, ForbiddenException
-from src.model.dataset import Dataset, Document, ProcessRule
+from src.exception.exception import FailException, ForbiddenException, NotFoundException
+from src.lib.helper import datetime_to_timestamp
+from src.model.dataset import Dataset, Document, ProcessRule, Segment
 from src.model.upload_file import UploadFile
 from src.service.base_service import BaseService
 from src.task.document_task import build_documents
@@ -141,3 +142,78 @@ class DocumentService(BaseService):
         )
 
         return document.position if document else 0
+
+    def get_documents_status(self, dataset_id: UUID, batch: str) -> list[dict]:
+        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
+        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
+
+        # 获取知识库并验证权限
+        dataset = self.get(Dataset, dataset_id)
+        if dataset is None or str(dataset.account_id) != account_id:
+            error_msg = "无权限或知识库不存在"
+            raise ForbiddenException(error_msg)
+
+        documents = (
+            self.db.session.query(Document)
+            .filter(
+                Document.dataset_id == dataset_id,
+                Document.batch == batch,
+            )
+            .order_by(asc("position"))
+            .all()
+        )
+        if documents is None or len(documents) == 0:
+            error_msg = "未找到文档"
+            raise NotFoundException(error_msg)
+
+        documents_status = []
+        for document in documents:
+            upload_file = document.upload_file
+            segment_count = (
+                self.db.session.query(func.count(Segment.id))
+                .filter(
+                    Segment.document_id == document.id,
+                )
+                .scalar()
+            )
+            completed_segment_count = (
+                self.db.session.query(
+                    func.count(Segment.id),
+                )
+                .filter(
+                    Segment.document_id == document.id,
+                    Segment.status == SegmentStatus.COMPLETED,
+                )
+                .scalar()
+            )
+            documents_status.append(
+                {
+                    "id": document.id,
+                    "name": document.name,
+                    "size": upload_file.size,
+                    "extension": upload_file.extension,
+                    "mime_type": upload_file.mime_type,
+                    "position": document.position,
+                    "segment_count": segment_count,
+                    "completed_segment_count": completed_segment_count,
+                    "error": document.error,
+                    "status": document.status,
+                    "processing_started_at": datetime_to_timestamp(
+                        document.processing_started_at,
+                    ),
+                    "parsing_completed_at": datetime_to_timestamp(
+                        document.parsing_completed_at,
+                    ),
+                    "splicing_completed_at": datetime_to_timestamp(
+                        document.splitting_completed_at,
+                    ),
+                    "indexing_completed_at": datetime_to_timestamp(
+                        document.indexing_completed_at,
+                    ),
+                    "completed_at": datetime_to_timestamp(document.completed_at),
+                    "stopped_at": datetime_to_timestamp(document.stopped_at),
+                    "created_at": datetime_to_timestamp(document.created_at),
+                },
+            )
+
+        return documents_status

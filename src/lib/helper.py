@@ -1,5 +1,6 @@
 import importlib
 from collections.abc import Callable
+from datetime import datetime
 from hashlib import sha3_256
 from pathlib import Path
 from typing import Any
@@ -75,3 +76,19 @@ def generate_text_hash(text: str) -> str:
     """
     text = str(text) + "None"
     return sha3_256(text.encode()).hexdigest()
+
+
+def datetime_to_timestamp(dt: datetime) -> int:
+    """将datetime对象转换为时间戳
+
+    Args:
+        dt (datetime): datetime对象
+
+    Returns:
+        int: 时间戳
+
+    """
+    if dt is None:
+        return 0
+
+    return int(dt.timestamp())
