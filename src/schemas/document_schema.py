@@ -3,9 +3,11 @@ import uuid
 from flask_wtf import FlaskForm
 from marshmallow import Schema, ValidationError, fields, pre_dump
 from wtforms import StringField
-from wtforms.validators import AnyOf, DataRequired
+from wtforms.validators import AnyOf, DataRequired, Length, Optional
 
+from pkg.paginator.paginator import PaginatorReq
 from src.entity.dataset_entity import DEFAULT_PROCESS_RULE, ProcessType
+from src.lib.helper import datetime_to_timestamp
 from src.model.dataset import Document
 from src.schemas.schema import DictField, ListField
 from src.schemas.swag_schema import req_schema, resp_schema
@@ -14,6 +16,153 @@ MAX_UPLOAD_FILES = 10
 EXPECTED_PRE_PROCESS_RULES_COUNT = 2
 MIN_CHUNK_SIZE = 100
 MAX_CHUNK_SIZE = 1000
+
+
+@resp_schema()
+class GetDocumentResp(Schema):
+    """文档响应Schema类，用于定义和格式化单个文档的响应数据结构。
+
+    该类定义了文档响应的标准格式，包含以下主要信息：
+    - 文档基本信息：ID、名称、数据集ID
+    - 文档统计信息：分段数量、字符数、命中次数
+    - 文档状态信息：启用状态、禁用时间、状态值、错误信息
+    - 文档时间信息：创建时间、更新时间
+    - 文档位置信息：在数据集中的排序位置
+
+    所有字段都设置了默认值，确保响应数据的完整性。
+    使用pre_dump装饰器处理Document对象，将其转换为标准化的字典格式。
+    """
+
+    # 文档唯一标识符
+    id = fields.UUID(dump_default="")
+    # 数据集唯一标识符
+    dataset_id = fields.UUID(dump_default="")
+    # 文档名称
+    name = fields.String(dump_default="")
+    # 文档分段数量
+    segment_count = fields.Integer(dump_default=0)
+    # 文档字符数
+    character_count = fields.Integer(dump_default=0)
+    # 文档命中次数
+    hit_count = fields.Integer(dump_default=0)
+    # 文档位置
+    position = fields.Integer(dump_default=0)
+    # 文档是否启用
+    enabled = fields.Bool(dump_default=False)
+    # 文档禁用时间戳
+    disabled_at = fields.Integer(dump_default=0)
+    # 文档状态
+    status = fields.String(dump_default="")
+    # 文档错误信息
+    error = fields.String(dump_default="")
+    # 文档更新时间戳
+    updated_at = fields.Integer(dump_default=0)
+    # 文档创建时间戳
+    created_at = fields.Integer(dump_default=0)
+
+    @pre_dump
+    def process_data(self, data: Document, **kwargs: dict) -> dict:
+        """处理文档数据，将Document对象转换为字典格式
+
+        Args:
+            data: Document对象，包含文档的原始数据
+            **kwargs: 额外的关键字参数
+
+        Returns:
+            dict: 转换后的文档数据字典，包含所有必要字段
+
+        """
+        return {
+            "id": data.id,
+            "dataset_id": data.dataset_id,
+            "name": data.name,
+            "segment_count": data.segment_count,
+            "character_count": data.character_count,
+            "hit_count": data.hit_count,
+            "position": data.position,
+            "enabled": data.enabled,
+            "disabled_at": datetime_to_timestamp(data.disabled_at),
+            "status": data.status,
+            "error": data.error,
+            "updated_at": datetime_to_timestamp(data.updated_at),
+            "created_at": datetime_to_timestamp(data.created_at),
+        }
+
+
+@req_schema
+class UpdateDocumentNameReq(FlaskForm):
+    """更新文档名称/基础信息请求"""
+
+    name = StringField(
+        "name",
+        validators=[
+            DataRequired("文档名称不能为空"),
+            Length(max=100, message="文档的名称长度不能超过100"),
+        ],
+    )
+
+
+@req_schema
+class GetDocumentsWithPageReq(PaginatorReq):
+    """获取文档分页列表请求"""
+
+    search_word = StringField("search_word", default="", validators=[Optional()])
+
+
+@resp_schema()
+class GetDocumentsWithPageResp(Schema):
+    """分页获取文档列表的响应模式类
+
+    用于定义返回给前端的文档数据结构
+    """
+
+    # 文档唯一标识符
+    id = fields.UUID(dump_default="")
+    # 文档名称
+    name = fields.String(dump_default="")
+    # 文档字符数
+    character_count = fields.Integer(dump_default=0)
+    # 文档命中次数
+    hit_count = fields.Integer(dump_default=0)
+    # 文档位置
+    position = fields.Integer(dump_default=0)
+    # 文档是否启用
+    enabled = fields.Bool(dump_default=False)
+    # 文档禁用时间戳
+    disabled_at = fields.Integer(dump_default=0)
+    # 文档状态
+    status = fields.String(dump_default="")
+    # 文档错误信息
+    error = fields.String(dump_default="")
+    # 文档更新时间戳
+    updated_at = fields.Integer(dump_default=0)
+    # 文档创建时间戳
+    created_at = fields.Integer(dump_default=0)
+
+    @pre_dump
+    def process_data(self, data: Document, **kwargs: dict) -> dict:
+        """处理文档数据，将数据库模型转换为响应格式
+
+        Args:
+            data: Document对象，包含文档的原始数据
+            kwargs: 额外的关键字参数
+        Returns:
+            dict: 转换后的文档数据字典
+
+        """
+        return {
+            "id": data.id,
+            "name": data.name,
+            "character_count": data.character_count,
+            "hit_count": data.hit_count,
+            "position": data.position,
+            "enabled": data.enabled,
+            "disabled_at": datetime_to_timestamp(data.disabled_at),
+            "status": data.status,
+            "error": data.error,
+            "updated_at": datetime_to_timestamp(data.updated_at),
+            "created_at": datetime_to_timestamp(data.created_at),
+        }
 
 
 @req_schema

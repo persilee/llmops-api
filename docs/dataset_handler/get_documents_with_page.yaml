@@ -1,0 +1,100 @@
+获取文档列表和分页信息
+---
+tags:
+  - 知识库管理
+summary: 获取文档列表和分页信息
+description:
+operationId: get_documents_with_page
+parameters:
+  - name: dataset_id
+    in: path
+    required: true
+    schema:
+      type: string
+      default: "a72fb5a8-e8b5-4141-9a56-2f8b17407371"
+    format: uuid
+  - $ref: "#/components/parameters/currentPageParam"
+  - $ref: "#/components/parameters/pageSizeParam"
+  - $ref: "#/components/parameters/searchWordParam"
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              required:
+                - "list"
+                - "paginator"
+              properties:
+                list:
+                  type: "array"
+                  items:
+                    type: "object"
+                    properties:
+                      character_count:
+                        type: "number"
+                        example: 18099
+                      created_at:
+                        type: "number"
+                        example: 1762894914
+                      disabled_at:
+                        type: "number"
+                        example: 0
+                      enabled:
+                        type: "boolean"
+                        example: true
+                      error:
+                        type: "string"
+                        example: ""
+                      hit_count:
+                        type: "number"
+                        example: 0
+                      id:
+                        type: "string"
+                        example: "a35568c3-535c-484b-b42d-4d54794595d0"
+                      name:
+                        type: "string"
+                        example: "llmops_dev.md"
+                      position:
+                        type: "number"
+                        example: 1
+                      status:
+                        type: "string"
+                        example: "completed"
+                      updated_at:
+                        type: "number"
+                        example: 1762894914
+                paginator:
+                  required:
+                    - "current_page"
+                    - "page_size"
+                    - "total_page"
+                    - "total_record"
+                  properties:
+                    current_page:
+                      type: "number"
+                      example: 1
+                    page_size:
+                      type: "number"
+                      example: 20
+                    total_page:
+                      type: "number"
+                      example: 1
+                    total_record:
+                      type: "number"
+                      example: 1
+                  type: "object"
+              type: "object"
+            message:
+              type: "string"
+              example: ""

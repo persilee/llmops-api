@@ -7,6 +7,7 @@ from uuid import UUID
 from injector import inject
 from sqlalchemy import asc, desc, func
 
+from pkg.paginator.paginator import Paginator
 from pkg.sqlalchemy import SQLAlchemy
 from src.entity.dataset_entity import ProcessType, SegmentStatus
 from src.entity.upload_file_entity import ALLOWED_DOCUMENT_EXTENSION
@@ -14,6 +15,7 @@ from src.exception.exception import FailException, ForbiddenException, NotFoundE
 from src.lib.helper import datetime_to_timestamp
 from src.model.dataset import Dataset, Document, ProcessRule, Segment
 from src.model.upload_file import UploadFile
+from src.schemas.document_schema import GetDocumentsWithPageReq
 from src.service.base_service import BaseService
 from src.task.document_task import build_documents
 
@@ -24,6 +26,122 @@ logger = logging.getLogger(__name__)
 @dataclass
 class DocumentService(BaseService):
     db: SQLAlchemy
+
+    def get_documents_with_page(
+        self,
+        dataset_id: UUID,
+        req: GetDocumentsWithPageReq,
+    ) -> tuple[list[Document], Paginator]:
+        """获取知识库中的文档列表（分页）
+
+        Args:
+            dataset_id: 知识库ID
+            req: 分页请求参数，包含页码、每页数量、搜索关键词等
+
+        Returns:
+            tuple[list[Document], Paginator]: 返回文档列表和分页器对象
+
+        Raises:
+            NotFoundException: 当知识库不存在或无权限访问时抛出
+
+        """
+        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
+        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
+        # 获取知识库信息并验证权限
+        dataset = self.get(Dataset, dataset_id)
+        if dataset is None or str(dataset.account_id) != account_id:
+            error_msg = "知识库不存在或无权限访问"
+            raise NotFoundException(error_msg)
+
+        # 初始化分页器
+        paginator = Paginator(db=self.db, req=req)
+
+        # 构建查询过滤器
+        filters = [
+            Document.account_id == account_id,  # 账户ID过滤
+            Document.dataset_id == dataset_id,  # 知识库ID过滤
+        ]
+        # 如果有搜索关键词，添加名称模糊匹配条件
+        if req.search_word.data:
+            filters.append(Document.name.ilike(f"%{req.search_word.data}%"))
+
+        # 执行分页查询，按创建时间倒序排列
+        documents = paginator.paginate(
+            self.db.session.query(Document)
+            .filter(*filters)
+            .order_by(desc("created_at")),
+        )
+
+        return documents, paginator
+
+    def update_document_name(
+        self,
+        dataset_id: UUID,  # 知识库ID
+        document_id: UUID,  # 文档ID
+        **kwargs: dict,  # 更新的文档属性，如name等
+    ) -> Document:  # 返回更新后的文档对象
+        """更新文档名称和属性。
+
+        Args:
+            dataset_id (UUID): 知识库ID，用于验证文档所属知识库
+            document_id (UUID): 要更新的文档ID
+            **kwargs (dict): 要更新的文档属性字典，如name等
+
+        Returns:
+            Document: 更新后的文档对象
+
+        Raises:
+            NotFoundException: 当文档不存在时抛出
+            ForbiddenException: 当用户无权限修改文档时抛出
+
+        """
+        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
+        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"  # 临时硬编码的账户ID
+
+        # 根据文档ID获取文档对象
+        document = self.get(Document, document_id)
+        # 检查文档是否存在
+        if document is None:
+            error_msg = f"文档不存在：{document_id}"
+            raise NotFoundException(error_msg)  # 抛出文档不存在的异常
+        # 验证文档所属知识库和账户权限
+        if document.dataset_id != dataset_id or str(document.account_id) != account_id:
+            error_msg = f"无权限修改文档：{document_id}"
+            raise ForbiddenException(error_msg)  # 抛出无权限异常
+
+        # 更新文档属性并返回更新后的文档对象
+        return self.update(document, **kwargs)
+
+    def get_document(self, dataset_id: UUID, document_id: UUID) -> Document:
+        """获取指定文档信息
+
+        Args:
+            dataset_id: 知识库ID
+            document_id: 文档ID
+
+        Returns:
+            Document: 文档对象
+
+        Raises:
+            NotFoundException: 当文档不存在时
+            ForbiddenException: 当无权限访问文档时
+
+        """
+        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
+        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
+
+        # 根据文档ID获取文档对象
+        document = self.get(Document, document_id)
+        # 检查文档是否存在
+        if document is None:
+            error_msg = f"文档不存在：{document_id}"
+            raise NotFoundException(error_msg)
+        # 验证文档所属知识库和账户权限
+        if document.dataset_id != dataset_id or str(document.account_id) != account_id:
+            error_msg = f"无权限访问文档：{document_id}"
+            raise ForbiddenException(error_msg)
+
+        return document
 
     def create_documents(
         self,
@@ -144,6 +262,37 @@ class DocumentService(BaseService):
         return document.position if document else 0
 
     def get_documents_status(self, dataset_id: UUID, batch: str) -> list[dict]:
+        """获取指定批次文档的状态信息
+
+        Args:
+            dataset_id (UUID): 知识库ID
+            batch (str): 文档批次号
+
+        Returns:
+            list[dict]: 文档状态信息列表，每个字典包含以下字段：
+                - id: 文档ID
+                - name: 文档名称
+                - size: 文件大小
+                - extension: 文件扩展名
+                - mime_type: MIME类型
+                - position: 文档位置
+                - segment_count: 分段总数
+                - completed_segment_count: 已完成分段数
+                - error: 错误信息
+                - status: 文档状态
+                - processing_started_at: 处理开始时间戳
+                - parsing_completed_at: 解析完成时间戳
+                - splicing_completed_at: 拼接完成时间戳
+                - indexing_completed_at: 索引完成时间戳
+                - completed_at: 完成时间戳
+                - stopped_at: 停止时间戳
+                - created_at: 创建时间戳
+
+        Raises:
+            ForbiddenException: 当用户无权限访问知识库时
+            NotFoundException: 当未找到指定批次的文档时
+
+        """
         # TODO: 设置账户ID，实际应用中应该从认证信息中获取
         account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
 
@@ -153,6 +302,7 @@ class DocumentService(BaseService):
             error_msg = "无权限或知识库不存在"
             raise ForbiddenException(error_msg)
 
+        # 查询指定批次的所有文档，按位置升序排列
         documents = (
             self.db.session.query(Document)
             .filter(
@@ -162,13 +312,17 @@ class DocumentService(BaseService):
             .order_by(asc("position"))
             .all()
         )
+        # 验证文档是否存在
         if documents is None or len(documents) == 0:
             error_msg = "未找到文档"
             raise NotFoundException(error_msg)
 
+        # 初始化文档状态列表
         documents_status = []
+        # 遍历每个文档，收集状态信息
         for document in documents:
             upload_file = document.upload_file
+            # 统计文档的分段总数
             segment_count = (
                 self.db.session.query(func.count(Segment.id))
                 .filter(
@@ -176,6 +330,7 @@ class DocumentService(BaseService):
                 )
                 .scalar()
             )
+            # 统计已完成的分段数量
             completed_segment_count = (
                 self.db.session.query(
                     func.count(Segment.id),
@@ -186,33 +341,40 @@ class DocumentService(BaseService):
                 )
                 .scalar()
             )
+            # 构建文档状态信息字典，包含基本信息和处理进度
             documents_status.append(
                 {
-                    "id": document.id,
-                    "name": document.name,
-                    "size": upload_file.size,
-                    "extension": upload_file.extension,
-                    "mime_type": upload_file.mime_type,
-                    "position": document.position,
-                    "segment_count": segment_count,
-                    "completed_segment_count": completed_segment_count,
-                    "error": document.error,
-                    "status": document.status,
-                    "processing_started_at": datetime_to_timestamp(
+                    "id": document.id,  # 文档ID
+                    "name": document.name,  # 文档名称
+                    "size": upload_file.size,  # 文件大小
+                    "extension": upload_file.extension,  # 文件扩展名
+                    "mime_type": upload_file.mime_type,  # MIME类型
+                    "position": document.position,  # 文档位置
+                    "segment_count": segment_count,  # 分段总数
+                    "completed_segment_count": completed_segment_count,  # 已完成分段数
+                    "error": document.error,  # 错误信息
+                    "status": document.status,  # 文档状态
+                    "processing_started_at": datetime_to_timestamp(  # 处理开始时间
                         document.processing_started_at,
                     ),
-                    "parsing_completed_at": datetime_to_timestamp(
+                    "parsing_completed_at": datetime_to_timestamp(  # 解析完成时间
                         document.parsing_completed_at,
                     ),
-                    "splicing_completed_at": datetime_to_timestamp(
+                    "splicing_completed_at": datetime_to_timestamp(  # 拼接完成时间
                         document.splitting_completed_at,
                     ),
-                    "indexing_completed_at": datetime_to_timestamp(
+                    "indexing_completed_at": datetime_to_timestamp(  # 索引完成时间
                         document.indexing_completed_at,
                     ),
-                    "completed_at": datetime_to_timestamp(document.completed_at),
-                    "stopped_at": datetime_to_timestamp(document.stopped_at),
-                    "created_at": datetime_to_timestamp(document.created_at),
+                    "completed_at": datetime_to_timestamp(
+                        document.completed_at,
+                    ),  # 完成时间
+                    "stopped_at": datetime_to_timestamp(
+                        document.stopped_at,
+                    ),  # 停止时间
+                    "created_at": datetime_to_timestamp(
+                        document.created_at,
+                    ),  # 创建时间
                 },
             )
 

@@ -1,0 +1,42 @@
+获取文档信息
+---
+tags:
+  - 知识库管理
+summary: 根据 id 获取文档信息
+description:
+operationId: get_document
+parameters:
+  - name: dataset_id
+    in: path
+    required: true
+    schema:
+      type: string
+      default: "a72fb5a8-e8b5-4141-9a56-2f8b17407371"
+    format: uuid
+  - name: document_id
+    in: path
+    required: true
+    schema:
+      type: string
+      default: "a35568c3-535c-484b-b42d-4d54794595d0"
+    format: uuid
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              $ref: "#/components/schemas/GetDocumentResp"
+            message:
+              type: "string"
+              example: ""
