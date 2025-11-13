@@ -2,14 +2,17 @@ import logging
 import secrets
 import time
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from uuid import UUID
 
 from injector import inject
+from redis import Redis
 from sqlalchemy import asc, desc, func
 
 from pkg.paginator.paginator import Paginator
 from pkg.sqlalchemy import SQLAlchemy
-from src.entity.dataset_entity import ProcessType, SegmentStatus
+from src.entity.cache_entity import LOCK_DOCUMENT_UPDATE_ENABLED, LOCK_EXPIRE_TIME
+from src.entity.dataset_entity import DocumentStatus, ProcessType, SegmentStatus
 from src.entity.upload_file_entity import ALLOWED_DOCUMENT_EXTENSION
 from src.exception.exception import FailException, ForbiddenException, NotFoundException
 from src.lib.helper import datetime_to_timestamp
@@ -17,7 +20,7 @@ from src.model.dataset import Dataset, Document, ProcessRule, Segment
 from src.model.upload_file import UploadFile
 from src.schemas.document_schema import GetDocumentsWithPageReq
 from src.service.base_service import BaseService
-from src.task.document_task import build_documents
+from src.task.document_task import build_documents, update_document_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +29,74 @@ logger = logging.getLogger(__name__)
 @dataclass
 class DocumentService(BaseService):
     db: SQLAlchemy
+    redis_client: Redis
+
+    def update_document_enabled(
+        self,
+        dataset_id: UUID,  # 知识库ID
+        document_id: UUID,  # 文档ID
+        *,
+        enabled: bool,  # 要设置的启用状态
+    ) -> Document:  # 返回更新后的文档对象
+        """更新文档的启用状态。
+
+        Args:
+            dataset_id (UUID): 知识库ID
+            document_id (UUID): 文档ID
+            enabled (bool): 要设置的启用状态，True表示启用，False表示禁用
+
+        Returns:
+            Document: 更新后的文档对象
+
+        Raises:
+            NotFoundException: 当文档不存在时抛出
+            ForbiddenException: 当无权限修改文档、文档未完成处理或文档正在更新中时抛出
+
+        """
+        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
+        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"  # 临时硬编码的账户ID
+
+        # 根据文档ID获取文档对象
+        document = self.get(Document, document_id)
+        # 检查文档是否存在
+        if document is None:
+            error_msg = f"文档不存在：{document_id}"
+            raise NotFoundException(error_msg)
+        # 验证文档所属知识库和账户权限
+        if document.dataset_id != dataset_id or str(document.account_id) != account_id:
+            error_msg = f"无权限修改文档：{document_id}"
+            raise ForbiddenException(error_msg)
+        # 检查文档是否已完成处理，只有已完成的文档才能修改启用状态
+        if document.status != DocumentStatus.COMPLETED:
+            error_msg = f"文档暂无法修改：{document_id}，请稍候再试"
+            raise ForbiddenException(error_msg)
+        # 检查文档状态是否发生变化，如果没有变化则无需更新
+        if document.enabled == enabled:
+            error_msg = f"文档状态未发生变化：{document_id}, enabled={enabled}"
+
+        # 使用Redis实现分布式锁，防止并发更新同一个文档
+        cache_key = LOCK_DOCUMENT_UPDATE_ENABLED.format(document_id=document_id)
+        cache_result = self.redis_client.get(cache_key)
+        # 如果锁存在，说明文档正在被其他进程更新
+        if cache_result is not None:
+            error_msg = f"文档正在更新中：{document_id}"
+            raise ForbiddenException(error_msg)
+
+        # 更新文档的启用状态和禁用时间
+        self.update(
+            document,
+            enabled=enabled,  # 设置新的启用状态
+            disabled_at=None
+            if enabled
+            else datetime.now(UTC),  # 如果禁用则设置禁用时间
+        )
+        # 设置Redis锁，防止其他进程同时更新
+        self.redis_client.setex(cache_key, LOCK_EXPIRE_TIME, 1)
+
+        # 异步处理文档更新任务
+        update_document_enabled.delay(document_id)
+
+        return document  # 返回更新后的文档对象
 
     def get_documents_with_page(
         self,

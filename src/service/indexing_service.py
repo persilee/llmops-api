@@ -9,11 +9,14 @@ from uuid import UUID
 from flask import Flask, current_app
 from injector import inject
 from langchain_core.documents import Document as LCDocument
+from redis import Redis
 from sqlalchemy import func
 
 from pkg.sqlalchemy.sqlalchemy import SQLAlchemy
 from src.core.file_extractor.file_extractor import FileExtractor
+from src.entity.cache_entity import LOCK_DOCUMENT_UPDATE_ENABLED
 from src.entity.dataset_entity import DocumentStatus, SegmentStatus
+from src.exception.exception import NotFoundException
 from src.lib.helper import generate_text_hash
 from src.model.dataset import Document, Segment
 from src.service.base_service import BaseService
@@ -36,6 +39,7 @@ class IndexingService(BaseService):
     2. 文档分割：根据处理规则将文档分割成合适的段落
     3. 文档索引：对段落进行关键词提取和索引处理
     4. 向量存储：将处理后的段落存储到向量数据库中
+    5. 状态更新：更新文档和段落的索引状态
 
     依赖组件：
     - db: 数据库访问组件
@@ -48,6 +52,7 @@ class IndexingService(BaseService):
 
     主要方法：
     - build_documents: 构建文档索引的主入口方法
+    - update_document_enabled: 更新文档的启用状态
     - _parsing: 解析文档内容
     - _splitting: 分割文档段落
     - _indexing: 处理文档索引
@@ -62,6 +67,7 @@ class IndexingService(BaseService):
         jieba_service (JiebaService): 中文分词服务实例
         keyword_table_service (KeywordTableService): 关键词表服务实例
         vector_database_service (VectorDatabaseService): 向量数据库服务实例
+        redis_client (Redis): Redis实例
 
     """
 
@@ -72,6 +78,75 @@ class IndexingService(BaseService):
     jieba_service: JiebaService
     keyword_table_service: KeywordTableService
     vector_database_service: VectorDatabaseService
+    redis_client: Redis
+
+    def update_document_enabled(self, document_id: UUID) -> None:
+        """更新文档的启用状态。
+
+        该方法用于更新指定文档的启用状态，并同步更新向量数据库中所有相关段落的启用状态。
+        使用缓存锁防止并发更新，并在出现异常时进行状态回滚。
+
+        Args:
+            document_id (UUID): 要更新状态的文档ID
+
+        Raises:
+            NotFoundException: 当指定的文档不存在时抛出
+            Exception: 当更新向量数据库失败时抛出
+
+        Returns:
+            None
+
+        """
+        # 生成文档更新锁的缓存键，用于防止并发更新
+        cache_key = LOCK_DOCUMENT_UPDATE_ENABLED.format(document_id=document_id)
+        # 从数据库中获取指定ID的文档
+        document = self.get(Document, document_id)
+        # 检查文档是否存在
+        if document is None:
+            error_msg = f"文档ID为{document_id}的文档不存在"
+            # 记录错误日志
+            logger.exception(error_msg)
+            # 抛出文档不存在的异常
+            raise NotFoundException(error_msg)
+
+        # 查询文档下所有段落的node_id
+        node_ids = [
+            node_id
+            for (node_id,) in self.db.session.query(Segment)
+            .with_entities(Segment.node_id)  # 只查询node_id字段
+            .filter(
+                Segment.document_id == document_id,  # 筛选指定文档的段落
+            )
+        ]
+
+        try:
+            # 获取向量数据库的集合对象
+            collection = self.vector_database_service.collection
+            # 遍历所有段落，更新其在向量数据库中的启用状态
+            for node_id in node_ids:
+                collection.data.update(
+                    uuid=node_id,  # 段落的唯一标识
+                    properties={
+                        "document_enabled": document.enabled,  # 更新文档的启用状态
+                    },
+                )
+        except Exception as e:
+            # 如果更新失败，记录错误信息
+            error_msg = f"更新文档ID为{document_id}的文档索引失败, error: {e!s}"
+            logger.exception(error_msg)
+            # 获取原始的启用状态（当前状态的相反值）
+            origin_enabled = not document.enabled
+            # 回滚文档的启用状态
+            self.update(
+                document,
+                enabled=origin_enabled,  # 恢复原始状态
+                disabled_at=None
+                if origin_enabled
+                else datetime.now(UTC),  # 更新禁用时间
+            )
+        finally:
+            # 无论成功还是失败，最后都要删除更新锁缓存
+            self.redis_client.delete(cache_key)
 
     def build_documents(self, document_ids: list[UUID]) -> None:
         """构建文档索引的主方法
@@ -148,15 +223,15 @@ class IndexingService(BaseService):
             lc_segment.metadata["segment_enabled"] = True  # 启用段落
 
         def thread_func(
-            flask_app: Flask,
+            app: Flask,
             chunks: list[LCDocument],
             ids: list[UUID],
         ) -> None:
             # 创建Flask应用上下文，确保可以访问应用配置和数据库连接
-            with flask_app.app_context():
+            with app.app_context():
                 try:
                     # 将当前批次的文档段落添加到向量数据库中
-                    self.vector_database_service.vector_store.aadd_documents(
+                    self.vector_database_service.vector_store.add_documents(
                         chunks,
                         ids=ids,
                     )
@@ -205,11 +280,16 @@ class IndexingService(BaseService):
             for i in range(0, len(lc_segments), 10):
                 chunks = lc_segments[i : i + 10]  # 获取当前批次的段落
                 ids = [chunk.metadata["node_id"] for chunk in chunks]  # 提取段落ID列表
+
+                app = current_app._get_current_object()  # noqa: SLF001
+                if hasattr(app, "app"):  # 如果是AppContext对象，获取其app属性
+                    app = app.app
+
                 # 提交异步任务到线程池
                 futures.append(
                     executor.submit(
                         thread_func,
-                        current_app.app_context(),
+                        app,
                         chunks,
                         ids,
                     ),

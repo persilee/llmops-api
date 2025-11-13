@@ -6,8 +6,11 @@ from langchain_core.documents import Document
 from langchain_core.vectorstores import VectorStoreRetriever
 from langchain_weaviate import WeaviateVectorStore
 from weaviate import WeaviateClient
+from weaviate.collections import Collection
 
 from src.service.embeddings_service import EmbeddingsService
+
+COLLECTION_NAME = "Dataset"
 
 
 @inject
@@ -61,7 +64,7 @@ class VectorDatabaseService:
         # 初始化Weaviate向量存储
         self.vector_store = WeaviateVectorStore(
             client=self.client,  # Weaviate客户端实例
-            index_name="Dataset",  # 索引名称
+            index_name=COLLECTION_NAME,  # 索引名称
             text_key="text",  # 文本内容的键名
             embedding=self.embeddings_service.embeddings,  # 嵌入模型
         )
@@ -87,3 +90,7 @@ class VectorDatabaseService:
 
         """
         return "\n\n".join([document.page_content for document in documents])
+
+    @property
+    def collection(self) -> Collection:
+        return self.client.collections.get(COLLECTION_NAME)

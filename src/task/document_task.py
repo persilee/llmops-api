@@ -22,3 +22,22 @@ def build_documents(document_ids: list[UUID]) -> None:
     indexing_service: IndexingService = injector.get(IndexingService)
     # 调用服务构建文档索引
     indexing_service.build_documents(document_ids)
+
+
+@shared_task
+def update_document_enabled(document_id: UUID) -> None:
+    """异步更新文档启用状态任务
+
+    Args:
+        document_id (UUID): 需要更新启用状态的文档ID
+
+    Returns:
+        None: 无返回值
+
+    """
+    # 导入依赖注入器和索引服务
+    from app.http.module import injector
+    from src.service.indexing_service import IndexingService
+
+    indexing_service: IndexingService = injector.get(IndexingService)
+    indexing_service.update_document_enabled(document_id)

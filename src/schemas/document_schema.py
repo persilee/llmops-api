@@ -2,7 +2,7 @@ import uuid
 
 from flask_wtf import FlaskForm
 from marshmallow import Schema, ValidationError, fields, pre_dump
-from wtforms import StringField
+from wtforms import BooleanField, StringField
 from wtforms.validators import AnyOf, DataRequired, Length, Optional
 
 from pkg.paginator.paginator import PaginatorReq
@@ -16,6 +16,16 @@ MAX_UPLOAD_FILES = 10
 EXPECTED_PRE_PROCESS_RULES_COUNT = 2
 MIN_CHUNK_SIZE = 100
 MAX_CHUNK_SIZE = 1000
+
+
+@req_schema
+class UpdateDocumentEnabledReq(FlaskForm):
+    enabled = BooleanField("enabled")
+
+    def validate_enabled(self, field: BooleanField) -> None:
+        if not isinstance(field.data, bool):
+            error_msg = "enabled 必须是布尔值"
+            raise ValidationError(error_msg)
 
 
 @resp_schema()

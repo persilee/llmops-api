@@ -20,6 +20,7 @@ from src.schemas.document_schema import (
     GetDocumentResp,
     GetDocumentsWithPageReq,
     GetDocumentsWithPageResp,
+    UpdateDocumentEnabledReq,
     UpdateDocumentNameReq,
 )
 from src.service.document_service import DocumentService
@@ -29,6 +30,33 @@ from src.service.document_service import DocumentService
 @dataclass
 class DocumentHandler:
     document_service: DocumentService
+
+    @route("/<uuid:dataset_id>/document/<uuid:document_id>/enabled", methods=["POST"])
+    @swag_from(get_swagger_path("dataset_handler/update_document_enabled.yaml"))
+    def update_document_enabled(self, dataset_id: UUID, document_id: UUID) -> Response:
+        """更新文档的启用状态
+
+        Args:
+            dataset_id (UUID): 数据集ID
+            document_id (UUID): 文档ID
+
+        Returns:
+            Response: 包含操作结果的响应对象
+                - 成功时返回成功消息
+                - 验证失败时返回错误信息
+
+        """
+        req = UpdateDocumentEnabledReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        self.document_service.update_document_enabled(
+            dataset_id,
+            document_id,
+            enabled=req.enabled.data,
+        )
+
+        return success_message_json("更新文档启用状态成功")
 
     @route("/<uuid:dataset_id>/document/<uuid:document_id>", methods=["GET"])
     @swag_from(get_swagger_path("dataset_handler/get_document.yaml"))

@@ -1,10 +1,10 @@
-修改文档名字
+更新文档启用状态
 ---
 tags:
   - 知识库管理
-summary: 修改文档名字
+summary: 更新文档启用状态
 description:
-operationId: update_document_name
+operationId: update_document_enabled
 parameters:
   - name: dataset_id
     in: path
@@ -24,7 +24,7 @@ requestBody:
   content:
     application/json:
       schema:
-        $ref: "#/components/schemas/UpdateDocumentNameReq"
+        $ref: "#/components/schemas/UpdateDocumentEnabledReq"
 responses:
   x-200:
     $ref: "#/components/responses/BaseResponse"
@@ -45,4 +45,4 @@ responses:
               example: {}
             message:
               type: "string"
-              example: "文档名称更新成功"
+              example: "更新文档启用状态成功"

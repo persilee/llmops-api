@@ -31,6 +31,7 @@
     "Redprint",
     "serper",
     "sessionmaker",
+    "setex",
     "sqla",
     "STOPWORD",
     "testpaths",
