@@ -31,6 +31,23 @@ from src.service.document_service import DocumentService
 class DocumentHandler:
     document_service: DocumentService
 
+    @route("/<uuid:dataset_id>/document/<uuid:document_id>/delete", methods=["POST"])
+    @swag_from(get_swagger_path("dataset_handler/delete_document.yaml"))
+    def delete_document(self, dataset_id: UUID, document_id: UUID) -> Response:
+        """删除指定数据集中的文档
+
+        Args:
+            dataset_id (UUID): 数据集ID
+            document_id (UUID): 文档ID
+
+        Returns:
+            Response: 包含删除成功消息的响应对象
+
+        """
+        self.document_service.delete_document(dataset_id, document_id)
+
+        return success_message_json("删除文档成功")
+
     @route("/<uuid:dataset_id>/document/<uuid:document_id>/enabled", methods=["POST"])
     @swag_from(get_swagger_path("dataset_handler/update_document_enabled.yaml"))
     def update_document_enabled(self, dataset_id: UUID, document_id: UUID) -> Response:

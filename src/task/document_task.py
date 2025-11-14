@@ -41,3 +41,22 @@ def update_document_enabled(document_id: UUID) -> None:
 
     indexing_service: IndexingService = injector.get(IndexingService)
     indexing_service.update_document_enabled(document_id)
+
+
+@shared_task
+def delete_document(dataset_id: UUID, document_id: UUID) -> None:
+    """异步删除文档索引任务
+
+    Args:
+        dataset_id (UUID): 需要删除索引的文档所在数据集ID
+        document_id (UUID): 需要删除索引的文档ID
+
+    Returns:
+        None: 无返回值
+
+    """
+    from app.http.module import injector
+    from src.service.indexing_service import IndexingService
+
+    indexing_service: IndexingService = injector.get(IndexingService)
+    indexing_service.delete_document(dataset_id, document_id)

@@ -20,7 +20,11 @@ from src.model.dataset import Dataset, Document, ProcessRule, Segment
 from src.model.upload_file import UploadFile
 from src.schemas.document_schema import GetDocumentsWithPageReq
 from src.service.base_service import BaseService
-from src.task.document_task import build_documents, update_document_enabled
+from src.task.document_task import (
+    build_documents,
+    delete_document,
+    update_document_enabled,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -31,13 +35,59 @@ class DocumentService(BaseService):
     db: SQLAlchemy
     redis_client: Redis
 
+    def delete_document(self, dataset_id: UUID, document_id: UUID) -> Document:
+        """删除指定知识库中的文档。
+
+        Args:
+            dataset_id (UUID): 知识库ID
+            document_id (UUID): 要删除的文档ID
+
+        Returns:
+            Document: 被删除的文档对象
+
+        Raises:
+            NotFoundException: 当文档不存在时
+            ForbiddenException: 当无权限删除或文档状态不允许删除时
+
+        Note:
+            只有已完成或处理失败的文档才能被删除
+            删除操作会异步清理相关的文件和索引
+
+        """
+        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
+        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"  # 临时硬编码的账户ID
+
+        # 根据文档ID获取文档对象
+        document = self.get(Document, document_id)
+        # 检查文档是否存在
+        if document is None:
+            error_msg = f"文档不存在：{document_id}"
+            raise NotFoundException(error_msg)
+        # 验证文档所属知识库和账户权限
+        if document.dataset_id != dataset_id or str(document.account_id) != account_id:
+            error_msg = f"无权限删除文档：{document_id}"
+            raise ForbiddenException(error_msg)
+        # 检查文档状态，只允许删除已完成或处理失败的文档
+        if document.status not in [DocumentStatus.COMPLETED, DocumentStatus.ERROR]:
+            error_msg = f"文档状态不允许删除：{document_id}"
+            raise ForbiddenException(error_msg)
+
+        # 从数据库中删除文档记录
+        self.delete(document)
+
+        # 异步执行文档删除任务，处理相关的文件和索引清理
+        delete_document.delay(dataset_id, document_id)
+
+        # 返回被删除的文档对象
+        return document
+
     def update_document_enabled(
         self,
-        dataset_id: UUID,  # 知识库ID
-        document_id: UUID,  # 文档ID
+        dataset_id: UUID,
+        document_id: UUID,
         *,
-        enabled: bool,  # 要设置的启用状态
-    ) -> Document:  # 返回更新后的文档对象
+        enabled: bool,
+    ) -> Document:
         """更新文档的启用状态。
 
         Args:

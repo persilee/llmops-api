@@ -11,10 +11,15 @@ from injector import inject
 from langchain_core.documents import Document as LCDocument
 from redis import Redis
 from sqlalchemy import func
+from weaviate.classes.query import Filter
 
 from pkg.sqlalchemy.sqlalchemy import SQLAlchemy
 from src.core.file_extractor.file_extractor import FileExtractor
-from src.entity.cache_entity import LOCK_DOCUMENT_UPDATE_ENABLED
+from src.entity.cache_entity import (
+    LOCK_DOCUMENT_UPDATE_ENABLED,
+    LOCK_EXPIRE_TIME,
+    LOCK_KEYWORD_TABLE_UPDATE_KEYWORD_TABLE,
+)
 from src.entity.dataset_entity import DocumentStatus, SegmentStatus
 from src.exception.exception import NotFoundException
 from src.lib.helper import generate_text_hash
@@ -79,6 +84,85 @@ class IndexingService(BaseService):
     keyword_table_service: KeywordTableService
     vector_database_service: VectorDatabaseService
     redis_client: Redis
+
+    def delete_document(self, dataset_id: UUID, document_id: UUID) -> None:
+        """删除指定文档及其相关的所有数据，包括向量数据、段落记录和关键词表信息。
+
+        Args:
+            dataset_id (UUID): 数据集ID，用于获取和更新关键词表
+            document_id (UUID): 要删除的文档ID
+
+        Returns:
+            None
+
+        该方法执行以下操作：
+        1. 获取文档下所有段落的ID列表
+        2. 从向量数据库中删除该文档的所有向量数据
+        3. 在数据库事务中删除该文档的所有段落记录
+        4. 使用分布式锁更新关键词表，移除与已删除段落相关的关键词
+
+        """
+        # 获取文档下所有段落的ID列表
+        segment_ids = [
+            str(id)
+            for (id,) in self.db.session.query(Segment)
+            .with_entities(Segment.id)
+            .filter(
+                Segment.document_id == document_id,
+            )
+            .all()
+        ]
+
+        # 获取向量数据库集合，删除该文档的所有向量数据
+        collection = self.vector_database_service.collection
+        collection.data.delete_many(
+            where=Filter.by_property("document_id").equal(document_id),
+        )
+
+        # 在数据库事务中删除该文档的所有段落记录
+        with self.db.auto_commit():
+            self.db.session.query(Segment).filter(
+                Segment.document_id == document_id,
+            ).delete()
+
+        # 将要删除的段落ID转换为集合，便于后续操作
+        segment_ids_to_delete = set(segment_ids)
+        # 创建一个集合，用于存储需要删除的关键词
+        keyword_to_delete = set()
+
+        # 生成关键词表更新的锁的缓存键
+        cache_key = LOCK_KEYWORD_TABLE_UPDATE_KEYWORD_TABLE.format(
+            dataset_id=dataset_id,
+        )
+        # 使用分布式锁确保关键词表更新的原子性
+        with self.redis_client.lock(cache_key, timeout=LOCK_EXPIRE_TIME):
+            # 获取数据集的关键词表记录
+            keyword_table_record = (
+                self.keyword_table_service.get_keyword_table_form_dataset_id(dataset_id)
+            )
+            # 创建关键词表的副本，避免直接修改原数据
+            keyword_table = keyword_table_record.keyword_table.copy()
+
+            # 遍历关键词表中的每个关键词及其关联的段落ID列表
+            for keyword, ids in keyword_table.items():
+                # 将段落ID列表转换为集合，便于集合操作
+                ids_set = set(ids)
+                # 如果该关键词关联的段落中有要删除的段落
+                if segment_ids_to_delete.intersection(ids_set):
+                    # 从该关键词的段落列表中移除要删除的段落
+                    keyword_table[keyword] = list(
+                        ids_set.difference(segment_ids_to_delete),
+                    )
+                    # 如果移除后该关键词没有关联的段落了，则标记该关键词待删除
+                    if not keyword_table[keyword]:
+                        keyword_to_delete.add(keyword)
+
+            # 从关键词表中删除没有关联段落的关键词
+            for keyword in keyword_to_delete:
+                del keyword_table[keyword]
+
+            # 更新关键词表记录，保存修改后的关键词表
+            self.update(keyword_table_record, keyword_table=keyword_table)
 
     def update_document_enabled(self, document_id: UUID) -> None:
         """更新文档的启用状态。
