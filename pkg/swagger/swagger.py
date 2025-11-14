@@ -16,7 +16,15 @@ from sqlalchemy.sql.sqltypes import (
     Text,
 )
 from sqlalchemy.sql.type_api import TypeEngine
-from wtforms import EmailField, IntegerField
+from wtforms import (
+    BooleanField,
+    DateField,
+    DateTimeField,
+    EmailField,
+    FloatField,
+    IntegerField,
+    TimeField,
+)
 from wtforms.fields.core import UnboundField
 from wtforms.validators import URL, DataRequired, Email, Length, NumberRange
 
@@ -308,11 +316,7 @@ def wtform_to_flasgger_definition(form_class) -> dict[str, Any]:
                     "description": field_args.get("description", field_name),
                 }
 
-                # 根据字段类型设置格式
-                if field_type == EmailField:
-                    field_def["format"] = "email"
-                elif field_type == IntegerField:
-                    field_def["type"] = "integer"
+                field_def = _process_field_type(field_def, field_type)
 
                 # 处理验证器
                 validators = field_args.get("validators", [])
@@ -323,12 +327,35 @@ def wtform_to_flasgger_definition(form_class) -> dict[str, Any]:
                 if "default" in field_args:
                     field_def["default"] = field_args["default"]
 
-                # 添加示例值（可选）
-                field_def["example"] = field_args.get("example", "")
-
                 definition["properties"][field_name] = field_def
 
     return definition
+
+
+def _process_field_type(field_def: dict, field_type: Any) -> dict:
+    from src.schemas.schema import DictField, ListField
+
+    # 根据字段类型设置格式
+    if field_type == EmailField:
+        field_def["format"] = "email"
+    elif field_type == IntegerField:
+        field_def["type"] = "integer"
+    elif field_type == FloatField:
+        field_def["type"] = "number"
+    elif field_type == BooleanField:
+        field_def["type"] = "boolean"
+    elif field_type == ListField:
+        field_def["type"] = "array"
+    elif field_type == DictField:
+        field_def["type"] = "object"
+    elif field_type == DateTimeField:
+        field_def["format"] = "date-time"
+    elif field_type == DateField:
+        field_def["format"] = "date"
+    elif field_type == TimeField:
+        field_def["format"] = "time"
+
+    return field_def
 
 
 def clean_schema_for_json(schema_dict) -> dict | list | str | int | float | bool | None:

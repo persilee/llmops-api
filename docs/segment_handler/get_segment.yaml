@@ -1,0 +1,127 @@
+获取文档片段信息
+---
+tags:
+  - 知识库管理
+summary: 获取文档片段信息
+description:
+operationId: get_segment
+parameters:
+  - name: dataset_id
+    in: path
+    required: true
+    schema:
+      type: string
+      default: "a72fb5a8-e8b5-4141-9a56-2f8b17407371"
+    format: uuid
+  - name: document_id
+    in: path
+    required: true
+    schema:
+      type: string
+      default: "878ef048-a649-46e7-bf6c-8cbbbee774d2"
+    format: uuid
+  - name: segment_id
+    in: path
+    required: true
+    schema:
+      type: string
+      default: "0014570c-7ad5-44e8-b5dc-bb57a21c2781"
+    format: uuid
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              required:
+                - "character_count"
+                - "content"
+                - "created_at"
+                - "dataset_id"
+                - "disabled_at"
+                - "document_id"
+                - "enabled"
+                - "error"
+                - "hash"
+                - "hit_count"
+                - "id"
+                - "keywords"
+                - "position"
+                - "status"
+                - "token_count"
+                - "updated_at"
+              properties:
+                character_count:
+                  type: "number"
+                  example: 2565
+                content:
+                  type: "string"
+                  example: "Accelerate AI Application Development: Significantly reduce the time and effort required to develop, test, and deploy AI-powered solutions, minimizing the go-to-market time for AI initiatives.\n\nBroaden AI Application Accessibility: Facilitate the deployment of AI applications to a wide array of user-facing platforms (e.g., social media, web pages) and system-to-system integrations (e.g., third-party callable MCP services, open APIs), ensuring broad reach and utility.\n\nIncrease Operational Efficiency: Streamline the process of building and automating complex logical AI workflows, enabling businesses to automate tasks, improve decision-making, and enhance productivity.\n\nFoster Extensibility and Innovation: Provide a flexible and open platform that supports secondary development and custom integrations via robust APIs, allowing users to extend capabilities beyond the out-of-the-box features.\n\nEnhance AI Application Manageability: Offer tools for monitoring, managing, and iterating on deployed AI applications, ensuring their continued performance and relevance.\n\nTarget Audience & Personas\n\n3.1. \"Citizen Developer\" / Business User\n\nNeeds: An intuitive, no-code/low-code interface; a library of pre-built templates for common use cases; easy, one-click deployment to business-relevant channels (e.g., internal portals, public web pages, social media for marketing and customer service).\n\nGoals: To quickly create AI chatbots for customer service, develop automated content generation workflows, build data analysis assistants, or prototype new AI-driven services without requiring deep programming knowledge or IT support.\n\nPain Points: Lack of programming knowledge, the perceived complexity of AI model integration, slow deployment processes, reliance on development teams for AI initiatives.\n\n3.2. \"Professional Developer\" / Data Scientist\n\nNeeds: Robust API access for advanced customization and integration with existing codebases; extensibility through webhooks or SDKs; tools for monitoring application performance and debugging; ability to integrate various LLM providers.\n\nGoals: To integrate AI capabilities into existing applications or systems, build complex custom workflows leveraging the platform's infrastructure for rapid prototyping and deployment, and manage AI application lifecycles efficiently.\n\nPain Points: Repetitive infrastructure setup for LLM integration, managing multiple LLM API keys and versions, deployment complexities across different environments, lack of unified monitoring for AI applications.\n\nScope\n\n4.1. IN Scope"
+                created_at:
+                  type: "number"
+                  example: 1763133840
+                dataset_id:
+                  type: "string"
+                  example: "a72fb5a8-e8b5-4141-9a56-2f8b17407371"
+                disabled_at:
+                  type: "number"
+                  example: 0
+                document_id:
+                  type: "string"
+                  example: "878ef048-a649-46e7-bf6c-8cbbbee774d2"
+                enabled:
+                  type: "boolean"
+                  example: true
+                error:
+                  type: "string"
+                  example: ""
+                hash:
+                  type: "string"
+                  example: "06747a314fccc5a3eecce9a4cadfe1cd52f7ee0307d7de710187599e664e3701"
+                hit_count:
+                  type: "number"
+                  example: 0
+                id:
+                  type: "string"
+                  example: "0014570c-7ad5-44e8-b5dc-bb57a21c2781"
+                keywords:
+                  type: "array"
+                  items:
+                    type: "string"
+                  example:
+                    - "AI"
+                    - "deployment"
+                    - "applications"
+                    - "Application"
+                    - "workflows"
+                    - "monitoring"
+                    - "integration"
+                    - "LLM"
+                    - "time"
+                    - "develop"
+                position:
+                  type: "number"
+                  example: 2
+                status:
+                  type: "string"
+                  example: "completed"
+                token_count:
+                  type: "number"
+                  example: 465
+                updated_at:
+                  type: "number"
+                  example: 1763133840
+              type: "object"
+            message:
+              type: "string"
+              example: ""

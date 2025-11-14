@@ -1,0 +1,131 @@
+获取文档片段列表和分页信息
+---
+tags:
+  - 知识库管理
+summary: 获取文档片段列表和分页信息
+description:
+operationId: get_segments_with_page
+parameters:
+  - name: dataset_id
+    in: path
+    required: true
+    schema:
+      type: string
+      default: "a72fb5a8-e8b5-4141-9a56-2f8b17407371"
+    format: uuid
+  - name: document_id
+    in: path
+    required: true
+    schema:
+      type: string
+      default: "878ef048-a649-46e7-bf6c-8cbbbee774d2"
+    format: uuid
+  - $ref: "#/components/parameters/currentPageParam"
+  - $ref: "#/components/parameters/pageSizeParam"
+  - $ref: "#/components/parameters/searchWordParam"
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              required:
+                - "list"
+                - "paginator"
+              properties:
+                list:
+                  type: "array"
+                  items:
+                    type: "object"
+                    properties:
+                      character_count:
+                        type: "number"
+                        example: 2030
+                      content:
+                        type: "string"
+                        example: "LLMOps - Product Requirements Document\n\nProject Description\n\nLLMOps平台：AI 原生应用开发服务平台，无论是否有编程基础，都可在平台上搭建基于 AI 模型的各类问答应用、工作 流应用，从解决简单的问答到处理复杂的逻辑任务。还可将 AI 应用一键发布到对应的社交平台、Web网页、可供第三方调用的MCP服务，甚至是基于平台的开放 API 进行二次开发\n\nProduct Requirements Document\n\nLLMOps Platform: AI-Native Application Development Service Platform - Product Requirements Document\n\nIntroduction/Executive Summary\n\nProject Name: LLMOps Platform: AI-Native Application Development Service Platform\n\nVision: To democratize AI application development, enabling users of all technical backgrounds to build, deploy, and manage AI-powered solutions with unprecedented ease and speed.\n\nProblem: The complexity of integrating, managing, and deploying Large Language Models (LLMs) often limits the adoption and development of AI-native applications to skilled developers or those with deep MLOps expertise. This creates a significant barrier for business users and citizen developers who could greatly benefit from AI automation.\n\nSolution: The LLMOps Platform provides a comprehensive, user-friendly environment that abstracts away the underlying technical complexities of AI model integration and deployment. It offers tools for application creation, model management, prompt engineering, and seamless one-click deployment across multiple channels, ranging from simple Q&A bots to intricate, multi-step workflow applications.\n\nTarget Audience: Business users, data analysts, citizen developers, and professional developers seeking to leverage AI without extensive programming or MLOps expertise. It caters to anyone who wants to quickly build, deploy, and manage AI-powered applications.\n\nGoals/Objectives\n\nEmpower Diverse Users: Enable both technical and non-technical users to build and deploy sophisticated AI applications, fostering innovation across various departments and roles.\n\nAccelerate AI Application Development: Significantly reduce the time and effort required to develop, test, and deploy AI-powered solutions, minimizing the go-to-market time for AI initiatives."
+                      created_at:
+                        type: "number"
+                        example: 1763133840
+                      dataset_id:
+                        type: "string"
+                        example: "a72fb5a8-e8b5-4141-9a56-2f8b17407371"
+                      disabled_at:
+                        type: "number"
+                        example: 0
+                      document_id:
+                        type: "string"
+                        example: "878ef048-a649-46e7-bf6c-8cbbbee774d2"
+                      enabled:
+                        type: "boolean"
+                        example: true
+                      error:
+                        type: "string"
+                        example: ""
+                      hit_count:
+                        type: "number"
+                        example: 0
+                      id:
+                        type: "string"
+                        example: "c2ffbba0-eb12-43fe-a06b-3d722b0b4275"
+                      keywords:
+                        type: "array"
+                        items:
+                          type: "string"
+                        example:
+                          - "AI"
+                          - "LLMOps"
+                          - "Platform"
+                          - "users"
+                          - "technical"
+                          - "deploy"
+                          - "applications"
+                          - "developers"
+                          - "Product"
+                          - "Requirements"
+                      position:
+                        type: "number"
+                        example: 1
+                      status:
+                        type: "string"
+                        example: "completed"
+                      token_count:
+                        type: "number"
+                        example: 462
+                      updated_at:
+                        type: "number"
+                        example: 1763133840
+                paginator:
+                  required:
+                    - "current_page"
+                    - "page_size"
+                    - "total_page"
+                    - "total_record"
+                  properties:
+                    current_page:
+                      type: "number"
+                      example: 1
+                    page_size:
+                      type: "number"
+                      example: 20
+                    total_page:
+                      type: "number"
+                      example: 1
+                    total_record:
+                      type: "number"
+                      example: 9
+                  type: "object"
+              type: "object"
+            message:
+              type: "string"
+              example: ""

@@ -1,7 +1,9 @@
-from typing import Any
+from typing import Any, TypeVar
 
 from pkg.sqlalchemy.sqlalchemy import SQLAlchemy
 from src.exception.exception import FailException
+
+T = TypeVar("T")
 
 
 class BaseService:
@@ -9,7 +11,7 @@ class BaseService:
 
     db: SQLAlchemy
 
-    def create(self, model: Any, **kwargs: dict) -> Any:
+    def create(self, model: T, **kwargs: dict) -> T:
         """创建新记录
 
         Args:
@@ -26,7 +28,7 @@ class BaseService:
 
         return model_instance
 
-    def delete(self, model_instance: Any) -> Any:
+    def delete(self, model_instance: T) -> T:
         """删除记录
 
         Args:
@@ -41,7 +43,7 @@ class BaseService:
 
         return model_instance
 
-    def update(self, model_instance: Any, **kwargs: dict) -> Any:
+    def update(self, model_instance: T, **kwargs: dict) -> T:
         """更新记录
 
         Args:
@@ -65,7 +67,7 @@ class BaseService:
 
         return model_instance
 
-    def get(self, model: Any, primary_key: Any) -> Any | None:
+    def get(self, model: T, primary_key: Any) -> T | None:
         """根据主键获取记录
 
         Args:

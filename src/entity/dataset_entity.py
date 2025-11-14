@@ -34,6 +34,8 @@ DEFAULT_PROCESS_RULE = {
     },
 }
 
+KEYWORD_MAX_LENGTH = 10
+
 
 class DocumentStatus(str, Enum):
     """文档处理状态枚举类"""

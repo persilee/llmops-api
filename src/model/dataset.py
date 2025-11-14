@@ -430,6 +430,10 @@ class Segment(db.Model):
         info={"description": "创建时间"},
     )
 
+    @property
+    def document(self) -> "Document":
+        return db.session.query(Document).get(self.document_id)
+
 
 class KeywordTable(db.Model):
     """关键词表模型"""
