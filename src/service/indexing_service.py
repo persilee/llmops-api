@@ -17,8 +17,6 @@ from pkg.sqlalchemy.sqlalchemy import SQLAlchemy
 from src.core.file_extractor.file_extractor import FileExtractor
 from src.entity.cache_entity import (
     LOCK_DOCUMENT_UPDATE_ENABLED,
-    LOCK_EXPIRE_TIME,
-    LOCK_KEYWORD_TABLE_UPDATE_KEYWORD_TABLE,
 )
 from src.entity.dataset_entity import DocumentStatus, SegmentStatus
 from src.exception.exception import NotFoundException
@@ -54,10 +52,12 @@ class IndexingService(BaseService):
     - jieba_service: 中文分词服务，用于关键词提取
     - keyword_table_service: 关键词表服务，用于维护关键词映射
     - vector_database_service: 向量数据库服务，用于文档向量存储
+    - redis_client: Redis客户端，用于缓存处理结果
 
     主要方法：
     - build_documents: 构建文档索引的主入口方法
     - update_document_enabled: 更新文档的启用状态
+    - delete_document: 删除文档及其相关索引
     - _parsing: 解析文档内容
     - _splitting: 分割文档段落
     - _indexing: 处理文档索引
@@ -125,44 +125,11 @@ class IndexingService(BaseService):
                 Segment.document_id == document_id,
             ).delete()
 
-        # 将要删除的段落ID转换为集合，便于后续操作
-        segment_ids_to_delete = set(segment_ids)
-        # 创建一个集合，用于存储需要删除的关键词
-        keyword_to_delete = set()
-
-        # 生成关键词表更新的锁的缓存键
-        cache_key = LOCK_KEYWORD_TABLE_UPDATE_KEYWORD_TABLE.format(
-            dataset_id=dataset_id,
+        # 删除文档相关的关键词表数据
+        self.keyword_table_service.delete_keyword_table_from_ids(
+            dataset_id,
+            segment_ids,
         )
-        # 使用分布式锁确保关键词表更新的原子性
-        with self.redis_client.lock(cache_key, timeout=LOCK_EXPIRE_TIME):
-            # 获取数据集的关键词表记录
-            keyword_table_record = (
-                self.keyword_table_service.get_keyword_table_form_dataset_id(dataset_id)
-            )
-            # 创建关键词表的副本，避免直接修改原数据
-            keyword_table = keyword_table_record.keyword_table.copy()
-
-            # 遍历关键词表中的每个关键词及其关联的段落ID列表
-            for keyword, ids in keyword_table.items():
-                # 将段落ID列表转换为集合，便于集合操作
-                ids_set = set(ids)
-                # 如果该关键词关联的段落中有要删除的段落
-                if segment_ids_to_delete.intersection(ids_set):
-                    # 从该关键词的段落列表中移除要删除的段落
-                    keyword_table[keyword] = list(
-                        ids_set.difference(segment_ids_to_delete),
-                    )
-                    # 如果移除后该关键词没有关联的段落了，则标记该关键词待删除
-                    if not keyword_table[keyword]:
-                        keyword_to_delete.add(keyword)
-
-            # 从关键词表中删除没有关联段落的关键词
-            for keyword in keyword_to_delete:
-                del keyword_table[keyword]
-
-            # 更新关键词表记录，保存修改后的关键词表
-            self.update(keyword_table_record, keyword_table=keyword_table)
 
     def update_document_enabled(self, document_id: UUID) -> None:
         """更新文档的启用状态。
@@ -193,26 +160,65 @@ class IndexingService(BaseService):
             # 抛出文档不存在的异常
             raise NotFoundException(error_msg)
 
-        # 查询文档下所有段落的node_id
-        node_ids = [
-            node_id
-            for (node_id,) in self.db.session.query(Segment)
-            .with_entities(Segment.node_id)  # 只查询node_id字段
+        # 获取文档相关的所有段落ID
+        segments = (
+            self.db.session.query(Segment)
+            .with_entities(Segment.id, Segment.node_id, Segment.enabled)
             .filter(
-                Segment.document_id == document_id,  # 筛选指定文档的段落
+                Segment.document_id == document_id,
+                Segment.status == SegmentStatus.COMPLETED,
             )
-        ]
+            .all()
+        )
+        segment_ids = [id for id, _, _ in segments]
+        node_ids = [node_id for _, node_id, _ in segments]
 
         try:
             # 获取向量数据库的集合对象
             collection = self.vector_database_service.collection
             # 遍历所有段落，更新其在向量数据库中的启用状态
             for node_id in node_ids:
-                collection.data.update(
-                    uuid=node_id,  # 段落的唯一标识
-                    properties={
-                        "document_enabled": document.enabled,  # 更新文档的启用状态
-                    },
+                try:
+                    collection.data.update(
+                        uuid=node_id,  # 段落的唯一标识
+                        properties={
+                            "document_enabled": document.enabled,  # 更新文档的启用状态
+                        },
+                    )
+                except Exception as e:
+                    error_msg = (
+                        "更新向量数据库中的段落启用状态失败，node_id:",
+                        f" {node_id}, 错误信息: {e!s}",
+                    )
+                    # 记录错误日志
+                    logger.exception(error_msg)
+                    # 更新数据库中段落的启用状态为失败和相关字段
+                    with self.db.auto_commit():
+                        self.db.session.query(Segment).filter(
+                            Segment.node_id == node_id,
+                        ).update(
+                            {
+                                "error": str(e),
+                                "status": SegmentStatus.ERROR,
+                                "enabled": False,
+                                "disabled_at": datetime.now(UTC),
+                                "stopped_at": datetime.now(UTC),
+                            },
+                        )
+            # 如果是启用状态，则添加关键词表
+            if document.enabled is True:
+                enabled_segment_ids = [
+                    id for id, _, enabled in segments if enabled is True
+                ]
+                self.keyword_table_service.add_keyword_table_from_ids(
+                    document.dataset_id,
+                    enabled_segment_ids,
+                )
+            # 如果是禁用状态，则删除关键词表
+            else:
+                self.keyword_table_service.delete_keyword_table_from_ids(
+                    document.dataset_id,
+                    segment_ids,
                 )
         except Exception as e:
             # 如果更新失败，记录错误信息
