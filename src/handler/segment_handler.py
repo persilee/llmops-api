@@ -15,6 +15,7 @@ from pkg.response.response import (
 from pkg.swagger.swagger import get_swagger_path
 from src.router.redprint import route
 from src.schemas.segment_schema import (
+    CreateSegmentReq,
     GetSegmentResp,
     GetSegmentsWithPageReq,
     GetSegmentsWithPageResp,
@@ -28,9 +29,67 @@ from src.service.segment_service import SegmentService
 class SegmentHandler:
     segment_service: SegmentService
 
+    @route(
+        "/<uuid:dataset_id>/document/<uuid:document_id>/segment/create",
+        methods=["POST"],
+    )
+    @swag_from(get_swagger_path("segment_handler/create_segment.yaml"))
+    def create_segment(self, dataset_id: UUID, document_id: UUID) -> Response:
+        """创建新的文档片段接口。
+
+        该接口用于在指定文档中创建新的文本片段：
+        1. 验证请求数据的合法性
+        2. 调用服务层创建文档片段
+        3. 返回创建结果
+
+        Args:
+            dataset_id (UUID): 数据集ID，用于标识所属知识库
+            document_id (UUID): 文档ID，指定要添加片段的文档
+
+        Returns:
+            Response: HTTP响应对象，包含创建结果信息
+
+        Raises:
+            ValidationError: 当请求数据验证失败时
+
+        Note:
+            请求方法: POST
+            需要在请求体中提供片段内容和关键词信息
+
+        """
+        req = CreateSegmentReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        self.segment_service.create_segment(dataset_id, document_id, req)
+
+        return success_message_json("创建文档片段成功")
+
     @route("/<uuid:dataset_id>/documents/<uuid:document_id>/segments", methods=["GET"])
     @swag_from(get_swagger_path("segment_handler/get_segments_with_page.yaml"))
     def get_segments_with_page(self, dataset_id: UUID, document_id: UUID) -> Response:
+        """分页获取文档片段列表接口。
+
+        该接口用于获取指定文档中的片段列表：
+        1. 验证分页请求参数
+        2. 调用服务层查询片段列表
+        3. 返回分页结果
+
+        Args:
+            dataset_id (UUID): 数据集ID，用于标识所属知识库
+            document_id (UUID): 文档ID，指定要查询的文档
+
+        Returns:
+            Response: HTTP响应对象，包含分页的片段列表信息
+
+        Raises:
+            ValidationError: 当分页参数验证失败时
+
+        Note:
+            请求方法: GET
+            支持通过查询参数进行分页和搜索
+
+        """
         req = GetSegmentsWithPageReq(request.args)
         if not req.validate():
             return validate_error_json(req.errors)
@@ -56,6 +115,26 @@ class SegmentHandler:
         document_id: UUID,
         segment_id: UUID,
     ) -> Response:
+        """获取单个文档片段详情接口。
+
+        该接口用于获取指定文档片段的详细信息：
+        1. 验证参数合法性
+        2. 调用服务层查询片段信息
+        3. 返回片段详情
+
+        Args:
+            dataset_id (UUID): 数据集ID，用于标识所属知识库
+            document_id (UUID): 文档ID，验证片段所属文档
+            segment_id (UUID): 片段ID，指定要查询的片段
+
+        Returns:
+            Response: HTTP响应对象，包含片段的详细信息
+
+        Note:
+            请求方法: GET
+            返回指定ID的片段完整信息
+
+        """
         segment = self.segment_service.get_segment(dataset_id, document_id, segment_id)
 
         resp = GetSegmentResp()
@@ -73,6 +152,29 @@ class SegmentHandler:
         document_id: UUID,
         segment_id: UUID,
     ) -> Response:
+        """更新文档片段启用状态接口。
+
+        该接口用于启用或禁用指定的文档片段：
+        1. 验证请求数据
+        2. 调用服务层更新片段状态
+        3. 返回更新结果
+
+        Args:
+            dataset_id (UUID): 数据集ID，用于标识所属知识库
+            document_id (UUID): 文档ID，验证片段所属文档
+            segment_id (UUID): 片段ID，指定要更新的片段
+
+        Returns:
+            Response: HTTP响应对象，包含状态更新结果
+
+        Raises:
+            ValidationError: 当请求数据验证失败时
+
+        Note:
+            请求方法: POST
+            需要在请求体中提供新的启用状态
+
+        """
         req = UpdateSegmentEnabledReq()
         if not req.validate():
             return validate_error_json(req.errors)

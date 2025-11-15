@@ -6,16 +6,18 @@ from wtforms import BooleanField, StringField
 from wtforms.validators import AnyOf, DataRequired, Length, Optional
 
 from pkg.paginator.paginator import PaginatorReq
-from src.entity.dataset_entity import DEFAULT_PROCESS_RULE, ProcessType
+from src.entity.dataset_entity import (
+    DEFAULT_PROCESS_RULE,
+    EXPECTED_PRE_PROCESS_RULES_COUNT,
+    MAX_CHUNK_SIZE,
+    MAX_UPLOAD_FILES,
+    MIN_CHUNK_SIZE,
+    ProcessType,
+)
 from src.lib.helper import datetime_to_timestamp
 from src.model.dataset import Document
 from src.schemas.schema import DictField, ListField
 from src.schemas.swag_schema import req_schema, resp_schema
-
-MAX_UPLOAD_FILES = 10
-EXPECTED_PRE_PROCESS_RULES_COUNT = 2
-MIN_CHUNK_SIZE = 100
-MAX_CHUNK_SIZE = 1000
 
 
 @req_schema
