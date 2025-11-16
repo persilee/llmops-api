@@ -1,5 +1,35 @@
 components:
   schemas:
+    RetrievalStrategy:
+      description: 检索策略类型
+      type: string
+      enum:
+        - full_text
+        - semantic
+        - hybrid
+      x-apifox-enum:
+        - value: "full_text"
+          name: "full_text"
+          description: 全文检索
+        - value: "semantic"
+          name: "semantic"
+          description: 语义检索
+        - value: "hybrid"
+          name: "hybrid"
+          description: 混合检索
+    RetrievalSource:
+      description: 检索来源
+      type: string
+      enum:
+        - hit_testing
+        - app
+      x-apifox-enum:
+        - value: "hit_testing"
+          name: "hit_testing"
+          description: 召回测试
+        - value: "app"
+          name: "app"
+          description: 应用
     StatusCode:
       description: 状态码
       type: string

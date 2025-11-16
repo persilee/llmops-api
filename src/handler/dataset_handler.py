@@ -19,9 +19,11 @@ from src.model.upload_file import UploadFile
 from src.router.redprint import route
 from src.schemas.dataset_schema import (
     CreateDatasetReq,
+    GetDatasetQueriesResp,
     GetDatasetResp,
     GetDatasetsWithPageReq,
     GetDatasetsWithPageResp,
+    HitReq,
     UpdateDatasetReq,
 )
 from src.service.dataset_service import DatasetService
@@ -37,6 +39,50 @@ class DatasetHandler:
     jieba_service: JiebaService
     file_extractor: FileExtractor
     db: SQLAlchemy
+
+    @route("/<uuid:dataset_id>/get_dataset_queries", methods=["GET"])
+    @swag_from(get_swagger_path("dataset_handler/get_dataset_queries.yaml"))
+    def get_dataset_queries(self, dataset_id: UUID) -> Response:
+        """获取指定数据集的查询记录
+
+        Args:
+            dataset_id (UUID): 数据集的唯一标识符
+
+        Returns:
+            Response: 包含查询记录列表的响应对象
+
+        """
+        dataset_queries = self.dataset_service.get_dataset_queries(dataset_id)
+        resp = GetDatasetQueriesResp(many=True)
+
+        return success_json(resp.dump(dataset_queries))
+
+    @route("/<uuid:dataset_id>/hit", methods=["POST"])
+    @swag_from(get_swagger_path("dataset_handler/hit.yaml"))
+    def hit(self, dataset_id: UUID) -> Response:
+        """处理知识库查询请求
+
+        Args:
+            dataset_id (UUID): 知识库的唯一标识符
+
+        Returns:
+            Response: 包含查询结果的响应对象
+                - 成功时返回查询结果
+                - 验证失败时返回错误信息
+
+        流程:
+            1. 创建并验证请求数据
+            2. 调用服务层执行查询
+            3. 返回查询结果
+
+        """
+        req = HitReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        hit_result = self.dataset_service.hit(dataset_id, req)
+
+        return success_json(hit_result)
 
     @route("/embeddings", methods=["GET"])
     @swag_from(get_swagger_path("dataset_handler/embeddings_query.yaml"))

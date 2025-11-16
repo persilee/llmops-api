@@ -60,3 +60,18 @@ class SegmentStatus(str, Enum):
     INDEXING = "indexing"  # 索引中
     COMPLETED = "completed"  # 处理完成
     ERROR = "error"  # 处理出错
+
+
+class RetrievalStrategy(str, Enum):
+    """检索策略类型枚举"""
+
+    FULL_TEXT = "full_text"
+    SEMANTIC = "semantic"
+    HYBRID = "hybrid"
+
+
+class RetrievalSource(str, Enum):
+    """检索来源"""
+
+    HIT_TESTING = "hit_testing"
+    APP = "app"

@@ -2,25 +2,168 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from injector import inject
-from sqlalchemy import select
+from sqlalchemy import desc, select
 
 from pkg.paginator.paginator import Paginator
 from pkg.sqlalchemy import SQLAlchemy
 from src.entity.dataset_entity import DEFAULT_DATASET_DESCRIPTION_FORMATTER
 from src.exception.exception import NotFoundException, ValidateErrorException
-from src.model.dataset import Dataset
+from src.lib.helper import datetime_to_timestamp
+from src.model.dataset import Dataset, DatasetQuery, Segment
 from src.schemas.dataset_schema import (
     CreateDatasetReq,
     GetDatasetsWithPageReq,
+    HitReq,
     UpdateDatasetReq,
 )
 from src.service.base_service import BaseService
+from src.service.retrieval_service import RetrievalService
 
 
 @inject
 @dataclass
 class DatasetService(BaseService):
     db: SQLAlchemy
+    retrieval_service: RetrievalService
+
+    def get_dataset_queries(self, dataset_id: UUID) -> list[DatasetQuery]:
+        """获取指定知识库的查询历史记录
+
+        Args:
+            dataset_id (UUID): 知识库ID
+
+        Returns:
+            list[DatasetQuery]: 查询历史记录列表，按创建时间倒序排列，最多返回10条记录
+
+        Raises:
+            NotFoundException: 当知识库不存在或不属于当前账户时抛出
+
+        """
+        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
+        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
+
+        # 获取数据集并验证其存在性和所有权
+        dataset = self.get(Dataset, dataset_id)
+        if dataset is None or str(dataset.account_id) != account_id:
+            error_msg = f"知识库ID为 {dataset_id} 不存在"
+            raise NotFoundException(error_msg)
+
+        # 查询数据集的查询历史，按创建时间倒序排列，限制返回10条记录
+        return (
+            self.db.session.query(DatasetQuery)
+            .filter(
+                DatasetQuery.dataset_id == dataset_id,
+            )
+            .order_by(desc("created_at"))
+            .limit(10)
+            .all()
+        )
+
+    def hit(self, dataset_id: UUID, req: HitReq) -> list[dict]:
+        """在指定知识库中搜索相关文档片段。
+
+        Args:
+            dataset_id (UUID): 数据集的唯一标识符
+            req (HitReq): 搜索请求对象，包含搜索参数
+
+        Returns:
+            list[dict]: 返回搜索结果列表，每个结果包含以下信息：
+                - id: 文档片段ID
+                - document: 文档信息（id, name, extension, mime_type）
+                - dataset_id: 数据集ID
+                - score: 相关性评分
+                - position: 片段在文档中的位置
+                - content: 片段内容
+                - keywords: 关键词
+                - character_count: 字符数
+                - token_count: token数量
+                - hit_count: 命中次数
+                - enabled: 是否启用
+                - disabled_at: 禁用时间戳
+                - status: 状态
+                - error: 错误信息
+                - updated_at: 更新时间戳
+                - created_at: 创建时间戳
+
+        Raises:
+            NotFoundException: 当指定的数据集不存在或不属于当前账户时抛出
+
+        """
+        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
+        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
+
+        # 获取数据集并验证其存在性和所有权
+        dataset = self.get(Dataset, dataset_id)
+        if dataset is None or str(dataset.account_id) != account_id:
+            error_msg = f"知识库ID为 {dataset_id} 不存在"
+            raise NotFoundException(error_msg)
+
+        # 使用检索服务在指定数据集中搜索相关文档
+        lc_documents = self.retrieval_service.search_in_datasets(
+            dataset_ids=[dataset_id],
+            **req.data,
+        )
+        # 将搜索结果转换为字典，以segment_id为键
+        lc_document_dict = {
+            str(lc_document.metadata["segment_id"]): lc_document
+            for lc_document in lc_documents
+        }
+
+        # 获取所有文档片段的ID
+        segment_ids = [
+            str(lc_document.metadata["segment_id"]) for lc_document in lc_documents
+        ]
+        # 从数据库查询所有匹配的文档片段
+        segments = (
+            self.db.session.query(Segment)
+            .filter(
+                Segment.id.in_(segment_ids),
+            )
+            .all()
+        )
+        # 将片段转换为字典，以id为键
+        segment_dict = {str(segment.id): segment for segment in segments}
+
+        # 根据搜索结果的顺序对片段进行排序
+        sorted_segments = [
+            segment_dict[str(lc_document.metadata["segment_id"])]
+            for lc_document in lc_documents
+            if str(lc_document.metadata["segment_id"]) in segment_dict
+        ]
+
+        # 构建返回结果列表
+        hit_result = []
+        for segment in sorted_segments:
+            document = segment.document
+            upload_file = document.upload_file
+            # 为每个片段创建包含详细信息的字典
+            hit_result.append(
+                {
+                    "id": segment.id,
+                    "document": {
+                        "id": document.id,
+                        "name": document.name,
+                        "extension": upload_file.extension,
+                        "mime_type": upload_file.mime_type,
+                    },
+                    "dataset_id": segment.dataset_id,
+                    "score": lc_document_dict[str(segment.id)].metadata["score"],
+                    "position": segment.position,
+                    "content": segment.content,
+                    "keywords": segment.keywords,
+                    "character_count": segment.character_count,
+                    "token_count": segment.token_count,
+                    "hit_count": segment.hit_count,
+                    "enabled": segment.enabled,
+                    "disabled_at": datetime_to_timestamp(segment.disabled_at),
+                    "status": segment.status,
+                    "error": segment.error,
+                    "updated_at": datetime_to_timestamp(segment.updated_at),
+                    "created_at": datetime_to_timestamp(segment.created_at),
+                },
+            )
+
+        return hit_result
 
     def create_dataset(self, req: CreateDatasetReq) -> Dataset:
         """创建新的数据集。
