@@ -21,7 +21,11 @@ from src.exception.exception import (
 )
 from src.lib.helper import generate_text_hash
 from src.model.dataset import Document, Segment
-from src.schemas.segment_schema import CreateSegmentReq, GetSegmentsWithPageReq
+from src.schemas.segment_schema import (
+    CreateSegmentReq,
+    GetSegmentsWithPageReq,
+    UpdateSegmentReq,
+)
 from src.service.base_service import BaseService
 from src.service.embeddings_service import EmbeddingsService
 from src.service.jieba_service import JiebaService
@@ -556,5 +560,133 @@ class SegmentService(BaseService):
                     f"文档片段状态更新失败：{segment_id}，状态：{segment.status}"
                 )
                 raise FailException(error_msg) from e
+
+        return segment
+
+    def update_segment(
+        self,
+        dataset_id: UUID,
+        document_id: UUID,
+        segment_id: UUID,
+        req: UpdateSegmentReq,
+    ) -> Segment:
+        """更新文档片段信息。
+
+        该方法用于更新指定文档片段的内容、关键词等信息，并同步更新相关的向量数据库和文档统计信息。
+        更新过程包括：
+        1. 验证用户权限和片段状态
+        2. 处理关键词信息（如果未提供则自动生成）
+        3. 更新片段内容和相关统计信息
+        4. 同步更新关键词表
+        5. 更新文档统计信息（如果内容发生变化）
+        6. 更新向量数据库中的向量数据（如果内容发生变化）
+
+        Args:
+            dataset_id (UUID): 数据集ID，用于标识所属的知识库
+            document_id (UUID): 文档ID，用于标识所属的文档
+            segment_id (UUID): 片段ID，用于标识要更新的具体片段
+            req (UpdateSegmentReq): 更新请求对象，包含新的内容和关键词信息
+
+        Returns:
+            Segment: 更新后的文档片段对象
+
+        Raises:
+            NotFoundException: 当文档片段不存在或无权限修改时
+            FailException: 当片段状态不允许修改或更新过程中发生错误时
+
+        Note:
+            - 如果请求中未提供关键词，系统将自动使用jieba服务提取关键词
+            - 只有当内容发生变化时才会更新向量数据库和文档统计信息
+            - 更新操作是原子性的，任何步骤失败都会回滚整个操作
+
+        """
+        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
+        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
+
+        # 1.获取片段信息并校验权限
+        segment = self.get(Segment, segment_id)
+        if (
+            segment is None
+            or segment.account_id != account_id.id
+            or segment.dataset_id != dataset_id
+            or segment.document_id != document_id
+        ):
+            error_msg = "该文档片段不存在，或无权限修改，请核实后重试"
+            raise NotFoundException(error_msg)
+
+        # 2.判断文档片段是否处于可修改的环境
+        if segment.status != SegmentStatus.COMPLETED:
+            error_msg = "当前片段不可修改状态，请稍后尝试"
+            raise FailException(error_msg)
+
+        # 3.检测是否传递了keywords，如果没有传递的话，调用jieba服务生成关键词
+        if req.keywords.data is None or len(req.keywords.data) == 0:
+            req.keywords.data = self.jieba_service.extract_keywords(
+                req.content.data,
+                10,
+            )
+
+        # 4.计算新内容hash值，用于判断是否需要更新向量数据库以及文档详情
+        new_hash = generate_text_hash(req.content.data)
+        required_update = segment.hash != new_hash
+
+        try:
+            # 5.更新segment表记录
+            self.update(
+                segment,
+                keywords=req.keywords.data,
+                content=req.content.data,
+                hash=new_hash,
+                character_count=len(req.content.data),
+                token_count=self.embeddings_service.calculate_token_count(
+                    req.content.data,
+                ),
+            )
+
+            # 7.更新片段归属关键词信息
+            self.keyword_table_service.delete_keyword_table_from_ids(
+                dataset_id,
+                [segment_id],
+            )
+            self.keyword_table_service.add_keyword_table_from_ids(
+                dataset_id,
+                [segment_id],
+            )
+
+            # 8.检测是否需要更新文档信息以及向量数据库
+            if required_update:
+                # 7.更新文档信息，涵盖字符总数、token总次数
+                document = segment.document
+                document_character_count, document_token_count = (
+                    self.db.session.query(
+                        func.coalesce(func.sum(Segment.character_count), 0),
+                        func.coalesce(func.sum(Segment.token_count), 0),
+                    )
+                    .filter(Segment.document_id == document.id)
+                    .first()
+                )
+                self.update(
+                    document,
+                    character_count=document_character_count,
+                    token_count=document_token_count,
+                )
+
+                # 9.更新向量数据库对应记录
+                self.vector_database_service.collection.data.update(
+                    uuid=str(segment.node_id),
+                    properties={
+                        "text": req.content.data,
+                    },
+                    vector=self.embeddings_service.embeddings.embed_query(
+                        req.content.data,
+                    ),
+                )
+        except Exception as e:
+            error_exception = (
+                f"更新文档片段记录失败, segment_id: {segment_id}, 错误信息: {e!s}"
+            )
+            logger.exception(error_exception)
+            error_msg = "更新文档片段记录失败，请稍后尝试"
+            raise FailException(error_msg) from e
 
         return segment

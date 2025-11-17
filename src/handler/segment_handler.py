@@ -20,6 +20,7 @@ from src.schemas.segment_schema import (
     GetSegmentsWithPageReq,
     GetSegmentsWithPageResp,
     UpdateSegmentEnabledReq,
+    UpdateSegmentReq,
 )
 from src.service.segment_service import SegmentService
 
@@ -40,6 +41,17 @@ class SegmentHandler:
         document_id: UUID,
         segment_id: UUID,
     ) -> Response:
+        """删除文档片段
+
+        Args:
+            dataset_id (UUID): 数据集ID
+            document_id (UUID): 文档ID
+            segment_id (UUID): 文档片段ID
+
+        Returns:
+            Response: 删除成功的响应消息
+
+        """
         self.segment_service.delete_segment(dataset_id, document_id, segment_id)
 
         return success_message_json("删除文档片段成功")
@@ -202,3 +214,30 @@ class SegmentHandler:
         )
 
         return success_message_json("更新文档片段启用状态成功")
+
+    @route(
+        "/<uuid:dataset_id>/document/<uuid:document_id>/segment/<uuid:segment_id>/update",
+        methods=["POST"],
+    )
+    @swag_from(get_swagger_path("segment_handler/update_segment.yaml"))
+    def update_segment(
+        self,
+        dataset_id: UUID,
+        document_id: UUID,
+        segment_id: UUID,
+    ) -> Response:
+        """根据传递的信息更新文档片段信息"""
+        # 1.提取请求并校验
+        req = UpdateSegmentReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        # 2.调用服务更新文档片段信息
+        self.segment_service.update_segment(
+            dataset_id,
+            document_id,
+            segment_id,
+            req,
+        )
+
+        return success_message_json("更新文档片段成功")
