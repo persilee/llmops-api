@@ -1,6 +1,7 @@
 from .http_code import HttpCode
 from .response import (
     Response,
+    compact_generate_response,
     fail_json,
     fail_message_json,
     forbidden_message_json,
@@ -16,6 +17,7 @@ from .response import (
 __all__ = [
     "HttpCode",
     "Response",
+    "compact_generate_response",
     "fail_json",
     "fail_message_json",
     "forbidden_message_json",

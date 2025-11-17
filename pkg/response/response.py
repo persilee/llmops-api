@@ -1,8 +1,9 @@
+from collections.abc import Generator
 from dataclasses import dataclass, field
 from typing import Any
 
 from flask import Response as FlaskResponse
-from flask import jsonify
+from flask import jsonify, stream_with_context
 
 from pkg.response.http_code import HttpCode
 
@@ -245,3 +246,31 @@ def forbidden_message_json(message: str = "") -> Response:
         {'code': 403, 'message': 'Access denied'}
     """
     return message_json(code=HttpCode.FORBIDDEN, message=message)
+
+
+def compact_generate_response(response: Response | Generator) -> FlaskResponse:
+    """处理响应数据，支持Response对象和Generator对象两种类型
+
+    Args:
+        response (Response | Generator): 响应数据，可以是Response对象或Generator对象
+
+    Returns:
+        FlaskResponse: Flask响应对象
+
+    功能说明：
+        1. 如果传入的是Response对象，将其转换为JSON格式返回
+        2. 如果传入的是Generator对象，创建一个流式响应，用于服务器推送事件(SSE)
+
+    """
+    if isinstance(response, Response):
+        return json(response)
+
+    def generate() -> Generator:
+        """内部生成器函数，用于逐个产生响应数据"""
+        yield from response
+
+    return FlaskResponse(
+        stream_with_context(generate()),
+        status=200,
+        mimetype="text/event-stream",
+    )
