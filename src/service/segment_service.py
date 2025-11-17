@@ -607,9 +607,9 @@ class SegmentService(BaseService):
         segment = self.get(Segment, segment_id)
         if (
             segment is None
-            or segment.account_id != account_id.id
-            or segment.dataset_id != dataset_id
-            or segment.document_id != document_id
+            or str(segment.account_id) != account_id
+            or str(segment.dataset_id) != dataset_id
+            or str(segment.document_id) != document_id
         ):
             error_msg = "该文档片段不存在，或无权限修改，请核实后重试"
             raise NotFoundException(error_msg)
