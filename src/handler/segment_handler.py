@@ -30,6 +30,21 @@ class SegmentHandler:
     segment_service: SegmentService
 
     @route(
+        "/<uuid:dataset_id>/document/<uuid:document_id>/segment/<uuid:segment_id>/delete",
+        methods=["POST"],
+    )
+    @swag_from(get_swagger_path("segment_handler/delete_segment.yaml"))
+    def delete_segment(
+        self,
+        dataset_id: UUID,
+        document_id: UUID,
+        segment_id: UUID,
+    ) -> Response:
+        self.segment_service.delete_segment(dataset_id, document_id, segment_id)
+
+        return success_message_json("删除文档片段成功")
+
+    @route(
         "/<uuid:dataset_id>/document/<uuid:document_id>/segment/create",
         methods=["POST"],
     )

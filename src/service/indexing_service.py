@@ -21,7 +21,7 @@ from src.entity.cache_entity import (
 from src.entity.dataset_entity import DocumentStatus, SegmentStatus
 from src.exception.exception import NotFoundException
 from src.lib.helper import generate_text_hash
-from src.model.dataset import Document, Segment
+from src.model.dataset import DatasetQuery, Document, KeywordTable, Segment
 from src.service.base_service import BaseService
 from src.service.embeddings_service import EmbeddingsService
 from src.service.jieba_service import JiebaService
@@ -89,7 +89,7 @@ class IndexingService(BaseService):
         """删除指定文档及其相关的所有数据，包括向量数据、段落记录和关键词表信息。
 
         Args:
-            dataset_id (UUID): 数据集ID，用于获取和更新关键词表
+            dataset_id (UUID): 知识库ID，用于获取和更新关键词表
             document_id (UUID): 要删除的文档ID
 
         Returns:
@@ -437,7 +437,7 @@ class IndexingService(BaseService):
                 },
             )
 
-            # 获取数据集对应的关键词表记录
+            # 获取知识库对应的关键词表记录
             keyword_table_record = (
                 self.keyword_table_service.get_keyword_table_form_dataset_id(
                     document.dataset_id,
@@ -627,3 +627,49 @@ class IndexingService(BaseService):
                 ),
             ),
         )
+
+    def delete_dataset(self, dataset_id: UUID) -> None:
+        """删除指定知识库及其所有相关数据
+
+        Args:
+            dataset_id (UUID): 要删除的知识库ID
+
+        该方法会执行以下操作：
+        1. 删除数据库中的文档记录
+        2. 删除数据库中的段落记录
+        3. 删除数据库中的关键词表记录
+        4. 删除数据库中的查询记录
+        5. 删除向量数据库中的相关数据
+
+        """
+        try:
+            # 使用数据库事务确保数据一致性
+            with self.db.auto_commit():
+                # 删除知识库下的所有文档
+                self.db.session.query(Document).filter(
+                    Document.dataset_id == dataset_id,
+                ).delete()
+
+                # 删除知识库下的所有段落
+                self.db.session.query(Segment).filter(
+                    Segment.dataset_id == dataset_id,
+                ).delete()
+
+                # 删除知识库下的所有关键词表记录
+                self.db.session.query(KeywordTable).filter(
+                    KeywordTable.dataset_id == dataset_id,
+                ).delete()
+
+                # 删除知识库下的所有查询记录
+                self.db.session.query(DatasetQuery).filter(
+                    DatasetQuery.dataset_id == dataset_id,
+                ).delete()
+
+            # 删除向量数据库中的相关数据
+            self.vector_database_service.collection.data.delete_many(
+                where=Filter.by_property("dataset_id").equal(val=str(dataset_id)),
+            )
+        except Exception as e:
+            # 记录删除失败的错误信息
+            error_msg = f"删除知识库失败，错误信息：{e!s}，知识库 id: {dataset_id}"
+            logger.exception(error_msg)

@@ -215,3 +215,19 @@ class DatasetHandler:
 
         # 返回成功响应，包含知识库列表和分页信息
         return success_json(PageModel(list=resp.dump(datasets), paginator=paginator))
+
+    @route("/<uuid:dataset_id>/delete", methods=["POST"])
+    @swag_from(get_swagger_path("dataset_handler/delete_dataset.yaml"))
+    def delete_dataset(self, dataset_id: UUID) -> Response:
+        """删除指定ID的知识库
+
+        Args:
+            dataset_id (UUID): 要删除的知识库ID
+
+        Returns:
+            Response: 包含删除成功消息的响应对象
+
+        """
+        self.dataset_service.delete_dataset(dataset_id)
+
+        return success_message_json("删除知识库成功")

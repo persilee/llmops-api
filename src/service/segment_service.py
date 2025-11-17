@@ -41,6 +41,91 @@ class SegmentService(BaseService):
     jieba_service: JiebaService
     embeddings_service: EmbeddingsService
 
+    def delete_segment(
+        self,
+        dataset_id: UUID,
+        document_id: UUID,
+        segment_id: UUID,
+    ) -> Segment:
+        """删除文档片段
+
+        Args:
+            dataset_id: 知识库ID
+            document_id: 文档ID
+            segment_id: 片段ID
+
+        Returns:
+            Segment: 被删除的文档片段对象
+
+        Raises:
+            NotFoundException: 当片段不存在或无权限操作时
+            FailException: 当片段状态不正确时
+
+        """
+        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
+        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
+
+        # 获取并验证文档片段是否存在以及权限
+        segment = self.get(Segment, segment_id)
+        if (
+            segment is None
+            or str(segment.account_id) != account_id
+            or segment.dataset_id != dataset_id
+            or segment.document_id != document_id
+        ):
+            error_msg = "片段不存在或有权限操作"
+            raise NotFoundException(error_msg)
+
+        # 验证文档片段状态是否允许删除
+        if segment.status not in [SegmentStatus.COMPLETED, SegmentStatus.ERROR]:
+            error_msg = f"片段状态不正确, 当前状态: {segment.status}"
+            raise FailException(error_msg)
+
+        # 获取关联的文档对象
+        document = segment.document
+        # 从数据库中删除文档片段
+        self.delete(segment)
+
+        # 删除关联的关键词表记录
+        self.keyword_table_service.delete_keyword_table_from_ids(
+            dataset_id,
+            [segment_id],
+        )
+
+        # 从向量数据库中删除对应的向量数据
+        try:
+            self.vector_database_service.collection.data.delete_by_id(
+                str(segment.node_id),
+            )
+        except Exception as e:
+            error_msg = f"删除文档片段失败，文档片段 {segment_id}, 错误信息： {e!s}"
+            logger.exception(error_msg)
+
+        # 查询文档的总字符数和token数
+        document_character_count, document_token_count = (
+            self.db.session.query(
+                func.coalesce(
+                    func.sum(Segment.character_count),
+                    0,
+                ),  # 计算字符总数，如果没有则为0
+                func.coalesce(
+                    func.sum(Segment.token_count),
+                    0,
+                ),  # 计算token总数，如果没有则为0
+            )
+            .filter(Segment.document_id == document.id)
+            .first()
+        )
+
+        # 更新文档的字符数和token数
+        self.update(
+            document,
+            character_count=document_character_count,
+            token_count=document_token_count,
+        )
+
+        return segment
+
     def create_segment(
         self,
         dataset_id: UUID,
