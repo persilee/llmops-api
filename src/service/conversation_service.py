@@ -11,9 +11,12 @@ from src.entity.conversation_entity import (
     CONVERSATION_NAME_TEMPLATE,
     MAX_CONVERSATION_NAME_LENGTH,
     MAX_QUERY_LENGTH,
+    MAX_SUGGESTED_QUESTIONS,
+    SUGGESTED_QUESTIONS_TEMPLATE,
     SUMMARIZER_TEMPLATE,
     TRUNCATE_PREFIX_LENGTH,
     ConversationInfo,
+    SuggestedQuestions,
 )
 from src.service.base_service import BaseService
 
@@ -123,6 +126,7 @@ class ConversationService(BaseService):
         # 调用处理链，传入查询并获取会话信息
         conversation_info = chain.invoke({"query": query})
 
+        name = ""
         try:
             # 尝试从会话信息中提取主题名称
             if conversation_info and hasattr(conversation_info, "subject"):
@@ -140,3 +144,70 @@ class ConversationService(BaseService):
 
         # 返回处理后的会话名称
         return name
+
+    @classmethod
+    def generate_suggested_questions(cls, histories: str) -> list[str]:
+        """根据对话历史生成建议问题列表。
+
+        该方法使用GPT模型分析对话历史，智能生成与上下文相关的建议问题，
+        用于帮助用户继续对话或探索相关话题。
+
+        Args:
+            histories (str): 对话历史记录，包含用户和AI的交互内容
+
+        Returns:
+            list[str]: 建议问题列表，数量限制在MAX_SUGGESTED_QUESTIONS内
+
+        处理流程：
+        1. 使用预定义的SUGGESTED_QUESTIONS_TEMPLATE创建提示模板
+        2. 初始化GPT-4o-mini模型，设置温度为0以确保输出的确定性
+        3. 通过结构化输出配置，使模型返回标准化的建议问题格式
+        4. 处理对话历史并生成建议问题
+        5. 对生成的问题列表进行数量限制处理
+
+        异常处理：
+        如果在生成或提取建议问题过程中发生错误，会记录异常日志，
+        并返回空列表作为默认值。
+
+        注意：
+        - 输入的对话历史会被完整传递给模型进行分析
+        - 输出的问题数量会被限制在MAX_SUGGESTED_QUESTIONS以内
+        - 生成的建议问题与对话历史上下文相关
+        - 使用结构化输出确保返回格式的一致性
+
+        """
+        prompt = ChatPromptTemplate.format_messages(
+            [
+                ("system", SUGGESTED_QUESTIONS_TEMPLATE),  # 系统消息模板
+                ("human", "{histories}"),  # 用户输入模板
+            ],
+        )
+
+        # 初始化一个使用 gpt-4o-mini 模型的聊天 AI 实例，设置温度为 0（确定性输出）
+        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+        # 使用 with_structured_output 方法使 LLM 输出结构化的 SuggestedQuestions 对象
+        structured_llm = llm.with_structured_output(SuggestedQuestions)
+
+        # 创建一个处理链，将提示模板和结构化的 LLM 连接起来
+        chain = prompt | structured_llm
+
+        # 调用处理链，传入查询并获取建议问题列表
+        suggested_questions = chain.invoke({"histories": histories})
+
+        questions = []
+        try:
+            # 尝试从会话信息中提取主题名称
+            if suggested_questions and hasattr(suggested_questions, "questions"):
+                questions = suggested_questions.subject
+        except Exception as e:
+            # 如果提取过程中发生异常，记录错误信息
+            error_msg = (
+                f"提取会话建议问题列表失败: {e!s},",
+                f" suggested_questions: {suggested_questions}",
+            )
+            logger.exception(error_msg)
+
+        if len(questions) > MAX_SUGGESTED_QUESTIONS:
+            questions = questions[:MAX_SUGGESTED_QUESTIONS]
+
+        return questions

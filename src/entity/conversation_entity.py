@@ -35,6 +35,7 @@ CONVERSATION_NAME_TEMPLATE = "请从用户传递的内容中提取出对应的�
 MAX_CONVERSATION_NAME_LENGTH = 76  # 会话名称的最大长度限制
 MAX_QUERY_LENGTH = 2000  # 查询文本的最大长度限制
 TRUNCATE_PREFIX_LENGTH = 300  # 截断时保留的前缀长度
+MAX_SUGGESTED_QUESTIONS = 3  # 建议问题的最大数量
 
 
 class ConversationInfo(BaseModel):
