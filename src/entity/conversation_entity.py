@@ -32,6 +32,10 @@ END OF EXAMPLE
 # 会话名字提示模板
 CONVERSATION_NAME_TEMPLATE = "请从用户传递的内容中提取出对应的主题"
 
+MAX_CONVERSATION_NAME_LENGTH = 76  # 会话名称的最大长度限制
+MAX_QUERY_LENGTH = 2000  # 查询文本的最大长度限制
+TRUNCATE_PREFIX_LENGTH = 300  # 截断时保留的前缀长度
+
 
 class ConversationInfo(BaseModel):
     """你需要将用户的输入分解为“主题”和“意图”，以便准确识别用户输入的类型。
