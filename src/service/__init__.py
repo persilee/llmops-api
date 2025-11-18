@@ -2,6 +2,7 @@ from .api_tool_service import ApiToolService
 from .app_service import AppService
 from .base_service import BaseService
 from .builtin_tool_service import BuiltinToolService
+from .conversation_service import ConversationService
 from .cos_service import CosService
 from .dataset_service import DatasetService
 from .document_service import DocumentService
@@ -19,6 +20,7 @@ __all__ = [
     "AppService",
     "BaseService",
     "BuiltinToolService",
+    "ConversationService",
     "CosService",
     "DatasetService",
     "DocumentService",

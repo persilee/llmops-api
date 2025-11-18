@@ -13,7 +13,7 @@ from .response import (
     unauthorized_message_json,
     validate_error_json,
 )
-from .sqlalchemy import SQLAlchemy
+from .sqlalchemy.sqlalchemy import SQLAlchemy
 
 __all__ = [
     "HttpCode",
