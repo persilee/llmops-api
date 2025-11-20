@@ -171,5 +171,6 @@
   "python.analysis.logLevel": "Trace",
   "taskexplorer.pathToPrograms": {
     "make": "make"
-  }
+  },
+  "python.REPL.enableREPLSmartSend": false
 }
