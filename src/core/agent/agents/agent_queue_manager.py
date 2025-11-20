@@ -82,7 +82,7 @@ class AgentQueueManager:
         # 缓存键由task_id生成
         # 缓存过期时间为1800秒（30分钟）
         # 缓存值为用户前缀和用户ID的组合
-        self.redis_client.setnx(
+        self.redis_client.setex(
             self.generate_task_belong_cache_key(task_id),
             1800,
             f"{user_prefix}-{user_id!s}",

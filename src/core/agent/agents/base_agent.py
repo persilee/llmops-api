@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from collections.abc import Generator
 
 from langchain.messages import AnyMessage
 
+from src.core.agent.agents.agent_queue_manager import AgentQueueManager
 from src.core.agent.entities.agent_entity import AgentConfig
+from src.core.agent.entities.queue_entity import AgentThought
 
 
 class BaseAgent(ABC):
@@ -11,19 +13,27 @@ class BaseAgent(ABC):
 
     Attributes:
         agent_config (AgentConfig): 智能体配置信息
+        agent_queue_manager (AgentQueueManager): 智能体队列管理器
 
     """
 
     agent_config: AgentConfig
+    agent_queue_manager: AgentQueueManager
 
-    def __init__(self, agent_config: AgentConfig) -> None:
+    def __init__(
+        self,
+        agent_config: AgentConfig,
+        agent_queue_manager: AgentQueueManager,
+    ) -> None:
         """初始化智能体实例。
 
         Args:
             agent_config (AgentConfig): 智能体配置信息
+            agent_queue_manager (AgentQueueManager): 智能体队列管理器
 
         """
         self.agent_config = agent_config
+        self.agent_queue_manager = agent_queue_manager
 
     @abstractmethod
     def run(
@@ -31,7 +41,7 @@ class BaseAgent(ABC):
         query: str,
         history: list[AnyMessage] | None = None,
         long_term_memory: str = "",
-    ) -> Any:
+    ) -> Generator[AgentThought, None, None]:
         """执行智能体的主要功能。
 
         Args:
