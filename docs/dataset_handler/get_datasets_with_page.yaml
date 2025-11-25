@@ -25,8 +25,63 @@ responses:
               type: "string"
               example: "success"
             data:
+              required:
+                - "list"
+                - "paginator"
+              properties:
+                list:
+                  type: "array"
+                  items:
+                    type: "object"
+                    properties:
+                      character_count:
+                        type: "number"
+                        example: 0
+                      created_at:
+                        type: "number"
+                        example: 1762541332
+                      description:
+                        type: "string"
+                        example: "test666"
+                      document_count:
+                        type: "number"
+                        example: 0
+                      icon:
+                        type: "string"
+                        example: "https://doc.doubao.com/s/TIIjjl8CxCo/"
+                      id:
+                        type: "string"
+                        example: "a72fb5a8-e8b5-4141-9a56-2f8b17407371"
+                      name:
+                        type: "string"
+                        example: "LLMOps 知识库test"
+                      related_app_count:
+                        type: "number"
+                        example: 0
+                      updated_at:
+                        type: "number"
+                        example: 1762541332
+                paginator:
+                  required:
+                    - "current_page"
+                    - "page_size"
+                    - "total_page"
+                    - "total_record"
+                  properties:
+                    current_page:
+                      type: "number"
+                      example: 1
+                    page_size:
+                      type: "number"
+                      example: 20
+                    total_page:
+                      type: "number"
+                      example: 1
+                    total_record:
+                      type: "number"
+                      example: 1
+                  type: "object"
               type: "object"
-              example: {}
             message:
               type: "string"
               example: ""

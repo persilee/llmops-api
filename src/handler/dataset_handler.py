@@ -123,7 +123,7 @@ class DatasetHandler:
         self.dataset_service.create_dataset(req)
 
         # 返回创建成功的响应
-        return success_json("创建知识库成功")
+        return success_message_json("创建知识库成功")
 
     @route("/<uuid:dataset_id>", methods=["GET"])
     @swag_from(get_swagger_path("dataset_handler/get_dataset.yaml"))

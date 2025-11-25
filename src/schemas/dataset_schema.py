@@ -155,6 +155,8 @@ class GetDatasetsWithPageResp(Schema):
     description = fields.String(dump_default="")
     # 知识库中的文档数量
     document_count = fields.Integer(dump_default=0)
+    # 知识库被访问的次数
+    hit_count = fields.Integer(dump_default=0)
     # 关联的应用数量
     related_app_count = fields.Integer(dump_default=0)
     # 知识库中字符总数
@@ -184,6 +186,7 @@ class GetDatasetsWithPageResp(Schema):
             "icon": data.icon,
             "description": data.description,
             "document_count": data.document_count,
+            "hit_count": data.hit_count,
             "related_app_count": data.related_app_count,
             "character_count": data.character_count,
             "updated_at": int(data.updated_at.timestamp()),

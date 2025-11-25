@@ -69,7 +69,7 @@ class DocumentService(BaseService):
             raise ForbiddenException(error_msg)
         # 检查文档状态，只允许删除已完成或处理失败的文档
         if document.status not in [DocumentStatus.COMPLETED, DocumentStatus.ERROR]:
-            error_msg = f"文档状态不允许删除：{document_id}"
+            error_msg = f"文档状态不允许删除：{document.status}"
             raise ForbiddenException(error_msg)
 
         # 从数据库中删除文档记录
@@ -129,7 +129,7 @@ class DocumentService(BaseService):
         cache_result = self.redis_client.get(cache_key)
         # 如果锁存在，说明文档正在被其他进程更新
         if cache_result is not None:
-            error_msg = f"文档正在更新中：{document_id}"
+            error_msg = f"文档正在更新中：{document.status}"
             raise ForbiddenException(error_msg)
 
         # 更新文档的启用状态和禁用时间
