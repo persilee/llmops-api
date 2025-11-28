@@ -4,13 +4,13 @@ from pathlib import Path
 
 from injector import inject
 from langchain_community.document_loaders import (
+    PyPDFLoader,
     TextLoader,
     UnstructuredCSVLoader,
     UnstructuredExcelLoader,
     UnstructuredFileLoader,
     UnstructuredHTMLLoader,
     UnstructuredMarkdownLoader,
-    UnstructuredPDFLoader,
     UnstructuredPowerPointLoader,
     UnstructuredXMLLoader,
 )
@@ -138,7 +138,7 @@ class FileExtractor:
         if file_extension in [".xlsx", ".xls"]:
             loader = UnstructuredExcelLoader(file_path)
         elif file_extension == ".pdf":
-            loader = UnstructuredPDFLoader(file_path)
+            loader = PyPDFLoader(file_path)
         elif file_extension in [".md", ".markdown"]:
             loader = UnstructuredMarkdownLoader(file_path)
         elif file_extension in [".thm", "html"]:

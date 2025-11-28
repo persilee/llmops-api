@@ -71,11 +71,6 @@ class CosService:
             # 检查文件是否已存在
             existing_file = self.upload_file_service.get_upload_file_by_hash(file_hash)
 
-            # 如果不是仅上传图片且文件已存在，则报错
-            if not only_image and existing_file:
-                error_msg = "文件已存在"
-                raise FailException(error_msg)
-
             # 如果文件不存在，则执行上传
             if not existing_file:
                 # 上传文件到COS
@@ -85,8 +80,8 @@ class CosService:
             error_msg = f"上传文件失败: {e}"
             raise FailException(error_msg) from e
 
-        # 如果是上传图片且图片已存在，则直接返回已存在的图片记录
-        if only_image and existing_file:
+        # 如果文件已存在，则直接返回
+        if existing_file:
             return self.upload_file_service.get_upload_file_by_hash(file_hash)
 
         # 创建并返回文件记录，包含文件的所有元信息

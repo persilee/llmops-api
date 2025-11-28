@@ -29,6 +29,7 @@
     "nosetests",
     "primaryjoin",
     "pydash",
+    "pypdf",
     "qcloud",
     "Redprint",
     "selectin",

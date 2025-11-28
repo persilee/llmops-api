@@ -114,10 +114,13 @@ class RetrievalService(BaseService):
             lc_documents = hybrid_retriever.invoke(query)[:k]  # 混合检索
 
         # 记录每次查询的历史信息
-        for lc_document in lc_documents:
+        unique_dataset_ids = list(
+            {str(lc_document.metadata["dataset_id"]) for lc_document in lc_documents},
+        )
+        for dataset_id in unique_dataset_ids:
             self.create(
                 DatasetQuery,
-                dataset_id=lc_document.metadata["dataset_id"],
+                dataset_id=dataset_id,
                 query=query,
                 source=retrieval_source,
                 source_app_id=None,

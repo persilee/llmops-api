@@ -439,7 +439,7 @@ class IndexingService(BaseService):
 
             # 获取知识库对应的关键词表记录
             keyword_table_record = (
-                self.keyword_table_service.get_keyword_table_form_dataset_id(
+                self.keyword_table_service.get_keyword_table_from_dataset_id(
                     document.dataset_id,
                 )
             )
