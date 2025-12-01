@@ -9,6 +9,7 @@ from .document_service import DocumentService
 from .embeddings_service import EmbeddingsService
 from .indexing_service import IndexingService
 from .jieba_service import JiebaService
+from .jwt_service import JwtService
 from .keyword_table_service import KeywordTableService
 from .process_rule_service import ProcessRuleService
 from .segment_service import SegmentService
@@ -28,6 +29,7 @@ __all__ = [
     "IndexingService",
     "IndexingService",
     "JiebaService",
+    "JwtService",
     "KeywordTableService",
     "ProcessRuleService",
     "SegmentService",
