@@ -3,6 +3,7 @@ from uuid import UUID
 
 from flasgger import swag_from
 from flask import request
+from flask_login import login_required
 from injector import inject
 
 from pkg.paginator.paginator import PageModel
@@ -175,6 +176,7 @@ class DatasetHandler:
 
     @route("", methods=["GET"])
     @swag_from(get_swagger_path("dataset_handler/get_datasets_with_page.yaml"))
+    @login_required
     def get_datasets_with_page(self) -> Response:
         """分页获取知识库列表
 

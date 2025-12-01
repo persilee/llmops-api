@@ -1,5 +1,6 @@
 import logging
 import os
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -7,6 +8,7 @@ import yaml
 from flasgger import Swagger
 from flask import Flask
 from flask_cors import CORS
+from flask_login import LoginManager
 from flask_migrate import Migrate
 
 from config import Config, swagger_config, swagger_template
@@ -14,8 +16,20 @@ from pkg.response import HttpCode, Response, json
 from pkg.sqlalchemy import SQLAlchemy
 from src.exception import CustomException
 from src.extension import celery_extension, logging_extension, redis_extension
+from src.middleware.middleware import Middleware
 from src.router import Router
 from src.schemas import swag_schemas
+
+
+@dataclass
+class HttpConfig:
+    conf: Config
+    db: SQLAlchemy
+    migrate: Migrate
+    login_manager: LoginManager
+    middleware: Middleware
+    swag: Swagger
+    router: Router
 
 
 class Http(Flask):
@@ -24,11 +38,7 @@ class Http(Flask):
     def __init__(
         self,
         *args: str,
-        conf: Config,
-        db: SQLAlchemy,
-        migrate: Migrate,
-        swag: Swagger,
-        router: Router,
+        http_config: HttpConfig,
         **kwargs: dict[str, Any],
     ) -> None:
         # 调用父类的构造方法，传递所有位置参数和关键字参数
@@ -39,15 +49,15 @@ class Http(Flask):
         # 从配置对象中加载配置
         # from_object()方法会从给定的配置对象中加载配置项
         # conf参数是一个配置对象，可以是Python模块、类或字典
-        self.config.from_object(conf)
+        self.config.from_object(http_config.conf)
 
         # 注册异常处理函数，
         # 将所有异常(Exception)类型的错误都交给_register_error_handler方法处理
         self.register_error_handler(Exception, self._register_error_handler)
 
         # 初始化数据库
-        db.init_app(self)
-        migrate.init_app(self, db, directory="src/migration")
+        http_config.db.init_app(self)
+        http_config.migrate.init_app(self, http_config.db, directory="src/migration")
 
         # 初始化 Redis
         redis_extension.init_app(self)
@@ -57,6 +67,9 @@ class Http(Flask):
 
         # 初始化日志记录
         logging_extension.init_app(self)
+
+        # 初始化登录管理器
+        http_config.login_manager.init_app(self)
 
         # 配置跨域
         CORS(
@@ -71,14 +84,17 @@ class Http(Flask):
             },
         )
 
+        # 注册登录中间件
+        http_config.login_manager.request_loader(http_config.middleware.request_loader)
+
         # 初始化Swagger
-        self._init_swagger(swag, swag_schemas)
+        self._init_swagger(http_config.swag, swag_schemas)
 
         # 初始化路由器
-        self.router = router
+        self.router = http_config.router
 
         # 将当前路由实例注册到路由器中
-        router.register_route(self)
+        http_config.router.register_route(self)
 
     def _register_error_handler(self, error: Exception) -> Response:
         """注册错误处理器，根据不同类型的异常返回相应的错误响应。

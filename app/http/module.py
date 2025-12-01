@@ -1,10 +1,12 @@
 from flasgger import Swagger
+from flask_login import LoginManager
 from flask_migrate import Migrate
 from injector import Binder, Injector, Module, singleton
 from redis import Redis
 
 from pkg.sqlalchemy import SQLAlchemy
 from src.extension import db, migrate, redis_client, swag
+from src.extension.login_extension import login_manager
 
 
 class ExtensionModule(Module):
@@ -24,6 +26,7 @@ class ExtensionModule(Module):
         binder.bind(Migrate, to=migrate)
         binder.bind(Swagger, to=swag)
         binder.bind(Redis, to=redis_client, scope=singleton)
+        binder.bind(LoginManager, to=login_manager)
 
 
 # 创建依赖注入器

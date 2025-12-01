@@ -1,3 +1,4 @@
+from flask_login import UserMixin
 from sqlalchemy import (
     UUID,
     Column,
@@ -11,7 +12,7 @@ from sqlalchemy import (
 from src.extension.database_extension import db
 
 
-class Account(db.Model):
+class Account(UserMixin, db.Model):
     """用户账号模型"""
 
     __tablename__ = "account"
