@@ -1,8 +1,11 @@
+import logging
 import urllib
 
 import requests
 
 from pkg.oauth.oauth import OAuth, OAuthUserInfo
+
+logger = logging.getLogger(__name__)
 
 
 class GithubOAuth(OAuth):
@@ -104,9 +107,14 @@ class GithubOAuth(OAuth):
         )
         email_resp.raise_for_status()
         email_info = email_resp.json()
-        primary_email = next((email for email in email_info if email["primary"]), None)
+        primary_email = next(
+            (email for email in email_info if email.get("primary", None)),
+            None,
+        )
 
-        return {**raw_info, "email": primary_email.get("email")}
+        logger.info("Github OAuth 用户信息: %s", raw_info)
+
+        return {**raw_info, "email": primary_email.get("email", None)}
 
     def _transform_user_info(self, raw_user_info: dict) -> OAuthUserInfo:
         """转换用户信息为标准格式
@@ -132,4 +140,5 @@ class GithubOAuth(OAuth):
             id=str(raw_user_info.get("id")),
             name=str(raw_user_info.get("name")),
             email=str(email),
+            avatar=str(raw_user_info.get("avatar_url")),
         )

@@ -1,0 +1,39 @@
+登录授权
+---
+tags:
+  - 授权认证
+summary: 登录授权
+description:
+operationId: authorize
+parameters:
+  - name: provider_name
+    in: path
+    required: true
+    schema:
+      type: string
+      default: "github"
+requestBody:
+  content:
+    application/json:
+      schema:
+        $ref: "#/components/schemas/AuthorizeReq"
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              $ref: "#/components/schemas/AuthorizeResp"
+            message:
+              type: "string"
+              example: ""

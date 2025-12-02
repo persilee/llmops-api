@@ -1,0 +1,33 @@
+修改用户昵称
+---
+tags:
+  - 账号管理
+summary: 修改用户昵称
+description:
+operationId: update_name
+requestBody:
+  content:
+    application/json:
+      schema:
+        $ref: "#/components/schemas/UpdateNameReq"
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              type: "object"
+              example: {}
+            message:
+              type: "string"
+              example: "修改昵称成功"

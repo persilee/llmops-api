@@ -10,11 +10,13 @@ class OAuthUserInfo:
     - id: 用户的唯一标识符
     - name: 用户姓名
     - email: 用户邮箱地址
+    - avatar: 用户头像URL
     """
 
     id: str
     name: str
     email: str
+    avatar: str
 
 
 @dataclass

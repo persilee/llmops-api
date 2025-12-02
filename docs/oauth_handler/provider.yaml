@@ -1,0 +1,38 @@
+获取授权认证 URL
+---
+tags:
+  - 授权认证
+summary: 获取授权认证 URL
+description:
+operationId: provider
+parameters:
+  - name: provider_name
+    in: path
+    required: true
+    schema:
+      type: string
+      default: "github"
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              type: "object"
+              properties:
+                redirect_url:
+                  type: "string"
+                  example: "https://github.com/login/oauth/authorize?client_id=Ov23ctqQiwF67yC7QVcR&redirect_uri=None&scope=user%3Aemail"
+            message:
+              type: "string"
+              example: ""

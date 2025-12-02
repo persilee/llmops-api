@@ -48,7 +48,8 @@
     "valuelist",
     "vectorstores",
     "webassets",
-    "wtform"
+    "wtform",
+    "XVCJ"
   ],
   "files.exclude": {
     "**/__pycache__": true,

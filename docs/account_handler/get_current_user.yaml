@@ -1,0 +1,27 @@
+获取当前登录用户信息
+---
+tags:
+  - 账号管理
+summary: 获取当前登录用户信息
+description:
+operationId: get_current_user
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              $ref: "#/components/schemas/GetCurrentUserResp"
+            message:
+              type: "string"
+              example: ""
