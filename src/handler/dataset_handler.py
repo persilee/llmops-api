@@ -3,7 +3,7 @@ from uuid import UUID
 
 from flasgger import swag_from
 from flask import request
-from flask_login import login_required
+from flask_login import current_user, login_required
 from injector import inject
 
 from pkg.paginator.paginator import PageModel
@@ -43,6 +43,7 @@ class DatasetHandler:
 
     @route("/<uuid:dataset_id>/get_dataset_queries", methods=["GET"])
     @swag_from(get_swagger_path("dataset_handler/get_dataset_queries.yaml"))
+    @login_required
     def get_dataset_queries(self, dataset_id: UUID) -> Response:
         """获取指定数据集的查询记录
 
@@ -53,13 +54,17 @@ class DatasetHandler:
             Response: 包含查询记录列表的响应对象
 
         """
-        dataset_queries = self.dataset_service.get_dataset_queries(dataset_id)
+        dataset_queries = self.dataset_service.get_dataset_queries(
+            dataset_id,
+            current_user,
+        )
         resp = GetDatasetQueriesResp(many=True)
 
         return success_json(resp.dump(dataset_queries))
 
     @route("/<uuid:dataset_id>/hit", methods=["POST"])
     @swag_from(get_swagger_path("dataset_handler/hit.yaml"))
+    @login_required
     def hit(self, dataset_id: UUID) -> Response:
         """处理知识库查询请求
 
@@ -81,12 +86,13 @@ class DatasetHandler:
         if not req.validate():
             return validate_error_json(req.errors)
 
-        hit_result = self.dataset_service.hit(dataset_id, req)
+        hit_result = self.dataset_service.hit(dataset_id, req, current_user)
 
         return success_json(hit_result)
 
     @route("/embeddings", methods=["GET"])
     @swag_from(get_swagger_path("dataset_handler/embeddings_query.yaml"))
+    @login_required
     def embeddings_query(self) -> Response:
         upload_file = self.db.session.query(UploadFile).get(
             "0e0de749-f407-4640-89a1-197144928e35",
@@ -103,6 +109,7 @@ class DatasetHandler:
 
     @route("", methods=["POST"])
     @swag_from(get_swagger_path("dataset_handler/create_dataset.yaml"))
+    @login_required
     def create_dataset(self) -> Response:
         """创建知识库
 
@@ -121,13 +128,14 @@ class DatasetHandler:
             return validate_error_json(req.errors)
 
         # 调用服务层创建知识库
-        self.dataset_service.create_dataset(req)
+        self.dataset_service.create_dataset(req, current_user)
 
         # 返回创建成功的响应
         return success_message_json("创建知识库成功")
 
     @route("/<uuid:dataset_id>", methods=["GET"])
     @swag_from(get_swagger_path("dataset_handler/get_dataset.yaml"))
+    @login_required
     def get_dataset(self, dataset_id: UUID) -> Response:
         """获取单个知识库信息
 
@@ -142,7 +150,7 @@ class DatasetHandler:
 
         """
         # 调用服务层获取指定ID的数据集
-        dataset = self.dataset_service.get_dataset(dataset_id)
+        dataset = self.dataset_service.get_dataset(dataset_id, current_user)
         # 创建响应数据对象
         resp = GetDatasetResp()
 
@@ -151,6 +159,7 @@ class DatasetHandler:
 
     @route("/<uuid:dataset_id>", methods=["POST"])
     @swag_from(get_swagger_path("dataset_handler/update_dataset.yaml"))
+    @login_required
     def update_dataset(self, dataset_id: UUID) -> Response:
         """更新知识库
 
@@ -169,7 +178,7 @@ class DatasetHandler:
             return validate_error_json(req.errors)
 
         # 调用服务层更新知识库
-        self.dataset_service.update_dataset(dataset_id, req)
+        self.dataset_service.update_dataset(dataset_id, req, current_user)
 
         # 返回创建成功的响应
         return success_message_json("更新知识库成功")
@@ -210,7 +219,10 @@ class DatasetHandler:
             return validate_error_json(req.errors)
 
         # 调用服务层方法获取分页知识库列表和分页器对象
-        datasets, paginator = self.dataset_service.get_datasets_with_page(req)
+        datasets, paginator = self.dataset_service.get_datasets_with_page(
+            req,
+            current_user,
+        )
 
         # 创建响应对象，设置many=True表示处理多个知识库对象
         resp = GetDatasetsWithPageResp(many=True)
@@ -220,6 +232,7 @@ class DatasetHandler:
 
     @route("/<uuid:dataset_id>/delete", methods=["POST"])
     @swag_from(get_swagger_path("dataset_handler/delete_dataset.yaml"))
+    @login_required
     def delete_dataset(self, dataset_id: UUID) -> Response:
         """删除指定ID的知识库
 
@@ -230,6 +243,6 @@ class DatasetHandler:
             Response: 包含删除成功消息的响应对象
 
         """
-        self.dataset_service.delete_dataset(dataset_id)
+        self.dataset_service.delete_dataset(dataset_id, current_user)
 
         return success_message_json("删除知识库成功")

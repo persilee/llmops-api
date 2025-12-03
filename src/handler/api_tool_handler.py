@@ -3,6 +3,7 @@ from uuid import UUID
 
 from flasgger import swag_from
 from flask import request
+from flask_login import current_user, login_required
 from injector import inject
 
 from pkg.paginator.paginator import PageModel
@@ -38,6 +39,7 @@ class ApiToolHandler:
 
     @route("/validate-openapi-schema", methods=["POST"])
     @swag_from(get_swagger_path("api_tool_handler/validate_openapi_schema.yaml"))
+    @login_required
     def validate_openapi_schema(self) -> Response:
         """验证OpenAPI模式接口
 
@@ -61,6 +63,7 @@ class ApiToolHandler:
 
     @route("/create-api-tool-provider", methods=["POST"])
     @swag_from(get_swagger_path("api_tool_handler/create_api_tool_provider.yaml"))
+    @login_required
     def create_api_tool_provider(self) -> Response:
         """创建自定义API工具接口
 
@@ -74,12 +77,13 @@ class ApiToolHandler:
         if not req.validate():
             return validate_error_json(req.errors)
 
-        self.api_tool_service.create_api_tool_provider(req)
+        self.api_tool_service.create_api_tool_provider(req, current_user)
 
         return success_message_json("自定义API工具创建成功")
 
     @route("/get-api-tool-provider/<uuid:provider_id>", methods=["GET"])
     @swag_from(get_swagger_path("api_tool_handler/get_api_tool_provider.yaml"))
+    @login_required
     def get_api_tool_provider(self, provider_id: UUID) -> Response:
         """获取API工具提供者信息接口
 
@@ -92,7 +96,10 @@ class ApiToolHandler:
             Response: 返回获取结果，成功时返回提供者详细信息，失败时返回错误信息
 
         """
-        api_tool_provider = self.api_tool_service.get_api_tool_provider(provider_id)
+        api_tool_provider = self.api_tool_service.get_api_tool_provider(
+            provider_id,
+            current_user,
+        )
 
         resp = GetApiToolProviderResp()
 
@@ -100,6 +107,7 @@ class ApiToolHandler:
 
     @route("/get-api-tool/<uuid:provider_id>/tools/<string:tool_name>", methods=["GET"])
     @swag_from(get_swagger_path("api_tool_handler/get_api_tool.yaml"))
+    @login_required
     def get_api_tool(self, provider_id: UUID, tool_name: str) -> Response:
         """获取API工具信息接口
 
@@ -113,7 +121,11 @@ class ApiToolHandler:
             Response: 返回获取结果，成功时返回工具详细信息，失败时返回错误信息
 
         """
-        api_tool = self.api_tool_service.get_api_tool(provider_id, tool_name)
+        api_tool = self.api_tool_service.get_api_tool(
+            provider_id,
+            tool_name,
+            current_user,
+        )
 
         resp = GetApiToolResp()
 
@@ -121,6 +133,7 @@ class ApiToolHandler:
 
     @route("/<uuid:provider_id>/delete", methods=["POST"])
     @swag_from(get_swagger_path("api_tool_handler/delete_api_tool_provider.yaml"))
+    @login_required
     def delete_api_tool_provider(self, provider_id: UUID) -> Response:
         """删除API工具提供者接口
 
@@ -133,7 +146,7 @@ class ApiToolHandler:
             Response: 返回删除结果，成功时返回成功信息，失败时返回错误信息
 
         """
-        self.api_tool_service.delete_api_tool_provider(provider_id)
+        self.api_tool_service.delete_api_tool_provider(provider_id, current_user)
 
         return success_message_json("删除自定义 API 插件成功")
 
@@ -141,6 +154,7 @@ class ApiToolHandler:
     @swag_from(
         get_swagger_path("api_tool_handler/get_api_tool_providers_with_page.yaml"),
     )
+    @login_required
     def get_api_tool_providers_with_page(self) -> Response:
         """分页获取API工具提供者列表。
 
@@ -161,7 +175,7 @@ class ApiToolHandler:
 
         # 调用服务层方法，获取API工具提供者列表和分页器
         api_tool_providers, paginator = (
-            self.api_tool_service.get_api_tool_providers_with_page(req)
+            self.api_tool_service.get_api_tool_providers_with_page(req, current_user)
         )
 
         # 创建响应对象，设置many=True表示处理多个对象
@@ -174,6 +188,7 @@ class ApiToolHandler:
 
     @route("/<uuid:provider_id>", methods=["POST"])
     @swag_from(get_swagger_path("api_tool_handler/update_api_tool_provider.yaml"))
+    @login_required
     def update_api_tool_provider(self, provider_id: UUID) -> Response:
         """更新API工具提供者信息
 
@@ -191,7 +206,7 @@ class ApiToolHandler:
             return validate_error_json(req.errors)
 
         # 调用服务层执行更新操作
-        self.api_tool_service.update_api_tool_provider(provider_id, req)
+        self.api_tool_service.update_api_tool_provider(provider_id, req, current_user)
 
         # 返回成功响应
         return success_message_json("更新成功")

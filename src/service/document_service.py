@@ -16,6 +16,7 @@ from src.entity.dataset_entity import DocumentStatus, ProcessType, SegmentStatus
 from src.entity.upload_file_entity import ALLOWED_DOCUMENT_EXTENSION
 from src.exception.exception import FailException, ForbiddenException, NotFoundException
 from src.lib.helper import datetime_to_timestamp
+from src.model.account import Account
 from src.model.dataset import Dataset, Document, ProcessRule, Segment
 from src.model.upload_file import UploadFile
 from src.schemas.document_schema import GetDocumentsWithPageReq
@@ -35,12 +36,18 @@ class DocumentService(BaseService):
     db: SQLAlchemy
     redis_client: Redis
 
-    def delete_document(self, dataset_id: UUID, document_id: UUID) -> Document:
+    def delete_document(
+        self,
+        dataset_id: UUID,
+        document_id: UUID,
+        account: Account,
+    ) -> Document:
         """删除指定知识库中的文档。
 
         Args:
             dataset_id (UUID): 知识库ID
             document_id (UUID): 要删除的文档ID
+            account (Account): 当前用户
 
         Returns:
             Document: 被删除的文档对象
@@ -54,9 +61,6 @@ class DocumentService(BaseService):
             删除操作会异步清理相关的文件和索引
 
         """
-        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
-        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"  # 临时硬编码的账户ID
-
         # 根据文档ID获取文档对象
         document = self.get(Document, document_id)
         # 检查文档是否存在
@@ -64,7 +68,7 @@ class DocumentService(BaseService):
             error_msg = f"文档不存在：{document_id}"
             raise NotFoundException(error_msg)
         # 验证文档所属知识库和账户权限
-        if document.dataset_id != dataset_id or str(document.account_id) != account_id:
+        if document.dataset_id != dataset_id or document.account_id != account.id:
             error_msg = f"无权限删除文档：{document_id}"
             raise ForbiddenException(error_msg)
         # 检查文档状态，只允许删除已完成或处理失败的文档
@@ -85,6 +89,7 @@ class DocumentService(BaseService):
         self,
         dataset_id: UUID,
         document_id: UUID,
+        account: Account,
         *,
         enabled: bool,
     ) -> Document:
@@ -93,6 +98,7 @@ class DocumentService(BaseService):
         Args:
             dataset_id (UUID): 知识库ID
             document_id (UUID): 文档ID
+            account (Account): 账户对象
             enabled (bool): 要设置的启用状态，True表示启用，False表示禁用
 
         Returns:
@@ -103,9 +109,6 @@ class DocumentService(BaseService):
             ForbiddenException: 当无权限修改文档、文档未完成处理或文档正在更新中时抛出
 
         """
-        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
-        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"  # 临时硬编码的账户ID
-
         # 根据文档ID获取文档对象
         document = self.get(Document, document_id)
         # 检查文档是否存在
@@ -113,7 +116,7 @@ class DocumentService(BaseService):
             error_msg = f"文档不存在：{document_id}"
             raise NotFoundException(error_msg)
         # 验证文档所属知识库和账户权限
-        if document.dataset_id != dataset_id or str(document.account_id) != account_id:
+        if document.dataset_id != dataset_id or document.account_id != account.id:
             error_msg = f"无权限修改文档：{document_id}"
             raise ForbiddenException(error_msg)
         # 检查文档是否已完成处理，只有已完成的文档才能修改启用状态
@@ -152,12 +155,14 @@ class DocumentService(BaseService):
         self,
         dataset_id: UUID,
         req: GetDocumentsWithPageReq,
+        account: Account,
     ) -> tuple[list[Document], Paginator]:
         """获取知识库中的文档列表（分页）
 
         Args:
             dataset_id: 知识库ID
             req: 分页请求参数，包含页码、每页数量、搜索关键词等
+            account: 账户信息
 
         Returns:
             tuple[list[Document], Paginator]: 返回文档列表和分页器对象
@@ -166,11 +171,9 @@ class DocumentService(BaseService):
             NotFoundException: 当知识库不存在或无权限访问时抛出
 
         """
-        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
-        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
         # 获取知识库信息并验证权限
         dataset = self.get(Dataset, dataset_id)
-        if dataset is None or str(dataset.account_id) != account_id:
+        if dataset is None or dataset.account_id != account.id:
             error_msg = "知识库不存在或无权限访问"
             raise NotFoundException(error_msg)
 
@@ -179,7 +182,7 @@ class DocumentService(BaseService):
 
         # 构建查询过滤器
         filters = [
-            Document.account_id == account_id,  # 账户ID过滤
+            Document.account_id == account.id,  # 账户ID过滤
             Document.dataset_id == dataset_id,  # 知识库ID过滤
         ]
         # 如果有搜索关键词，添加名称模糊匹配条件
@@ -199,6 +202,7 @@ class DocumentService(BaseService):
         self,
         dataset_id: UUID,  # 知识库ID
         document_id: UUID,  # 文档ID
+        account: Account,  # 账户信息
         **kwargs: dict,  # 更新的文档属性，如name等
     ) -> Document:  # 返回更新后的文档对象
         """更新文档名称和属性。
@@ -206,6 +210,7 @@ class DocumentService(BaseService):
         Args:
             dataset_id (UUID): 知识库ID，用于验证文档所属知识库
             document_id (UUID): 要更新的文档ID
+            account (Account): 账户信息，用于验证用户权限
             **kwargs (dict): 要更新的文档属性字典，如name等
 
         Returns:
@@ -216,9 +221,6 @@ class DocumentService(BaseService):
             ForbiddenException: 当用户无权限修改文档时抛出
 
         """
-        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
-        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"  # 临时硬编码的账户ID
-
         # 根据文档ID获取文档对象
         document = self.get(Document, document_id)
         # 检查文档是否存在
@@ -226,19 +228,25 @@ class DocumentService(BaseService):
             error_msg = f"文档不存在：{document_id}"
             raise NotFoundException(error_msg)  # 抛出文档不存在的异常
         # 验证文档所属知识库和账户权限
-        if document.dataset_id != dataset_id or str(document.account_id) != account_id:
+        if document.dataset_id != dataset_id or document.account_id != account.id:
             error_msg = f"无权限修改文档：{document_id}"
             raise ForbiddenException(error_msg)  # 抛出无权限异常
 
         # 更新文档属性并返回更新后的文档对象
         return self.update(document, **kwargs)
 
-    def get_document(self, dataset_id: UUID, document_id: UUID) -> Document:
+    def get_document(
+        self,
+        dataset_id: UUID,
+        document_id: UUID,
+        account: Account,
+    ) -> Document:
         """获取指定文档信息
 
         Args:
             dataset_id: 知识库ID
             document_id: 文档ID
+            account: 账户对象
 
         Returns:
             Document: 文档对象
@@ -248,9 +256,6 @@ class DocumentService(BaseService):
             ForbiddenException: 当无权限访问文档时
 
         """
-        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
-        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
-
         # 根据文档ID获取文档对象
         document = self.get(Document, document_id)
         # 检查文档是否存在
@@ -258,7 +263,7 @@ class DocumentService(BaseService):
             error_msg = f"文档不存在：{document_id}"
             raise NotFoundException(error_msg)
         # 验证文档所属知识库和账户权限
-        if document.dataset_id != dataset_id or str(document.account_id) != account_id:
+        if document.dataset_id != dataset_id or document.account_id != account.id:
             error_msg = f"无权限访问文档：{document_id}"
             raise ForbiddenException(error_msg)
 
@@ -267,6 +272,7 @@ class DocumentService(BaseService):
     def create_documents(
         self,
         dataset_id: UUID,
+        account: Account,
         upload_file_ids: list[UUID],
         process_type: str = ProcessType.AUTOMATIC,
         rule: dict | None = None,
@@ -275,6 +281,7 @@ class DocumentService(BaseService):
 
         Args:
             dataset_id: 知识库ID
+            account: 账户对象
             upload_file_ids: 上传文件ID列表
             process_type: 处理类型，默认为自动处理
             rule: 处理规则，可选参数
@@ -287,12 +294,9 @@ class DocumentService(BaseService):
             FailException: 当上传文件格式不支持时抛出
 
         """
-        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
-        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
-
         # 获取知识库并验证权限
         dataset = self.get(Dataset, dataset_id)
-        if dataset is None or str(dataset.account_id) != account_id:
+        if dataset is None or dataset.account_id != account.id:
             error_msg = "无权限或知识库不存在"
             raise ForbiddenException(error_msg)
 
@@ -300,7 +304,7 @@ class DocumentService(BaseService):
         upload_files = (
             self.db.session.query(UploadFile)
             .filter(
-                UploadFile.account_id == account_id,
+                UploadFile.account_id == account.id,
                 UploadFile.id.in_(upload_file_ids),
             )
             .all()
@@ -316,7 +320,7 @@ class DocumentService(BaseService):
             logger.warning(
                 "上传文件格式不支持, account_id: %s, dataset_id: %s, "
                 "upload_file_ids: %s",
-                account_id,
+                account.id,
                 dataset_id,
                 upload_file_ids,
             )
@@ -331,7 +335,7 @@ class DocumentService(BaseService):
         # 创建处理规则
         process_rule = self.create(
             ProcessRule,
-            account_id=account_id,
+            account_id=account.id,
             dataset_id=dataset_id,
             mode=process_type,
             rule=rule,
@@ -346,7 +350,7 @@ class DocumentService(BaseService):
             # 创建文档记录
             document = self.create(
                 Document,
-                account_id=account_id,
+                account_id=account.id,
                 dataset_id=dataset_id,
                 upload_file_id=upload_file.id,
                 process_rule_id=process_rule.id,
@@ -382,12 +386,18 @@ class DocumentService(BaseService):
 
         return document.position if document else 0
 
-    def get_documents_status(self, dataset_id: UUID, batch: str) -> list[dict]:
+    def get_documents_status(
+        self,
+        dataset_id: UUID,
+        batch: str,
+        account: Account,
+    ) -> list[dict]:
         """获取指定批次文档的状态信息
 
         Args:
             dataset_id (UUID): 知识库ID
             batch (str): 文档批次号
+            account (Account): 用户账户信息
 
         Returns:
             list[dict]: 文档状态信息列表，每个字典包含以下字段：
@@ -414,12 +424,9 @@ class DocumentService(BaseService):
             NotFoundException: 当未找到指定批次的文档时
 
         """
-        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
-        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
-
         # 获取知识库并验证权限
         dataset = self.get(Dataset, dataset_id)
-        if dataset is None or str(dataset.account_id) != account_id:
+        if dataset is None or dataset.account_id != account.id:
             error_msg = "无权限或知识库不存在"
             raise ForbiddenException(error_msg)
 

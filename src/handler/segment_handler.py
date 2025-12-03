@@ -3,6 +3,7 @@ from uuid import UUID
 
 from flasgger import swag_from
 from flask import request
+from flask_login import current_user, login_required
 from injector import inject
 
 from pkg.paginator.paginator import PageModel
@@ -35,6 +36,7 @@ class SegmentHandler:
         methods=["POST"],
     )
     @swag_from(get_swagger_path("segment_handler/delete_segment.yaml"))
+    @login_required
     def delete_segment(
         self,
         dataset_id: UUID,
@@ -52,7 +54,12 @@ class SegmentHandler:
             Response: 删除成功的响应消息
 
         """
-        self.segment_service.delete_segment(dataset_id, document_id, segment_id)
+        self.segment_service.delete_segment(
+            dataset_id,
+            document_id,
+            segment_id,
+            current_user,
+        )
 
         return success_message_json("删除文档片段成功")
 
@@ -61,6 +68,7 @@ class SegmentHandler:
         methods=["POST"],
     )
     @swag_from(get_swagger_path("segment_handler/create_segment.yaml"))
+    @login_required
     def create_segment(self, dataset_id: UUID, document_id: UUID) -> Response:
         """创建新的文档片段接口。
 
@@ -88,12 +96,13 @@ class SegmentHandler:
         if not req.validate():
             return validate_error_json(req.errors)
 
-        self.segment_service.create_segment(dataset_id, document_id, req)
+        self.segment_service.create_segment(dataset_id, document_id, req, current_user)
 
         return success_message_json("创建文档片段成功")
 
     @route("/<uuid:dataset_id>/documents/<uuid:document_id>/segments", methods=["GET"])
     @swag_from(get_swagger_path("segment_handler/get_segments_with_page.yaml"))
+    @login_required
     def get_segments_with_page(self, dataset_id: UUID, document_id: UUID) -> Response:
         """分页获取文档片段列表接口。
 
@@ -125,6 +134,7 @@ class SegmentHandler:
             dataset_id,
             document_id,
             req,
+            current_user,
         )
 
         resp = GetSegmentsWithPageResp(many=True)
@@ -136,6 +146,7 @@ class SegmentHandler:
         methods=["GET"],
     )
     @swag_from(get_swagger_path("segment_handler/get_segment.yaml"))
+    @login_required
     def get_segment(
         self,
         dataset_id: UUID,
@@ -162,7 +173,12 @@ class SegmentHandler:
             返回指定ID的片段完整信息
 
         """
-        segment = self.segment_service.get_segment(dataset_id, document_id, segment_id)
+        segment = self.segment_service.get_segment(
+            dataset_id,
+            document_id,
+            segment_id,
+            current_user,
+        )
 
         resp = GetSegmentResp()
 
@@ -173,6 +189,7 @@ class SegmentHandler:
         methods=["POST"],
     )
     @swag_from(get_swagger_path("segment_handler/update_segment_enabled.yaml"))
+    @login_required
     def update_segment_enabled(
         self,
         dataset_id: UUID,
@@ -210,6 +227,7 @@ class SegmentHandler:
             dataset_id,
             document_id,
             segment_id,
+            current_user,
             enabled=req.enabled.data,
         )
 
@@ -220,6 +238,7 @@ class SegmentHandler:
         methods=["POST"],
     )
     @swag_from(get_swagger_path("segment_handler/update_segment.yaml"))
+    @login_required
     def update_segment(
         self,
         dataset_id: UUID,
@@ -238,6 +257,7 @@ class SegmentHandler:
             document_id,
             segment_id,
             req,
+            current_user,
         )
 
         return success_message_json("更新文档片段成功")

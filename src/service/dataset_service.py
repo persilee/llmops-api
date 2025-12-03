@@ -14,6 +14,7 @@ from src.exception.exception import (
     ValidateErrorException,
 )
 from src.lib.helper import datetime_to_timestamp
+from src.model.account import Account
 from src.model.app import AppDatasetJoin
 from src.model.dataset import Dataset, DatasetQuery, Segment
 from src.schemas.dataset_schema import (
@@ -33,11 +34,16 @@ class DatasetService(BaseService):
     db: SQLAlchemy
     retrieval_service: RetrievalService
 
-    def get_dataset_queries(self, dataset_id: UUID) -> list[DatasetQuery]:
+    def get_dataset_queries(
+        self,
+        dataset_id: UUID,
+        account: Account,
+    ) -> list[DatasetQuery]:
         """获取指定知识库的查询历史记录
 
         Args:
             dataset_id (UUID): 知识库ID
+            account (Account): 当前账户信息
 
         Returns:
             list[DatasetQuery]: 查询历史记录列表，按创建时间倒序排列，最多返回10条记录
@@ -46,12 +52,9 @@ class DatasetService(BaseService):
             NotFoundException: 当知识库不存在或不属于当前账户时抛出
 
         """
-        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
-        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
-
         # 获取知识库并验证其存在性和所有权
         dataset = self.get(Dataset, dataset_id)
-        if dataset is None or str(dataset.account_id) != account_id:
+        if dataset is None or dataset.account_id != account.id:
             error_msg = f"知识库ID为 {dataset_id} 不存在"
             raise NotFoundException(error_msg)
 
@@ -66,12 +69,13 @@ class DatasetService(BaseService):
             .all()
         )
 
-    def hit(self, dataset_id: UUID, req: HitReq) -> list[dict]:
+    def hit(self, dataset_id: UUID, req: HitReq, account: Account) -> list[dict]:
         """在指定知识库中搜索相关文档片段。
 
         Args:
             dataset_id (UUID): 知识库的唯一标识符
             req (HitReq): 搜索请求对象，包含搜索参数
+            account (Account): 当前账户信息
 
         Returns:
             list[dict]: 返回搜索结果列表，每个结果包含以下信息：
@@ -96,18 +100,16 @@ class DatasetService(BaseService):
             NotFoundException: 当指定的知识库不存在或不属于当前账户时抛出
 
         """
-        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
-        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
-
         # 获取知识库并验证其存在性和所有权
         dataset = self.get(Dataset, dataset_id)
-        if dataset is None or str(dataset.account_id) != account_id:
+        if dataset is None or dataset.account_id != account.id:
             error_msg = f"知识库ID为 {dataset_id} 不存在"
             raise NotFoundException(error_msg)
 
         # 使用检索服务在指定知识库中搜索相关文档
         lc_documents = self.retrieval_service.search_in_datasets(
             dataset_ids=[dataset_id],
+            account=account,
             **req.data,
         )
         # 将搜索结果转换为字典，以segment_id为键
@@ -172,12 +174,13 @@ class DatasetService(BaseService):
 
         return hit_result
 
-    def create_dataset(self, req: CreateDatasetReq) -> Dataset:
+    def create_dataset(self, req: CreateDatasetReq, account: Account) -> Dataset:
         """创建新的知识库。
 
         Args:
             req (CreateDatasetReq): 创建知识库的请求对象，包含知识库的名称、
             图标和描述信息。
+            account (Account): 当前登录账户信息。
 
         Returns:
             Dataset: 创建成功的知识库对象。
@@ -190,14 +193,11 @@ class DatasetService(BaseService):
             - 当前账户ID是硬编码的，实际应用中应该从认证信息中获取。
 
         """
-        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
-        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
-
         # 查询数据库中是否已存在相同账户ID和知识库名称的知识库
         dataset = (
             self.db.session.query(Dataset)
             .filter_by(
-                account_id=account_id,  # 指定账户ID
+                account_id=account.id,  # 指定账户ID
                 name=req.name.data,  # 指定知识库名称
             )
             .one_or_none()  # 返回一个结果或None
@@ -215,17 +215,18 @@ class DatasetService(BaseService):
         # 创建新的知识库并返回
         return self.create(
             Dataset,  # 指定模型类
-            account_id=account_id,  # 设置账户ID
+            account_id=account.id,  # 设置账户ID
             name=req.name.data,  # 设置知识库名称
             icon=req.icon.data,  # 设置知识库图标
             description=req.description.data,  # 设置知识库描述
         )
 
-    def get_dataset(self, dataset_id: UUID) -> Dataset:
+    def get_dataset(self, dataset_id: UUID, account: Account) -> Dataset:
         """获取指定的知识库。
 
         Args:
             dataset_id (UUID): 要获取的知识库的唯一标识符。
+            account (Account): 当前账户对象。
 
         Returns:
             Dataset: 获取到的知识库对象。
@@ -238,21 +239,25 @@ class DatasetService(BaseService):
             - 会同时验证知识库是否存在以及是否属于当前账户。
 
         """
-        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
-        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
         dataset = self.get(Dataset, dataset_id)
-        if dataset is None or str(dataset.account_id) != account_id:
+        if dataset is None or dataset.account_id != account.id:
             error_msg = f"知识库ID为 {dataset_id} 不存在"
             raise NotFoundException(error_msg)
 
         return dataset
 
-    def update_dataset(self, dataset_id: UUID, req: UpdateDatasetReq) -> Dataset:
+    def update_dataset(
+        self,
+        dataset_id: UUID,
+        req: UpdateDatasetReq,
+        account: Account,
+    ) -> Dataset:
         """更新知识库信息。
 
         Args:
             dataset_id (UUID): 要更新的知识库ID
             req (UpdateDatasetReq): 更新请求对象，包含新的知识库信息
+            account (Account): 当前账户对象
 
         Returns:
             Dataset: 更新后的知识库对象
@@ -262,12 +267,10 @@ class DatasetService(BaseService):
             ValidateErrorException: 当知识库名称已存在时
 
         """
-        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
-        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
         # 根据知识库ID获取知识库信息
         dataset = self.get(Dataset, dataset_id)
         # 验证知识库是否存在且属于当前账户
-        if dataset is None or str(dataset.account_id) != account_id:
+        if dataset is None or dataset.account_id != account.id:
             error_msg = f"知识库ID为 {dataset_id} 不存在"
             raise NotFoundException(error_msg)
 
@@ -275,7 +278,7 @@ class DatasetService(BaseService):
         check_dataset = (
             self.db.session.query(Dataset)
             .filter(
-                Dataset.account_id == account_id,  # 限定在同一账户下
+                Dataset.account_id == account.id,  # 限定在同一账户下
                 Dataset.name == req.name.data,  # 检查名称是否重复
                 Dataset.id != dataset_id,  # 排除当前知识库
             )
@@ -307,11 +310,13 @@ class DatasetService(BaseService):
     def get_datasets_with_page(
         self,
         req: GetDatasetsWithPageReq,
+        account: Account,
     ) -> tuple[list[Dataset], Paginator]:
         """分页获取知识库列表。
 
         Args:
             req: 分页查询请求对象，包含分页参数和搜索条件
+            account: 当前账户对象
 
         Returns:
             tuple[list[Dataset], Paginator]: 返回一个元组，包含知识库列表和分页器对象
@@ -322,14 +327,11 @@ class DatasetService(BaseService):
             当前使用固定的账户ID，实际应用中应该从认证信息中获取
 
         """
-        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
-        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
-
         # 创建分页器实例，用于处理分页逻辑
         paginator = Paginator(db=self.db, req=req)
 
         # 构建基础查询语句，筛选属于当前账户的知识库
-        stmt = select(Dataset).where(Dataset.account_id == account_id)
+        stmt = select(Dataset).where(Dataset.account_id == account.id)
         # 如果提供了搜索关键词，添加模糊搜索条件
         if req.search_word.data:
             stmt = stmt.where(Dataset.name.ilike(f"%{req.search_word.data}%"))
@@ -343,11 +345,12 @@ class DatasetService(BaseService):
         # 返回查询结果和分页器信息
         return datasets, paginator
 
-    def delete_dataset(self, dataset_id: str) -> Dataset:
+    def delete_dataset(self, dataset_id: str, account: Account) -> Dataset:
         """删除指定的知识库
 
         Args:
             dataset_id (str): 要删除的知识库ID
+            account (Account): 当前账户对象
 
         Returns:
             Dataset: 被删除的知识库对象
@@ -357,12 +360,10 @@ class DatasetService(BaseService):
             FailException: 当删除操作失败时
 
         """
-        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
-        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
         # 根据知识库ID获取知识库信息
         dataset = self.get(Dataset, dataset_id)
         # 验证知识库是否存在且属于当前账户
-        if dataset is None or str(dataset.account_id) != account_id:
+        if dataset is None or dataset.account_id != account.id:
             error_msg = f"知识库ID为 {dataset_id} 不存在"
             raise NotFoundException(error_msg)
 

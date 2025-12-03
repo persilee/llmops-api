@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 from flasgger import swag_from
 from flask import send_file
+from flask_login import login_required
 from injector import inject
 
 from pkg.response.response import Response, success_json
@@ -23,6 +24,7 @@ class BuiltinToolHandler:
 
     @route("", methods=["GET"])
     @swag_from(get_swagger_path("builtin_tool_handler/get_builtin_tools.yaml"))
+    @login_required
     def get_builtin_tools(self) -> Response:
         """获取所有内置工具列表
 
@@ -39,6 +41,7 @@ class BuiltinToolHandler:
         methods=["GET"],
     )
     @swag_from(get_swagger_path("builtin_tool_handler/get_provider_tool.yaml"))
+    @login_required
     def get_provider_tool(self, provider_name: str, tool_name: str) -> Response:
         """获取特定提供者的特定工具
 
@@ -59,6 +62,7 @@ class BuiltinToolHandler:
 
     @route("/<string:provider_name>/icon", methods=["GET"])
     @swag_from(get_swagger_path("builtin_tool_handler/get_provider_icon.yaml"))
+    @login_required
     def get_provider_icon(self, provider_name: str) -> Response:
         """获取特定提供者的图标
 
@@ -75,6 +79,7 @@ class BuiltinToolHandler:
 
     @route("/categories", methods=["GET"])
     @swag_from(get_swagger_path("builtin_tool_handler/get_categories.yaml"))
+    @login_required
     def get_categories(self) -> Response:
         """获取所有内置工具的分类
 

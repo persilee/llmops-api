@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from flasgger import swag_from
+from flask_login import login_required
 from injector import inject
 from langchain_community.chat_message_histories import FileChatMessageHistory
 from langchain_core.runnables import (
@@ -48,6 +49,7 @@ class AppHandler:
 
     @route("/create", methods=["POST"])
     @swag_from(get_swagger_path("app_handler/create_app.yaml"))
+    @login_required
     def create_app(self) -> str:
         app = self.app_service.create_app()
 
@@ -55,6 +57,7 @@ class AppHandler:
 
     @route("/<uuid:app_id>", methods=["GET"])
     @swag_from(get_swagger_path("app_handler/get_app.yaml"))
+    @login_required
     def get_app(self, app_id: UUID) -> str:
         app: App = self.app_service.get_app(app_id)
 
@@ -62,6 +65,7 @@ class AppHandler:
 
     @route("/<uuid:app_id>", methods=["POST"])
     @swag_from(get_swagger_path("app_handler/update_app.yaml"))
+    @login_required
     def update_app(self, app_id: UUID) -> str:
         """更新 App 表"""
         app: App = self.app_service.update_app(app_id)
@@ -70,6 +74,7 @@ class AppHandler:
 
     @route("/<uuid:app_id>/delete", methods=["POST"])
     @swag_from(get_swagger_path("app_handler/delete_app.yaml"))
+    @login_required
     def delete_app(self, app_id: UUID) -> str:
         app: App = self.app_service.get_app(app_id)
         if app is not None:
@@ -101,6 +106,7 @@ class AppHandler:
 
     @route("/<uuid:app_id>/debug", methods=["POST"])
     @swag_from(get_swagger_path("app_handler/debug.yaml"))
+    @login_required
     def debug(self, app_id: UUID) -> Response:
         req = CompletionReq()
         if not req.validate():

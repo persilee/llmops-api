@@ -20,6 +20,7 @@ from src.exception.exception import (
     ValidateErrorException,
 )
 from src.lib.helper import generate_text_hash
+from src.model.account import Account
 from src.model.dataset import Document, Segment
 from src.schemas.segment_schema import (
     CreateSegmentReq,
@@ -50,6 +51,7 @@ class SegmentService(BaseService):
         dataset_id: UUID,
         document_id: UUID,
         segment_id: UUID,
+        account: Account,
     ) -> Segment:
         """删除文档片段
 
@@ -57,6 +59,7 @@ class SegmentService(BaseService):
             dataset_id: 知识库ID
             document_id: 文档ID
             segment_id: 片段ID
+            account: 账户信息
 
         Returns:
             Segment: 被删除的文档片段对象
@@ -66,14 +69,11 @@ class SegmentService(BaseService):
             FailException: 当片段状态不正确时
 
         """
-        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
-        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
-
         # 获取并验证文档片段是否存在以及权限
         segment = self.get(Segment, segment_id)
         if (
             segment is None
-            or str(segment.account_id) != account_id
+            or segment.account_id != account.id
             or segment.dataset_id != dataset_id
             or segment.document_id != document_id
         ):
@@ -135,6 +135,7 @@ class SegmentService(BaseService):
         dataset_id: UUID,
         document_id: UUID,
         req: CreateSegmentReq,
+        account: Account,
     ) -> Segment:
         """创建新的文档片段。
 
@@ -152,6 +153,7 @@ class SegmentService(BaseService):
             dataset_id (UUID): 数据集ID，用于验证权限
             document_id (UUID): 文档ID，指定要添加片段的文档
             req (CreateSegmentReq): 创建片段的请求对象，包含内容和关键词
+            account (Account): 当前登录的用户账户
 
         Returns:
             Segment: 创建成功的文档片段对象
@@ -165,9 +167,6 @@ class SegmentService(BaseService):
             当前account_id是硬编码的，实际应用中应从认证信息获取
 
         """
-        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
-        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
-
         # 计算输入内容的token数量
         token_count = self.embeddings_service.calculate_token_count(req.content.data)
         # 检查token数量是否超过最大限制
@@ -185,7 +184,7 @@ class SegmentService(BaseService):
         # 检查文档是否存在，以及是否有权限新增
         if (
             document is None
-            or str(document.account_id) != account_id
+            or document.account_id != account.id
             or document.dataset_id != dataset_id
         ):
             # 如果文档不存在或无权限，构造错误信息
@@ -232,7 +231,7 @@ class SegmentService(BaseService):
             # 创建新的文档片段
             segment = self.create(
                 Segment,  # 创建Segment对象
-                account_id=account_id,  # 账户ID
+                account_id=account.id,  # 账户ID
                 dataset_id=dataset_id,  # 数据集ID
                 document_id=document_id,  # 文档ID
                 node_id=uuid.uuid4(),  # 生成唯一节点ID
@@ -324,6 +323,7 @@ class SegmentService(BaseService):
         dataset_id: UUID,
         document_id: UUID,
         req: GetSegmentsWithPageReq,
+        account: Account,
     ) -> tuple[list[Segment], Paginator]:
         """分页获取文档片段列表。
 
@@ -338,6 +338,7 @@ class SegmentService(BaseService):
             document_id (UUID): 文档ID，指定要查询的文档
             req (GetSegmentsWithPageReq): 分页查询请求对象，
             包含页码、每页数量和搜索关键词
+            account (Account): 当前登录用户信息，用于验证权限
 
         Returns:
             tuple[list[Segment], Paginator]: 包含片段列表和分页信息的元组
@@ -350,9 +351,6 @@ class SegmentService(BaseService):
             当前account_id是硬编码的，实际应用中应从认证信息获取
 
         """
-        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
-        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
-
         # 根据文档ID获取文档对象
         document = self.get(Document, document_id)
         # 检查文档是否存在
@@ -360,7 +358,7 @@ class SegmentService(BaseService):
             error_msg = f"文档不存在：{document_id}"
             raise NotFoundException(error_msg)
         # 验证文档所属知识库和账户权限
-        if document.dataset_id != dataset_id or str(document.account_id) != account_id:
+        if document.dataset_id != dataset_id or document.account_id != account.id:
             error_msg = f"无权限访问文档：{document_id}"
             raise ForbiddenException(error_msg)
 
@@ -385,6 +383,7 @@ class SegmentService(BaseService):
         dataset_id: UUID,
         document_id: UUID,
         segment_id: UUID,
+        account: Account,
     ) -> Segment:
         """获取单个文档片段信息。
 
@@ -397,6 +396,7 @@ class SegmentService(BaseService):
             dataset_id (UUID): 数据集ID，用于验证权限
             document_id (UUID): 文档ID，验证片段所属文档
             segment_id (UUID): 片段ID，指定要查询的片段
+            account (Account): 当前账户信息，用于验证权限
 
         Returns:
             Segment: 文档片段对象
@@ -409,9 +409,6 @@ class SegmentService(BaseService):
             当前account_id是硬编码的，实际应用中应从认证信息获取
 
         """
-        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
-        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
-
         # 根据文档ID获取文档对象
         document = self.get(Document, document_id)
         # 检查文档是否存在
@@ -419,7 +416,7 @@ class SegmentService(BaseService):
             error_msg = f"文档不存在：{document_id}"
             raise NotFoundException(error_msg)
         # 验证文档所属知识库和账户权限
-        if document.dataset_id != dataset_id or str(document.account_id) != account_id:
+        if document.dataset_id != dataset_id or document.account_id != account.id:
             error_msg = f"无权限访问文档：{document_id}"
             raise ForbiddenException(error_msg)
 
@@ -429,7 +426,7 @@ class SegmentService(BaseService):
             error_msg = f"文档片段不存在：{segment_id}"
             raise NotFoundException(error_msg)
         # 验证段落所属文档和账户权限
-        if segment.document_id != document_id or str(segment.account_id) != account_id:
+        if segment.document_id != document_id or segment.account_id != account.id:
             error_msg = f"无权限访问文档片段：{segment_id}"
             raise ForbiddenException(error_msg)
 
@@ -440,6 +437,7 @@ class SegmentService(BaseService):
         dataset_id: UUID,
         document_id: UUID,
         segment_id: UUID,
+        account: Account,
         *,
         enabled: bool,
     ) -> Segment:
@@ -457,6 +455,7 @@ class SegmentService(BaseService):
             dataset_id (UUID): 数据集ID，用于验证权限
             document_id (UUID): 文档ID，验证片段所属文档
             segment_id (UUID): 片段ID，指定要更新的片段
+            account (Account): 当前账户对象，用于验证权限
             enabled (bool): 是否启用片段，True为启用，False为禁用
 
         Returns:
@@ -472,9 +471,6 @@ class SegmentService(BaseService):
             使用Redis分布式锁确保并发安全性
 
         """
-        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
-        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
-
         # 根据文档ID获取文档对象
         document = self.get(Document, document_id)
         # 检查文档是否存在
@@ -482,7 +478,7 @@ class SegmentService(BaseService):
             error_msg = f"文档不存在：{document_id}"
             raise NotFoundException(error_msg)
         # 验证文档所属知识库和账户权限
-        if document.dataset_id != dataset_id or str(document.account_id) != account_id:
+        if document.dataset_id != dataset_id or document.account_id != account.id:
             error_msg = f"无权限访问文档：{document_id}"
             raise ForbiddenException(error_msg)
         # 根据文档ID和段落ID获取段落对象
@@ -492,7 +488,7 @@ class SegmentService(BaseService):
             error_msg = f"文档片段不存在：{segment_id}"
             raise NotFoundException(error_msg)
         # 验证文档片段所属文档和账户权限
-        if segment.document_id != document_id or str(segment.account_id) != account_id:
+        if segment.document_id != document_id or segment.account_id != account.id:
             error_msg = f"无权限修改文档片段：{segment_id}"
             raise ForbiddenException(error_msg)
 
@@ -569,6 +565,7 @@ class SegmentService(BaseService):
         document_id: UUID,
         segment_id: UUID,
         req: UpdateSegmentReq,
+        account: Account,
     ) -> Segment:
         """更新文档片段信息。
 
@@ -586,6 +583,7 @@ class SegmentService(BaseService):
             document_id (UUID): 文档ID，用于标识所属的文档
             segment_id (UUID): 片段ID，用于标识要更新的具体片段
             req (UpdateSegmentReq): 更新请求对象，包含新的内容和关键词信息
+            account (Account): 当前操作用户信息
 
         Returns:
             Segment: 更新后的文档片段对象
@@ -600,14 +598,11 @@ class SegmentService(BaseService):
             - 更新操作是原子性的，任何步骤失败都会回滚整个操作
 
         """
-        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
-        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
-
         # 1.获取片段信息并校验权限
         segment = self.get(Segment, segment_id)
         if (
             segment is None
-            or str(segment.account_id) != account_id
+            or segment.account_id != account.id
             or segment.dataset_id != dataset_id
             or segment.document_id != document_id
         ):

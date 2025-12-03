@@ -11,6 +11,7 @@ from pkg.sqlalchemy.sqlalchemy import SQLAlchemy
 from src.core.tools.api_tool.entities.openapi_schema import OpenAPISchema
 from src.core.tools.providers.api_provider_manager import ApiProviderManager
 from src.exception.exception import NotFoundException, ValidateErrorException
+from src.model.account import Account
 from src.model.api_tool import ApiTool, ApiToolProvider
 from src.schemas.api_tool_schema import (
     CreateApiToolReq,
@@ -32,6 +33,7 @@ class ApiToolService(BaseService):
         self,
         provider_id: UUID,
         req: UpdateApiToolProviderReq,
+        account: Account,
     ) -> None:
         """更新API工具提供者信息
 
@@ -39,17 +41,15 @@ class ApiToolService(BaseService):
             provider_id: API工具提供者ID
             req: 更新API工具提供者的请求对象，包含名称、OpenAPI schema、
             图标和请求头等信息
+            account: 当前账户信息
 
         Raises:
             ValidateErrorException: 当API工具提供者不存在或名称重复时抛出
 
         """
-        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
-        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
-
         # 查询并验证API工具提供者是否存在且属于当前账户
         provider = self.get(ApiToolProvider, provider_id)
-        if not provider or str(provider.account_id) != account_id:
+        if not provider or provider.account_id != account.id:
             error_msg = f"未找到ID为{provider_id}的API工具提供者"
             raise ValidateErrorException(error_msg)
 
@@ -60,7 +60,7 @@ class ApiToolService(BaseService):
         check_api_tool_provider = (
             self.db.session.query(ApiToolProvider)
             .filter(
-                ApiToolProvider.account_id == account_id,
+                ApiToolProvider.account_id == account.id,
                 ApiToolProvider.name == req.name.data,
                 ApiToolProvider.id != provider_id,
             )
@@ -75,7 +75,7 @@ class ApiToolService(BaseService):
             # 删除原有的API工具记录
             self.db.session.query(ApiTool).filter(
                 ApiTool.provider_id == provider.id,
-                ApiTool.account_id == account_id,
+                ApiTool.account_id == account.id,
             ).delete()
 
         # 更新API工具提供者的基本信息
@@ -94,7 +94,7 @@ class ApiToolService(BaseService):
                 # 为每个API方法创建对应的API工具记录
                 self.create(
                     ApiTool,
-                    account_id=account_id,
+                    account_id=account.id,
                     provider_id=provider.id,
                     name=method_item.get("operationId"),
                     description=method_item.get("description"),
@@ -107,11 +107,13 @@ class ApiToolService(BaseService):
     def get_api_tool_providers_with_page(
         self,
         req: GetApiToolProvidersWithPageReq,
+        account: Account,
     ) -> tuple[list[Any], Paginator]:
         """获取API工具提供者分页列表。
 
         Args:
             req: 获取API工具提供者分页列表的请求对象，包含分页参数和搜索条件
+            account: 当前登录的用户账户
 
         Returns:
             tuple[list[Any], Paginator]: 返回一个元组，包含：
@@ -119,13 +121,10 @@ class ApiToolService(BaseService):
                 - 分页器对象，包含分页相关信息
 
         """
-        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
-        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
-
         # 初始化分页器，用于处理分页逻辑
         paginator = Paginator(db=self.db, req=req)
         # 构建基础过滤条件，只查询当前账户的API工具提供者
-        stmt = select(ApiToolProvider).where(ApiToolProvider.account_id == account_id)
+        stmt = select(ApiToolProvider).where(ApiToolProvider.account_id == account.id)
         # 如果存在搜索关键词，添加名称模糊匹配的过滤条件
         if req.search_word.data:
             stmt = stmt.where(ApiToolProvider.name.ilike(f"%{req.search_word.data}%"))
@@ -137,22 +136,21 @@ class ApiToolService(BaseService):
         # 返回查询结果和分页器对象
         return api_tool_providers, paginator
 
-    def delete_api_tool_provider(self, provider_id: UUID) -> None:
+    def delete_api_tool_provider(self, provider_id: UUID, account: Account) -> None:
         """删除API工具提供者及其相关的API工具
 
         Args:
             provider_id: API工具提供者的唯一标识符
+            account: 当前登录的用户账户
 
         Raises:
             NotFoundException: 当API工具提供者不存在或不属于当前账户时抛出
 
         """
-        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
-        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
         # 查询API工具提供者
         api_tool_provider = self.get(ApiToolProvider, provider_id)
         # 验证API工具提供者是否存在且属于当前账户
-        if api_tool_provider is None or str(api_tool_provider.account_id) != account_id:
+        if api_tool_provider is None or api_tool_provider.account_id != account.id:
             error_msg = f"API工具提供者 {provider_id} 不存在"
             raise NotFoundException(error_msg)
 
@@ -161,17 +159,23 @@ class ApiToolService(BaseService):
             # 删除该提供者下的所有API工具
             self.db.session.query(ApiTool).filter(
                 ApiTool.provider_id == provider_id,
-                ApiTool.account_id == account_id,
+                ApiTool.account_id == account.id,
             ).delete()
             # 删除API工具提供者
             self.db.session.delete(api_tool_provider)
 
-    def get_api_tool(self, provider_id: UUID, tool_name: str) -> ApiTool:
+    def get_api_tool(
+        self,
+        provider_id: UUID,
+        tool_name: str,
+        account: Account,
+    ) -> ApiTool:
         """根据提供者ID和工具名称获取API工具。
 
         Args:
             provider_id (UUID): API工具提供者的唯一标识符
             tool_name (str): API工具的名称
+            account (Account): 当前账户对象
 
         Returns:
             ApiTool: 查询到的API工具对象
@@ -183,9 +187,6 @@ class ApiToolService(BaseService):
             当前使用硬编码的账户ID进行权限验证，实际应用中应该从认证信息中获取
 
         """
-        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
-        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
-
         # 使用SQLAlchemy查询API工具
         api_tool = (
             self.db.session.query(ApiTool)  # 创建ApiTool模型的查询对象
@@ -197,18 +198,23 @@ class ApiToolService(BaseService):
         )
 
         # 验证API工具是否存在且属于当前账户
-        if api_tool is None or str(api_tool.account_id) != account_id:
+        if api_tool is None or api_tool.account_id != account.id:
             error_msg = f"API工具 {tool_name} 不存在"  # 构造错误信息
             raise NotFoundException(error_msg)  # 抛出验证错误异常
 
         # 返回查询到的API工具对象
         return api_tool
 
-    def get_api_tool_provider(self, provider_id: UUID) -> ApiToolProvider:
+    def get_api_tool_provider(
+        self,
+        provider_id: UUID,
+        account: Account,
+    ) -> ApiToolProvider:
         """根据提供者ID获取API工具提供者信息。
 
         Args:
             provider_id (UUID): API工具提供者的唯一标识符
+            account (Account): 当前账户对象
 
         Returns:
             ApiToolProvider: API工具提供者对象
@@ -217,13 +223,10 @@ class ApiToolService(BaseService):
             ValidateErrorException: 当API工具提供者不存在或不属于当前账户时抛出
 
         """
-        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
-        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
-
         # 根据provider_id查询API工具提供者
         api_tool_provider = self.get(ApiToolProvider, provider_id)
         # 验证API工具提供者是否存在且属于当前账户
-        if api_tool_provider is None or str(api_tool_provider.account_id) != account_id:
+        if api_tool_provider is None or api_tool_provider.account_id != account.id:
             # 构造错误信息
             error_msg = f"API工具提供者不存在: {provider_id}"
             # 抛出验证错误异常
@@ -270,7 +273,7 @@ class ApiToolService(BaseService):
 
         return OpenAPISchema(**data)
 
-    def create_api_tool_provider(self, req: CreateApiToolReq) -> None:
+    def create_api_tool_provider(self, req: CreateApiToolReq, account: Account) -> None:
         """创建API工具提供者和相关的API工具
 
         Args:
@@ -279,6 +282,7 @@ class ApiToolService(BaseService):
                 - icon: API工具提供者图标
                 - openapi_schema: OpenAPI规范格式的schema字符串
                 - headers: API请求所需的headers
+            account (Account): 当前登录的用户账户信息
 
         Raises:
             ValidateErrorException: 当已存在同名的API工具提供者时抛出
@@ -287,15 +291,13 @@ class ApiToolService(BaseService):
             None
 
         """
-        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
-        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
         # 解析OpenAPI schema字符串为结构化对象
         openapi_schema = self.parse_openapi_schema(req.openapi_schema.data)
         # 查询是否已存在同名的API工具提供者
         api_tool_provider = (
             self.db.session.query(ApiToolProvider)
             .filter_by(
-                account_id=account_id,
+                account_id=account.id,
                 name=req.name.data,
             )
             .one_or_none()
@@ -308,7 +310,7 @@ class ApiToolService(BaseService):
         # 使用自动提交事务创建API工具提供者和相关API工具
         api_tool_provider = self.create(
             ApiToolProvider,
-            account_id=account_id,
+            account_id=account.id,
             name=req.name.data,
             icon=req.icon.data,
             openapi_schema=req.openapi_schema.data,
@@ -322,7 +324,7 @@ class ApiToolService(BaseService):
                 # 为每个API方法创建对应的API工具记录
                 self.create(
                     ApiTool,
-                    account_id=account_id,
+                    account_id=account.id,
                     provider_id=api_tool_provider.id,
                     name=method_item.get("operationId"),
                     description=method_item.get("description"),
@@ -331,34 +333,3 @@ class ApiToolService(BaseService):
                     method=method,
                     parameters=method_item.get("parameters", []),
                 )
-
-    def api_tool_invoke(self) -> None:
-        provider_id = "6db32d9b-cf5c-4df8-9ecf-7a4e7339e53e"
-        tool_name = "getWordSuggestions"
-
-        api_tool = (
-            self.db.session.query(ApiTool)
-            .filter(
-                ApiTool.provider_id == provider_id,
-                ApiTool.name == tool_name,
-            )
-            .one_or_none()
-        )
-
-        api_tool_provider = api_tool.provider
-
-        from src.core.tools.api_tool.entities import ToolEntity
-
-        tool = self.api_provider_manager.get_tool(
-            ToolEntity(
-                id=provider_id,
-                name=tool_name,
-                url=api_tool.url,
-                method=api_tool.method,
-                parameters=api_tool.parameters,
-                headers=api_tool_provider.headers,
-                description=api_tool.description,
-            ),
-        )
-
-        return tool.invoke({"q": "dog", "doctype": "json"})

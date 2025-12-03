@@ -13,6 +13,7 @@ from src.entity.upload_file_entity import (
     ALLOWED_IMAGE_EXTENSION,
 )
 from src.exception.exception import FailException
+from src.model.account import Account
 from src.model.upload_file import UploadFile
 from src.service.upload_file_service import UploadFileService
 
@@ -22,11 +23,18 @@ from src.service.upload_file_service import UploadFileService
 class CosService:
     upload_file_service: UploadFileService
 
-    def upload_file(self, file: FileStorage, *, only_image: bool = False) -> UploadFile:
+    def upload_file(
+        self,
+        file: FileStorage,
+        account: Account,
+        *,
+        only_image: bool = False,
+    ) -> UploadFile:
         """上传文件到腾讯云对象存储(COS)
 
         Args:
             file (FileStorage): 要上传的文件对象
+            account (Account): 上传文件的用户信息
             only_image (bool, optional): 是否只允许上传图片文件. 默认为False
 
         Returns:
@@ -37,8 +45,6 @@ class CosService:
             FailException: 当文件上传失败时抛出
 
         """
-        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
-        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"
         # 获取原始文件名和扩展名
         filename = file.filename
         extension = filename.rsplit(".", 1)[-1] if "." in filename else ""
@@ -86,7 +92,7 @@ class CosService:
 
         # 创建并返回文件记录，包含文件的所有元信息
         return self.upload_file_service.create_upload_file(
-            account_id=account_id,
+            account_id=account.id,
             name=filename,
             key=upload_filename,
             size=len(file_content),

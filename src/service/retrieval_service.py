@@ -9,6 +9,7 @@ from sqlalchemy import update
 from pkg.sqlalchemy.sqlalchemy import SQLAlchemy
 from src.entity.dataset_entity import RetrievalSource, RetrievalStrategy
 from src.exception.exception import NotFoundException
+from src.model.account import Account
 from src.model.dataset import Dataset, DatasetQuery, Segment
 from src.service.base_service import BaseService
 from src.service.jieba_service import JiebaService
@@ -25,6 +26,7 @@ class RetrievalService(BaseService):
     def search_in_datasets(
         self,
         dataset_ids: list[UUID],
+        account: Account,
         query: str,
         retrieval_strategy: str = RetrievalStrategy.SEMANTIC,
         retrieval_source: str = RetrievalSource.HIT_TESTING,
@@ -34,6 +36,7 @@ class RetrievalService(BaseService):
 
         Args:
             dataset_ids (list[UUID]): 要搜索的知识库ID列表
+            account (Account): 当前用户账户
             query (str): 搜索查询字符串
             retrieval_strategy (str, optional): 检索策略，默认为语义检索(SEMANTIC)。
                 可选值包括：
@@ -56,9 +59,6 @@ class RetrievalService(BaseService):
             混合检索时，语义检索和全文检索的权重各占50%。
 
         """
-        # TODO: 设置账户ID，实际应用中应该从认证信息中获取
-        account_id = "9495d2e2-2e7a-4484-8447-03f6b24627f7"  # 临时硬编码的账户ID
-
         k = kwargs.get("k", 4)  # 获取返回结果数量，默认为4
         score = kwargs.get("score", 0)  # 获取相似度阈值，默认为0
         # 查询指定ID且属于当前账户的知识库
@@ -66,7 +66,7 @@ class RetrievalService(BaseService):
             self.db.session.query(Dataset)
             .filter(
                 Dataset.id.in_(dataset_ids),
-                Dataset.account_id == account_id,
+                Dataset.account_id == account.id,
             )
             .all()
         )
@@ -124,7 +124,7 @@ class RetrievalService(BaseService):
                 query=query,
                 source=retrieval_source,
                 source_app_id=None,
-                created_by=account_id,
+                created_by=account.id,
             )
 
         # 更新检索到的文档段的命中次数

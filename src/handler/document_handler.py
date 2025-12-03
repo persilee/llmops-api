@@ -3,6 +3,7 @@ from uuid import UUID
 
 from flasgger import swag_from
 from flask import request
+from flask_login import current_user, login_required
 from injector import inject
 
 from pkg.paginator.paginator import PageModel
@@ -33,6 +34,7 @@ class DocumentHandler:
 
     @route("/<uuid:dataset_id>/document/<uuid:document_id>/delete", methods=["POST"])
     @swag_from(get_swagger_path("dataset_handler/delete_document.yaml"))
+    @login_required
     def delete_document(self, dataset_id: UUID, document_id: UUID) -> Response:
         """删除指定数据集中的文档
 
@@ -44,12 +46,13 @@ class DocumentHandler:
             Response: 包含删除成功消息的响应对象
 
         """
-        self.document_service.delete_document(dataset_id, document_id)
+        self.document_service.delete_document(dataset_id, document_id, current_user)
 
         return success_message_json("删除文档成功")
 
     @route("/<uuid:dataset_id>/document/<uuid:document_id>/enabled", methods=["POST"])
     @swag_from(get_swagger_path("dataset_handler/update_document_enabled.yaml"))
+    @login_required
     def update_document_enabled(self, dataset_id: UUID, document_id: UUID) -> Response:
         """更新文档的启用状态
 
@@ -70,6 +73,7 @@ class DocumentHandler:
         self.document_service.update_document_enabled(
             dataset_id,
             document_id,
+            current_user,
             enabled=req.enabled.data,
         )
 
@@ -77,6 +81,7 @@ class DocumentHandler:
 
     @route("/<uuid:dataset_id>/document/<uuid:document_id>", methods=["GET"])
     @swag_from(get_swagger_path("dataset_handler/get_document.yaml"))
+    @login_required
     def get_document(self, dataset_id: UUID, document_id: UUID) -> Response:
         """获取单个文档信息
 
@@ -88,7 +93,11 @@ class DocumentHandler:
             Response: 包含文档信息的成功响应
 
         """
-        document = self.document_service.get_document(dataset_id, document_id)
+        document = self.document_service.get_document(
+            dataset_id,
+            document_id,
+            current_user,
+        )
 
         resp = GetDocumentResp()
 
@@ -96,6 +105,7 @@ class DocumentHandler:
 
     @route("/<uuid:dataset_id>/document/<uuid:document_id>/name", methods=["POST"])
     @swag_from(get_swagger_path("dataset_handler/update_document_name.yaml"))
+    @login_required
     def update_document_name(self, dataset_id: UUID, document_id: UUID) -> Response:
         # 创建更新文档名称的请求对象
         req = UpdateDocumentNameReq()
@@ -108,6 +118,7 @@ class DocumentHandler:
         self.document_service.update_document_name(
             dataset_id,  # 数据集ID
             document_id,  # 文档ID
+            current_user,
             name=req.name.data,  # 新的文档名称
         )
 
@@ -116,6 +127,7 @@ class DocumentHandler:
 
     @route("/<uuid:dataset_id>/documents", methods=["GET"])
     @swag_from(get_swagger_path("dataset_handler/get_documents_with_page.yaml"))
+    @login_required
     def get_documents_with_page(self, dataset_id: UUID) -> Response:
         # 创建请求对象，解析查询参数
         req = GetDocumentsWithPageReq(request.args)
@@ -127,6 +139,7 @@ class DocumentHandler:
         documents, paginator = self.document_service.get_documents_with_page(
             dataset_id,
             req,
+            current_user,
         )
 
         # 创建响应对象，用于序列化文档列表
@@ -137,6 +150,7 @@ class DocumentHandler:
 
     @route("/<uuid:dataset_id>/documents", methods=["POST"])
     @swag_from(get_swagger_path("dataset_handler/create_documents.yaml"))
+    @login_required
     def create_documents(self, dataset_id: UUID) -> Response:
         """创建文档接口
 
@@ -155,6 +169,7 @@ class DocumentHandler:
         # 调用服务层创建文档
         documents, batch = self.document_service.create_documents(
             dataset_id,
+            current_user,
             **req.data,
         )
 
@@ -166,6 +181,7 @@ class DocumentHandler:
 
     @route("/<uuid:dataset_id>/documents/batch/<string:batch>", methods=["POST"])
     @swag_from(get_swagger_path("dataset_handler/get_documents_status.yaml"))
+    @login_required
     def get_documents_status(self, dataset_id: UUID, batch: str) -> Response:
         """获取文档状态接口
 
@@ -177,6 +193,10 @@ class DocumentHandler:
             Response: 包含文档状态的响应对象
 
         """
-        documents_status = self.document_service.get_documents_status(dataset_id, batch)
+        documents_status = self.document_service.get_documents_status(
+            dataset_id,
+            batch,
+            current_user,
+        )
 
         return success_json(documents_status)

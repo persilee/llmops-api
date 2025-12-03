@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from flasgger import swag_from
+from flask_login import current_user, login_required
 from injector import inject
 
 from pkg.response.response import (
@@ -21,6 +22,7 @@ class UploadFileHandler:
 
     @route("/upload-file", methods=["POST"])
     @swag_from(get_swagger_path("upload_file_handler/upload_file.yaml"))
+    @login_required
     def upload_file(self) -> Response:
         """处理文件上传请求
 
@@ -35,7 +37,7 @@ class UploadFileHandler:
             return validate_error_json(req.errors)
 
         # 调用COS服务上传文件
-        upload_file = self.cos_service.upload_file(req.file.data)
+        upload_file = self.cos_service.upload_file(req.file.data, current_user)
 
         # 创建响应对象
         resp = UploadFileResp()
@@ -45,6 +47,7 @@ class UploadFileHandler:
 
     @route("/upload-image", methods=["POST"])
     @swag_from(get_swagger_path("upload_file_handler/upload_image.yaml"))
+    @login_required
     def upload_image(self) -> Response:
         """处理图片上传请求
 
@@ -65,7 +68,11 @@ class UploadFileHandler:
             return validate_error_json(req.errors)
 
         # 调用COS服务上传图片，only_image=True确保只允许图片格式
-        upload_file = self.cos_service.upload_file(req.file.data, only_image=True)
+        upload_file = self.cos_service.upload_file(
+            req.file.data,
+            current_user,
+            only_image=True,
+        )
         # 获取上传后图片的访问URL
         image_url = self.cos_service.get_file_url(upload_file.key)
 
