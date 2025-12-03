@@ -1,5 +1,44 @@
 components:
   schemas:
+    PasswordLoginReq:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: 登录邮箱
+          example: user@example.com
+        password:
+          type: string
+          description: 登录密码
+          example: password123
+    PasswordLoginResp:
+      type: object
+      required:
+        - access_token
+        - expire_at
+        - user_id
+        - session_id
+      properties:
+        access_token:
+          type: string
+          description: JWT访问令牌
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        expire_at:
+          type: integer
+          description: 令牌过期时间戳
+          example: 1704067200
+        user_id:
+          type: string
+          description: 用户ID
+          example: 9495d2e2-2e7a-4484-8447-03f6b24627f7
+        session_id:
+          type: string
+          description: 会话ID
+          example: 550e8400-e29b-41d4-a716-446655440000
     RetrievalStrategy:
       description: 检索策略类型
       type: string

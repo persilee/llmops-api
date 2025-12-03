@@ -1,0 +1,36 @@
+退出登录
+---
+tags:
+  - 授权认证
+summary: 退出登录
+description:
+operationId: logout
+parameters:
+  - name: X-Session-ID
+    in: header
+    description: 用户登录成功后返回的session_id
+    required: true
+    schema:
+      type: string
+      example: "51f6a09a-5b36-46e8-ba89-f5bb75ba541f"
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              type: "object"
+              example: {}
+            message:
+              type: "string"
+              example: "退出登录成功"
