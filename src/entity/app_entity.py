@@ -27,6 +27,8 @@ class AppConfigType(str, Enum):
     PUBLISHED = "published"
 
 
+# 最大图片数
+MAX_IMAGE_COUNT = 5
 # 应用默认配置信息
 DEFAULT_APP_CONFIG = {
     "model_config": {
@@ -62,9 +64,6 @@ DEFAULT_APP_CONFIG = {
         "enable": False,
         "voice": "echo",
         "auto_play": False,
-    },
-    "suggested_after_answer": {
-        "enable": True,
     },
     "review_config": {
         "enable": False,

@@ -14,7 +14,7 @@ from redis import Redis
 
 from pkg.password.password import compare_password, hash_password
 from pkg.sqlalchemy.sqlalchemy import SQLAlchemy
-from src.exception.exception import UnauthorizedException
+from src.exception.exception import FailException
 from src.model.account import Account, AccountOAuth
 from src.service.base_service import BaseService
 from src.service.jwt_service import JwtService
@@ -162,7 +162,7 @@ class AccountService(BaseService):
         # 检查账户是否存在
         if not account:
             error_msg = "用户不存在或密码错误"
-            raise UnauthorizedException(error_msg)
+            raise FailException(error_msg)
 
         # 验证密码是否已设置且密码是否正确
         if not account.is_password_set or not compare_password(
@@ -171,7 +171,7 @@ class AccountService(BaseService):
             account.password_salt,
         ):
             error_msg = "用户不存在或密码错误"
-            raise UnauthorizedException(error_msg)
+            raise FailException(error_msg)
 
         # 设置JWT令牌的过期时间为30天后
         expire_at = int((datetime.now(UTC) + timedelta(days=30)).timestamp())

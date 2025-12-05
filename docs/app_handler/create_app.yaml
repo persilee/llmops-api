@@ -5,13 +5,32 @@ tags:
 summary: 创建App
 description: 创建App
 operationId: create_app
+requestBody:
+  content:
+    application/json:
+      schema:
+        $ref: "#/components/schemas/CreateAppReq"
 responses:
   "200":
     content:
       application/json:
         schema:
-          $ref: "#/components/schemas/BaseRespBody"
-        example:
-          code: "success"
-          message: "创建成功，app id: 4648e320-4376-4158-8126-e4a2e646a3c0"
-          data: {}
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              required:
+                - "id"
+              properties:
+                id:
+                  type: "string"
+                  example: "ce991a57-97cc-42d9-8bbd-4426bd335ad5"
+              type: "object"
+            message:
+              type: "string"
+              example: ""

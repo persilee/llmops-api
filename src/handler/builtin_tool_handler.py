@@ -62,7 +62,6 @@ class BuiltinToolHandler:
 
     @route("/<string:provider_name>/icon", methods=["GET"])
     @swag_from(get_swagger_path("builtin_tool_handler/get_provider_icon.yaml"))
-    @login_required
     def get_provider_icon(self, provider_name: str) -> Response:
         """获取特定提供者的图标
 

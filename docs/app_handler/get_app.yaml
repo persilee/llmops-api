@@ -9,4 +9,19 @@ parameters:
   - $ref: "#/components/parameters/appIdParam"
 responses:
   "200":
-    $ref: "#/components/responses/BaseResponse"
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              $ref: "#/components/schemas/GetAppResp"
+            message:
+              type: "string"
+              example: ""

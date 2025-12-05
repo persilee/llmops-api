@@ -76,10 +76,10 @@ class Http(Flask):
             self,
             resources={
                 r"/*": {
-                    "origins": "*",
+                    "origins": "http://localhost:5173",
                     "supports_credentials": True,
-                    "methods": ["GET", "POST"],
-                    "allow_headers": ["Content-Type"],
+                    "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+                    "allow_headers": ["Content-Type", "Authorization"],
                 },
             },
         )

@@ -4,7 +4,7 @@ tags:
   - 授权认证
 summary: 退出所有设备登录
 description: 清除用户在所有设备上的会话信息，从Redis中删除该用户的所有会话数据。
-operationId: logoutAll
+operationId: logout_all
 responses:
   x-200:
     $ref: "#/components/responses/BaseResponse"
