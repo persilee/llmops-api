@@ -29,6 +29,22 @@ class AppConfigType(str, Enum):
 
 # 最大图片数
 MAX_IMAGE_COUNT = 5
+# 最大轮数
+MAX_DIALOG_ROUNDS = 100
+# 提示词最大长度
+MAX_PRESET_PROMPT_LENGTH = 2000
+# 工具最大长度
+MAX_TOOL_COUNT = 5
+# 知识库最大个数
+MAX_DATASET_COUNT = 5
+# 最大检索数量
+MAX_RETRIEVAL_COUNT = 10
+# 最大开场白长度
+MAX_OPENING_STATEMENT_LENGTH = 2000
+# 最大开场白问题个数
+MAX_OPENING_QUESTIONS_COUNT = 3
+# 最大关键词个数
+MAX_REVIEW_KEYWORDS_COUNT = 100
 # 应用默认配置信息
 DEFAULT_APP_CONFIG = {
     "model_config": {

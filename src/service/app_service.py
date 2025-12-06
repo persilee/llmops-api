@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any
 from uuid import UUID
 
 from flask import request
@@ -8,8 +9,24 @@ from pkg.sqlalchemy import SQLAlchemy
 from src.core.tools.builtin_tools.providers.builtin_provider_manager import (
     BuiltinProviderManager,
 )
-from src.entity.app_entity import DEFAULT_APP_CONFIG, AppConfigType, AppStatus
-from src.exception.exception import ForbiddenException, NotFoundException
+from src.entity.app_entity import (
+    DEFAULT_APP_CONFIG,
+    MAX_DATASET_COUNT,
+    MAX_DIALOG_ROUNDS,
+    MAX_OPENING_QUESTIONS_COUNT,
+    MAX_OPENING_STATEMENT_LENGTH,
+    MAX_PRESET_PROMPT_LENGTH,
+    MAX_RETRIEVAL_COUNT,
+    MAX_REVIEW_KEYWORDS_COUNT,
+    MAX_TOOL_COUNT,
+    AppConfigType,
+    AppStatus,
+)
+from src.exception.exception import (
+    ForbiddenException,
+    NotFoundException,
+    ValidateErrorException,
+)
 from src.lib.helper import datetime_to_timestamp
 from src.model import App
 from src.model.account import Account
@@ -117,10 +134,10 @@ class AppService(BaseService):
     def get_draft_app_config(self, app_id: UUID, account: Account) -> dict:
         """获取应用的草稿配置信息。
 
-        该方法会获取指定应用的草稿配置，并对配置中的工具、数据集等信息进行验证和格式化。
+        该方法会获取指定应用的草稿配置，并对配置中的工具、知识库等信息进行验证和格式化。
         主要包括：
         1. 验证内置工具和API工具的配置
-        2. 验证数据集的存在性
+        2. 验证知识库的存在性
         3. 格式化返回的配置信息
 
         Args:
@@ -135,7 +152,7 @@ class AppService(BaseService):
                 - preset_prompt: 预设提示词
                 - tools: 工具配置列表
                 - workflows: 工作流配置列表
-                - datasets: 数据集配置列表
+                - datasets: 知识库配置列表
                 - retrieval_config: 检索配置
                 - long_term_memory: 长期记忆配置
                 - opening_statement: 开场白
@@ -251,11 +268,11 @@ class AppService(BaseService):
         if draft_tools != validate_tools:
             self.update(draft_app_config, tools=validate_tools)
 
-        # 处理数据集配置
+        # 处理知识库配置
         datasets = []
-        # 获取草稿配置中的数据集ID列表
+        # 获取草稿配置中的知识库ID列表
         draft_datasets = draft_app_config.datasets
-        # 查询所有相关的数据集记录
+        # 查询所有相关的知识库记录
         dataset_records = (
             self.db.session.query(Dataset)
             .filter(
@@ -263,22 +280,22 @@ class AppService(BaseService):
             )
             .all()
         )
-        # 构建数据集ID到记录的映射
+        # 构建知识库ID到记录的映射
         dataset_dict = {
             str(dataset_record.id): dataset_record for dataset_record in dataset_records
         }
         dataset_sets = set(dataset_dict.keys())
 
-        # 筛选出存在的数据集ID
+        # 筛选出存在的知识库ID
         exist_dataset_ids = [
             dataset_id for dataset_id in draft_datasets if dataset_id in dataset_sets
         ]
 
-        # 如果数据集配置有变化，更新数据库
+        # 如果知识库配置有变化，更新数据库
         if set(exist_dataset_ids) != set(draft_datasets):
             self.update(draft_app_config, datasets=exist_dataset_ids)
 
-        # 构建返回的数据集信息
+        # 构建返回的知识库信息
         for dataset_id in exist_dataset_ids:
             dataset_record = dataset_dict.get(str(dataset_id))
             datasets.append(
@@ -312,3 +329,587 @@ class AppService(BaseService):
             "created_at": datetime_to_timestamp(draft_app_config.created_at),
             "updated_at": datetime_to_timestamp(draft_app_config.updated_at),
         }
+
+    def _validate_model_config(self, model_config: dict) -> dict:
+        """验证模型配置
+
+        Args:
+            model_config: 模型配置字典
+
+        Returns:
+            dict: 验证后的模型配置
+
+        Raises:
+            ValidateErrorException: 当模型配置格式错误时抛出
+
+        """
+        # TODO: 实现模型配置验证逻辑
+        return model_config
+
+    def _validate_dialog_round(self, dialog_round: dict) -> dict:
+        """验证对话轮数配置
+
+        Args:
+            dialog_round: 对话轮数配置
+
+        Returns:
+            dict: 验证后的对话轮数配置
+
+        Raises:
+            ValidateErrorException: 当对话轮数配置错误时抛出
+
+        """
+        if not isinstance(dialog_round, int) or not (
+            0 <= dialog_round <= MAX_DIALOG_ROUNDS
+        ):
+            error_msg = f"对话轮数配置必须整数，应为0~{MAX_DIALOG_ROUNDS}之间的整数"
+            raise ValidateErrorException(error_msg)
+        return dialog_round
+
+    def _validate_preset_prompt(self, preset_prompt: str) -> str:
+        """验证预设提示词配置
+
+        Args:
+            preset_prompt: 预设提示词
+
+        Returns:
+            str: 验证后的预设提示词
+
+        Raises:
+            ValidateErrorException: 当预设提示词配置错误时抛出
+
+        """
+        if (
+            not isinstance(preset_prompt, str)
+            or len(preset_prompt) > MAX_PRESET_PROMPT_LENGTH
+        ):
+            error_msg = f"预设提示词配置格式错误, 长度应小于{MAX_PRESET_PROMPT_LENGTH}"
+            raise ValidateErrorException(error_msg)
+        return preset_prompt
+
+    def _validate_tools(self, tools: list, account: Account) -> list:  # noqa: PLR0912
+        """验证工具配置
+
+        Args:
+            tools: 工具配置列表
+            account: 用户账户信息
+
+        Returns:
+            list: 验证后的工具配置列表
+
+        Raises:
+            ValidateErrorException: 当工具配置错误时抛出
+
+        """
+        validate_tools = []
+        if not isinstance(tools, list):
+            error_msg = "工具配置格式错误，应为列表"
+            raise ValidateErrorException(error_msg)
+        if len(tools) > MAX_TOOL_COUNT:
+            error_msg = f"工具数量超过最大限制{MAX_TOOL_COUNT}"
+            raise ValidateErrorException(error_msg)
+        for tool in tools:
+            if not tool or not isinstance(tool, dict):
+                error_msg = "工具配置格式错误，应为字典"
+                raise ValidateErrorException(error_msg)
+            if set(tool.keys()) != {"tool_id", "type", "provider_id", "params"}:
+                error_msg = "工具配置格式错误，字段不匹配"
+                raise ValidateErrorException(error_msg)
+            if tool["type"] not in ["builtin_tool", "api_tool"]:
+                error_msg = "工具类型错误，应为builtin_tool或api_tool"
+                raise ValidateErrorException(error_msg)
+            if (
+                not tool["provider_id"]
+                or not tool["tool_id"]
+                or not isinstance(tool["provider_id"], str)
+                or not isinstance(tool["tool_id"], str)
+            ):
+                error_msg = "工具配置格式错误，provider_id或tool_id应为字符串"
+                raise ValidateErrorException(error_msg)
+            if not isinstance(tool["params"], dict):
+                error_msg = "工具配置格式错误，params应为字典"
+                raise ValidateErrorException(error_msg)
+            if tool["type"] == "builtin_tool":
+                builtin_tool = self.builtin_provider_manager.get_tool(
+                    tool["provider_id"],
+                    tool["tool_id"],
+                )
+                if not builtin_tool:
+                    continue
+            else:
+                api_tool = (
+                    self.db.session.query(ApiTool)
+                    .filter(
+                        ApiTool.provider_id == tool["provider_id"],
+                        ApiTool.name == tool["tool_id"],
+                        ApiTool.account_id == account.id,
+                    )
+                    .one_or_none()
+                )
+                if not api_tool:
+                    continue
+            validate_tools.append(tool)
+
+        check_tools = [
+            f"{tool['provider_id']}_{tool['tool_id']}" for tool in validate_tools
+        ]
+        if len(set(check_tools)) != len(validate_tools):
+            error_msg = "工具列表中存在重复的工具"
+            raise ValidateErrorException(error_msg)
+        return validate_tools
+
+    def _validate_workflows(self, workflows: list) -> list:
+        """验证工作流配置
+
+        Args:
+            workflows: 工作流配置列表
+
+        Returns:
+            list: 验证后的工作流配置列表
+
+        Raises:
+            ValidateErrorException: 当工作流配置错误时抛出
+
+        """
+        # TODO: 实现工作流验证逻辑
+        return []
+
+    def _validate_datasets(self, datasets: list, account: Account) -> list:
+        """验证知识库配置
+
+        Args:
+            datasets: 知识库ID列表
+            account: 用户账户信息
+
+        Returns:
+            list: 验证后的知识库ID列表
+
+        Raises:
+            ValidateErrorException: 当知识库配置错误时抛出
+
+        """
+        if not isinstance(datasets, list):
+            error_msg = "知识库列表必须是列表类型"
+            raise ValidateErrorException(error_msg)
+        if len(datasets) > MAX_DATASET_COUNT:
+            error_msg = f"知识库数量不能超过{MAX_DATASET_COUNT}"
+            raise ValidateErrorException(error_msg)
+        for dataset_id in datasets:
+            try:
+                UUID(dataset_id)
+            except Exception as e:
+                error_msg = "知识库ID必须是UUID类型"
+                raise ValidateErrorException(error_msg) from e
+        if len(set(datasets)) != len(datasets):
+            error_msg = "知识库列表中存在重复的知识库"
+            raise ValidateErrorException(error_msg)
+        dataset_records = (
+            self.db.session.query(Dataset)
+            .filter(
+                Dataset.id.in_(datasets),
+                Dataset.account_id == account.id,
+            )
+            .all()
+        )
+        dataset_sets = {str(dataset_record.id) for dataset_record in dataset_records}
+        return [dataset_id for dataset_id in datasets if dataset_id in dataset_sets]
+
+    def _validate_retrieval_config(self, retrieval_config: dict) -> dict:
+        """验证检索配置
+
+        Args:
+            retrieval_config: 检索配置字典
+
+        Returns:
+            dict: 验证后的检索配置
+
+        Raises:
+            ValidateErrorException: 当检索配置错误时抛出
+
+        """
+        if not retrieval_config or not isinstance(retrieval_config, dict):
+            error_msg = "检索配置必须是字典类型"
+            raise ValidateErrorException(error_msg)
+        if set(retrieval_config.keys()) != {
+            "retrieval_strategy",
+            "k",
+            "score",
+        }:
+            error_msg = "检索配置必须包含检索策略、检索数量和检索分数"
+            raise ValidateErrorException(error_msg)
+        if retrieval_config["retrieval_strategy"] not in [
+            "semantic",
+            "full_text",
+            "hybrid",
+        ]:
+            error_msg = "检索策略必须是语义检索、全文检索或混合检索"
+            raise ValidateErrorException(error_msg)
+        if not isinstance(retrieval_config["k"], int) or not (
+            0 <= retrieval_config["k"] <= MAX_RETRIEVAL_COUNT
+        ):
+            error_msg = f"检索数量必须是整数，且在0到{MAX_RETRIEVAL_COUNT}之间"
+            raise ValidateErrorException(error_msg)
+        if not isinstance(retrieval_config["score"], float) or not (
+            0 <= retrieval_config["score"] <= 1
+        ):
+            error_msg = "检索分数必须是浮点数，且在0到1之间"
+            raise ValidateErrorException(error_msg)
+        return retrieval_config
+
+    def _validate_long_term_memory(self, long_term_memory: dict) -> dict:
+        """验证长期记忆配置
+
+        Args:
+            long_term_memory: 长期记忆配置字典
+
+        Returns:
+            dict: 验证后的长期记忆配置
+
+        Raises:
+            ValidateErrorException: 当长期记忆配置错误时抛出
+
+        """
+        if not long_term_memory or not isinstance(long_term_memory, dict):
+            error_msg = "长期记忆配置必须是字典"
+            raise ValidateErrorException(error_msg)
+        if set(long_term_memory.keys()) != {"enable"} or not isinstance(
+            long_term_memory["enable"],
+            bool,
+        ):
+            error_msg = (
+                "长期记忆配置必须是包含enable键的字典，且enable的值必须是布尔类型"
+            )
+            raise ValidateErrorException(error_msg)
+        return long_term_memory
+
+    def _validate_opening_statement(self, opening_statement: str) -> str:
+        """验证开场白配置
+
+        Args:
+            opening_statement: 开场白文本
+
+        Returns:
+            str: 验证后的开场白文本
+
+        Raises:
+            ValidateErrorException: 当开场白配置错误时抛出
+
+        """
+        if (
+            not isinstance(opening_statement, str)
+            or len(opening_statement) > MAX_OPENING_STATEMENT_LENGTH
+        ):
+            error_msg = (
+                f"开场白必须是字符串，且长度不能超过{MAX_OPENING_STATEMENT_LENGTH}"
+            )
+            raise ValidateErrorException(error_msg)
+        return opening_statement
+
+    def _validate_opening_questions(self, opening_questions: list) -> list:
+        """验证开场问题配置
+
+        Args:
+            opening_questions: 开场问题列表
+
+        Returns:
+            list: 验证后的开场问题列表
+
+        Raises:
+            ValidateErrorException: 当开场问题配置错误时抛出
+
+        """
+        if (
+            not isinstance(opening_questions, list)
+            or len(opening_questions) > MAX_OPENING_QUESTIONS_COUNT
+        ):
+            error_msg = (
+                f"开场白问题必须是列表，且个数不能超过{MAX_OPENING_QUESTIONS_COUNT}"
+            )
+            raise ValidateErrorException(error_msg)
+        for question in opening_questions:
+            if not isinstance(question, str):
+                error_msg = "开场白问题必须是字符串"
+                raise ValidateErrorException(error_msg)
+        return opening_questions
+
+    def _validate_speech_to_text(self, speech_to_text: dict) -> dict:
+        """验证语音转文本配置
+
+        Args:
+            speech_to_text: 语音转文本配置字典
+
+        Returns:
+            dict: 验证后的语音转文本配置
+
+        Raises:
+            ValidateErrorException: 当语音转文本配置错误时抛出
+
+        """
+        if not speech_to_text or not isinstance(speech_to_text, dict):
+            error_msg = "语音转文本配置必须是字典"
+            raise ValidateErrorException(error_msg)
+        if set(speech_to_text.keys()) != {"enable"} or not isinstance(
+            speech_to_text["enable"],
+            bool,
+        ):
+            error_msg = (
+                "语音转文本配置必须是包含enable键的字典，且enable的值必须是布尔类型"
+            )
+            raise ValidateErrorException(error_msg)
+        return speech_to_text
+
+    def _validate_text_to_speech(self, text_to_speech: dict) -> dict:
+        """验证文本转语音配置
+
+        Args:
+            text_to_speech: 文本转语音配置字典
+
+        Returns:
+            dict: 验证后的文本转语音配置
+
+        Raises:
+            ValidateErrorException: 当文本转语音配置错误时抛出
+
+        """
+        if not text_to_speech or not isinstance(text_to_speech, dict):
+            error_msg = "文本转语音配置必须是字典"
+            raise ValidateErrorException(error_msg)
+        if (
+            set(text_to_speech.keys())
+            != {
+                "enable",
+                "voice",
+                "auto_play",
+            }
+            or not isinstance(text_to_speech["enable"], bool)
+            # TODO: voice类型需要进一步确认
+            or not isinstance(
+                text_to_speech["voice"],
+                str,
+            )
+            or not isinstance(text_to_speech["auto_play"], bool)
+        ):
+            error_msg = (
+                "文本转语音配置必须是包含enable、voice、auto_play键的字典，且enable的值必须是布尔类型，"
+                "voice的值必须是字符串，auto_play的值必须是布尔类型"
+            )
+            raise ValidateErrorException(error_msg)
+        return text_to_speech
+
+    def _validate_review_config(self, review_config: dict) -> dict:
+        """验证审核配置
+
+        Args:
+            review_config: 审核配置字典
+
+        Returns:
+            dict: 验证后的审核配置
+
+        Raises:
+            ValidateErrorException: 当审核配置错误时抛出
+
+        """
+        if not review_config or not isinstance(review_config, dict):
+            error_msg = "审核配置必须是字典"
+            raise ValidateErrorException(error_msg)
+        if set(review_config.keys()) != {
+            "enable",
+            "keywords",
+            "inputs_config",
+            "outputs_config",
+        }:
+            error_msg = (
+                "审核配置必须是包含enable、keywords、inputs_config、"
+                "outputs_config键的字典"
+            )
+            raise ValidateErrorException(error_msg)
+        if (
+            not isinstance(review_config["keywords"], list)
+            or (review_config["enable"] and len(review_config["keywords"]) == 0)
+            or len(review_config["keywords"]) > MAX_REVIEW_KEYWORDS_COUNT
+        ):
+            error_msg = f"keywords必须是长度为1-{MAX_REVIEW_KEYWORDS_COUNT}的列表"
+            raise ValidateErrorException(error_msg)
+        for keyword in review_config["keywords"]:
+            if not isinstance(keyword, str):
+                error_msg = "keywords必须是字符串"
+                raise ValidateErrorException(error_msg)
+        if not review_config["inputs_config"] or not isinstance(
+            review_config["inputs_config"],
+            dict,
+        ):
+            error_msg = "inputs_config必须是字典"
+            raise ValidateErrorException(error_msg)
+        if (
+            set(review_config["inputs_config"].keys())
+            != {
+                "enable",
+                "preset_response",
+            }
+            or not isinstance(review_config["inputs_config"]["enable"], bool)
+            or not isinstance(
+                review_config["inputs_config"]["preset_response"],
+                str,
+            )
+        ):
+            error_msg = (
+                "inputs_config必须是包含enable、preset_response键的字典, "
+                "enable必须是布尔值，preset_response必须是字符串"
+            )
+            raise ValidateErrorException(error_msg)
+        if not review_config["outputs_config"] or not isinstance(
+            review_config["outputs_config"],
+            dict,
+        ):
+            error_msg = "outputs_config必须是字典"
+            raise ValidateErrorException(error_msg)
+        if set(review_config["outputs_config"].keys()) != {
+            "enable",
+        } or not isinstance(review_config["outputs_config"]["enable"], bool):
+            error_msg = "outputs_config必须是包含enable键的字典, 且enable必须是布尔值"
+            raise ValidateErrorException(error_msg)
+        if (
+            review_config["enable"]
+            and review_config["inputs_config"]["enable"] is False
+            and review_config["outputs_config"]["enable"] is False
+        ):
+            error_msg = "enable为True时，inputs_config和outputs_config至少有一个为True"
+            raise ValidateErrorException(error_msg)
+        if (
+            review_config["enable"]
+            and review_config["inputs_config"]["enable"]
+            and review_config["inputs_config"]["preset_response"].strip() == ""
+        ):
+            error_msg = "preset_response不能为空"
+            raise ValidateErrorException(error_msg)
+        return review_config
+
+    def _validate_draft_app_config(  # noqa: PLR0912
+        self,
+        draft_app_config: dict[str, Any],
+        account: Account,
+    ) -> dict:
+        """验证草稿应用配置
+
+        Args:
+            draft_app_config: 草稿应用配置字典
+            account: 用户账户信息
+
+        Returns:
+            dict: 验证后的草稿应用配置
+
+        Raises:
+            ValidateErrorException: 当草稿配置格式错误时抛出
+
+        """
+        # 定义允许的配置字段列表
+        acceptable_fields = [
+            "model_config",  # 模型配置
+            "dialog_round",  # 对话轮次配置
+            "preset_prompt",  # 预设提示词
+            "tools",  # 工具配置
+            "workflows",  # 工作流配置
+            "datasets",  # 知识库配置
+            "retrieval_config",  # 检索配置
+            "long_term_memory",  # 长期记忆配置
+            "opening_statement",  # 开场白
+            "opening_questions",  # 开场问题
+            "speech_to_text",  # 语音转文字配置
+            "text_to_speech",  # 文字转语音配置
+            "review_config",  # 审核配置
+        ]
+
+        # 验证配置格式：
+        # 1. 配置不能为空
+        # 2. 配置必须是字典类型
+        # 3. 配置中的所有字段都必须在允许的字段列表中
+        if (
+            not draft_app_config
+            or not isinstance(draft_app_config, dict)
+            or set(draft_app_config.keys()) - set(acceptable_fields)
+        ):
+            error_msg = "草稿配置格式错误"
+            raise ValidateErrorException(error_msg)
+
+        # 验证模型配置
+        if "model_config" in draft_app_config:
+            draft_app_config["model_config"] = self._validate_model_config(
+                draft_app_config["model_config"],
+            )
+
+        # 验证对话轮次配置
+        if "dialog_round" in draft_app_config:
+            draft_app_config["dialog_round"] = self._validate_dialog_round(
+                draft_app_config["dialog_round"],
+            )
+
+        # 验证预设提示词
+        if "preset_prompt" in draft_app_config:
+            draft_app_config["preset_prompt"] = self._validate_preset_prompt(
+                draft_app_config["preset_prompt"],
+            )
+
+        # 验证工具配置
+        if "tools" in draft_app_config:
+            draft_app_config["tools"] = self._validate_tools(
+                draft_app_config["tools"],
+                account,
+            )
+
+        # 验证工作流配置
+        if "workflows" in draft_app_config:
+            draft_app_config["workflows"] = self._validate_workflows(
+                draft_app_config["workflows"],
+            )
+
+        # 验证知识库配置
+        if "datasets" in draft_app_config:
+            draft_app_config["datasets"] = self._validate_datasets(
+                draft_app_config["datasets"],
+                account,
+            )
+
+        # 验证检索配置
+        if "retrieval_config" in draft_app_config:
+            draft_app_config["retrieval_config"] = self._validate_retrieval_config(
+                draft_app_config["retrieval_config"],
+            )
+
+        # 验证长期记忆配置
+        if "long_term_memory" in draft_app_config:
+            draft_app_config["long_term_memory"] = self._validate_long_term_memory(
+                draft_app_config["long_term_memory"],
+            )
+
+        # 验证开场白
+        if "opening_statement" in draft_app_config:
+            draft_app_config["opening_statement"] = self._validate_opening_statement(
+                draft_app_config["opening_statement"],
+            )
+
+        # 验证开场问题
+        if "opening_questions" in draft_app_config:
+            draft_app_config["opening_questions"] = self._validate_opening_questions(
+                draft_app_config["opening_questions"],
+            )
+
+        # 验证语音转文字配置
+        if "speech_to_text" in draft_app_config:
+            draft_app_config["speech_to_text"] = self._validate_speech_to_text(
+                draft_app_config["speech_to_text"],
+            )
+
+        # 验证文字转语音配置
+        if "text_to_speech" in draft_app_config:
+            draft_app_config["text_to_speech"] = self._validate_text_to_speech(
+                draft_app_config["text_to_speech"],
+            )
+
+        # 验证审核配置
+        if "review_config" in draft_app_config:
+            draft_app_config["review_config"] = self._validate_review_config(
+                draft_app_config["review_config"],
+            )
+
+        # 返回验证后的配置
+        return draft_app_config

@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 from flasgger import swag_from
+from flask import request
 from flask_login import current_user, login_required
 from injector import inject
 
@@ -111,6 +112,18 @@ class AppHandler:
         draft_config = self.app_service.get_draft_app_config(app_id, current_user)
 
         return success_json(draft_config)
+
+    @route("/<uuid:app_id>/draft-config", methods=["POST"])
+    @swag_from(get_swagger_path("app_handler/update_draft_app_config.yaml"))
+    @login_required
+    def update_draft_app_config(self, app_id: UUID) -> Response:
+        draft_app_config = request.get_json(force=True, silent=True) or {}
+        draft_app_config = self.app_service._validate_draft_app_config(  # noqa: SLF001
+            draft_app_config,
+            current_user,
+        )
+
+        return success_json(draft_app_config)
 
     @route("/ping", methods=["GET"])
     def ping(self) -> Response:
