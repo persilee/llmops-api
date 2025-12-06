@@ -1,0 +1,264 @@
+获取 App 草稿配置
+---
+tags:
+  - App管理
+summary: 获取 App 草稿配置
+description:
+operationId: get_draft_app_config
+parameters:
+  - $ref: "#/components/parameters/appIdParam"
+responses:
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              required:
+                - "created_at"
+                - "datasets"
+                - "dialog_round"
+                - "id"
+                - "long_term_memory"
+                - "model_config"
+                - "opening_questions"
+                - "opening_statement"
+                - "preset_prompt"
+                - "retrieval_config"
+                - "review_config"
+                - "speech_to_text"
+                - "text_to_speech"
+                - "tools"
+                - "updated_at"
+                - "workflows"
+              properties:
+                created_at:
+                  type: "number"
+                  example: 1764968142
+                datasets:
+                  type: "array"
+                  items:
+                    type: "object"
+                    properties:
+                      description:
+                        type: "string"
+                        example: "test"
+                      icon:
+                        type: "string"
+                        example: "https://doc.doubao.com/s/TIIjjl8CxCo/"
+                      id:
+                        type: "string"
+                        example: "21348cb9-c306-4f69-83b9-3a8d83d3e96a"
+                      name:
+                        type: "string"
+                        example: "LLMOps 知识库 Test"
+                dialog_round:
+                  type: "number"
+                  example: 3
+                id:
+                  type: "string"
+                  example: "e74e708f-faf5-408d-9855-b405d7e9db76"
+                long_term_memory:
+                  required:
+                    - "enable"
+                  properties:
+                    enable:
+                      type: "boolean"
+                      example: false
+                  type: "object"
+                model_config:
+                  required:
+                    - "model"
+                    - "parameters"
+                    - "provider"
+                  properties:
+                    model:
+                      type: "string"
+                      example: "gpt-4o-mini"
+                    parameters:
+                      required:
+                        - "frequency_penalty"
+                        - "max_tokens"
+                        - "presence_penalty"
+                        - "temperature"
+                        - "top_p"
+                      properties:
+                        frequency_penalty:
+                          type: "number"
+                          example: 0.2
+                        max_tokens:
+                          type: "number"
+                          example: 8192
+                        presence_penalty:
+                          type: "number"
+                          example: 0.2
+                        temperature:
+                          type: "number"
+                          example: 0.5
+                        top_p:
+                          type: "number"
+                          example: 0.85
+                      type: "object"
+                    provider:
+                      type: "string"
+                      example: "openai"
+                  type: "object"
+                opening_questions:
+                  type: "array"
+                  items:
+                    type: "undefined"
+                  example: []
+                opening_statement:
+                  type: "string"
+                  example: ""
+                preset_prompt:
+                  type: "string"
+                  example: ""
+                retrieval_config:
+                  required:
+                    - "k"
+                    - "retrieval_strategy"
+                    - "score"
+                  properties:
+                    k:
+                      type: "number"
+                      example: 10
+                    retrieval_strategy:
+                      type: "string"
+                      example: "semantic"
+                    score:
+                      type: "number"
+                      example: 0.5
+                  type: "object"
+                review_config:
+                  required:
+                    - "enable"
+                    - "inputs_config"
+                    - "keywords"
+                    - "outputs_config"
+                  properties:
+                    enable:
+                      type: "boolean"
+                      example: false
+                    inputs_config:
+                      required:
+                        - "enable"
+                        - "preset_response"
+                      properties:
+                        enable:
+                          type: "boolean"
+                          example: false
+                        preset_response:
+                          type: "string"
+                          example: ""
+                      type: "object"
+                    keywords:
+                      type: "array"
+                      items:
+                        type: "undefined"
+                      example: []
+                    outputs_config:
+                      required:
+                        - "enable"
+                      properties:
+                        enable:
+                          type: "boolean"
+                          example: false
+                      type: "object"
+                  type: "object"
+                speech_to_text:
+                  required:
+                    - "enable"
+                  properties:
+                    enable:
+                      type: "boolean"
+                      example: false
+                  type: "object"
+                text_to_speech:
+                  required:
+                    - "auto_play"
+                    - "enable"
+                    - "voice"
+                  properties:
+                    auto_play:
+                      type: "boolean"
+                      example: false
+                    enable:
+                      type: "boolean"
+                      example: false
+                    voice:
+                      type: "string"
+                      example: "echo"
+                  type: "object"
+                tools:
+                  type: "array"
+                  items:
+                    type: "object"
+                    properties:
+                      provider:
+                        required:
+                          - "icon"
+                          - "id"
+                          - "label"
+                          - "name"
+                        properties:
+                          icon:
+                            type: "string"
+                            example: "http://127.0.0.1:5000/builtin-tools/google/icon"
+                          id:
+                            type: "string"
+                            example: "google"
+                          label:
+                            type: "string"
+                            example: "google"
+                          name:
+                            type: "string"
+                            example: "google"
+                        type: "object"
+                      tool:
+                        required:
+                          - "description"
+                          - "id"
+                          - "label"
+                          - "name"
+                          - "params"
+                        properties:
+                          description:
+                            type: "string"
+                            example: "使用谷歌 serper 进行搜索"
+                          id:
+                            type: "string"
+                            example: "google_serper"
+                          label:
+                            type: "string"
+                            example: "google_serper"
+                          name:
+                            type: "string"
+                            example: "google_serper"
+                          params:
+                            required: []
+                            properties: {}
+                            type: "object"
+                        type: "object"
+                      type:
+                        type: "string"
+                        example: "builtin_tool"
+                updated_at:
+                  type: "number"
+                  example: 1764968142
+                workflows:
+                  type: "array"
+                  items:
+                    type: "undefined"
+                  example: []
+              type: "object"
+            message:
+              type: "string"
+              example: ""

@@ -92,6 +92,26 @@ class AppHandler:
             return success_message_json(f"删除成功, app_id: {app.id}")
         return fail_message_json(f"删除失败,记录不存在，app_id: {app_id}")
 
+    @route("/<uuid:app_id>/draft-config", methods=["GET"])
+    @swag_from(get_swagger_path("app_handler/get_draft_app_config.yaml"))
+    @login_required
+    def get_draft_app_config(self, app_id: UUID) -> Response:
+        """获取应用的草稿配置信息
+
+        Args:
+            app_id (UUID): 应用的唯一标识符
+
+        Returns:
+            Response: 包含草稿配置信息的成功响应
+
+        Note:
+            需要用户登录才能访问此接口
+
+        """
+        draft_config = self.app_service.get_draft_app_config(app_id, current_user)
+
+        return success_json(draft_config)
+
     @route("/ping", methods=["GET"])
     def ping(self) -> Response:
         return "pong"
