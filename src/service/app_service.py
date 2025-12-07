@@ -1,9 +1,11 @@
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
 from flask import request
 from injector import inject
+from sqlalchemy import func
 
 from pkg.sqlalchemy import SQLAlchemy
 from src.core.tools.builtin_tools.providers.builtin_provider_manager import (
@@ -31,7 +33,7 @@ from src.lib.helper import datetime_to_timestamp
 from src.model import App
 from src.model.account import Account
 from src.model.api_tool import ApiTool
-from src.model.app import AppConfigVersion
+from src.model.app import AppConfig, AppConfigVersion, AppDatasetJoin
 from src.model.dataset import Dataset
 from src.schemas.app_schema import CreateAppReq
 from src.service.base_service import BaseService
@@ -42,6 +44,125 @@ from src.service.base_service import BaseService
 class AppService(BaseService):
     db: SQLAlchemy
     builtin_provider_manager: BuiltinProviderManager
+
+    def publish_draft_app_config(self, app_id: UUID, account: Account) -> App:
+        """发布应用的草稿配置。
+
+        将应用的草稿配置发布为正式配置，包括：
+        - 创建新的应用配置记录
+        - 更新应用状态为已发布
+        - 更新数据集关联
+        - 创建配置版本记录
+
+        Args:
+            app_id: 应用ID
+            account: 执行操作的账户信息
+
+        Returns:
+            App: 更新后的应用对象
+
+        Raises:
+            ForbiddenException: 当账户无权操作该应用时
+            NotFoundException: 当应用不存在时
+            ValidateErrorException: 当草稿配置验证失败时
+
+        """
+        # 获取应用信息，验证应用存在性和所有权
+        app = self.get_app(app_id, account)
+        # 获取应用的草稿配置
+        draft_app_config = self.get_draft_app_config(app_id, account)
+
+        # 创建新的应用配置记录
+        app_config = self.create(
+            AppConfig,
+            app_id=app_id,
+            # 设置模型配置
+            model_config=draft_app_config["model_config"],
+            # 设置对话轮次配置
+            dialog_round=draft_app_config["dialog_round"],
+            # 设置预设提示词
+            preset_prompt=draft_app_config["preset_prompt"],
+            # 处理工具配置，转换为标准格式
+            tools=[
+                {
+                    "type": tool["type"],
+                    "provider_id": tool["provider"]["id"],
+                    "tool_id": tool["tool"]["name"],
+                    "params": tool["tool"]["params"],
+                }
+                for tool in draft_app_config["tools"]
+            ],
+            # 设置工作流配置
+            workflows=draft_app_config["workflows"],
+            # 设置检索配置
+            retrieval_config=draft_app_config["retrieval_config"],
+            # 设置长期记忆配置
+            long_term_memory=draft_app_config["long_term_memory"],
+            # 设置开场白
+            opening_statement=draft_app_config["opening_statement"],
+            # 设置开场问题
+            opening_questions=draft_app_config["opening_questions"],
+            # 设置语音转文字配置
+            speech_to_text=draft_app_config["speech_to_text"],
+            # 设置文字转语音配置
+            text_to_speech=draft_app_config["text_to_speech"],
+            # 设置审核配置
+            review_config=draft_app_config["review_config"],
+        )
+
+        # 更新应用状态为已发布，并关联新的配置ID
+        self.update(app, app_config_id=app_config.id, status=AppStatus.PUBLISHED)
+
+        # 使用事务上下文，删除原有的数据集关联
+        with self.db.auto_commit():
+            self.db.session.query(AppDatasetJoin).filter(
+                AppDatasetJoin.app_id == app_id,
+            ).delete()
+
+        # 创建新的数据集关联记录
+        for dataset in draft_app_config["datasets"]:
+            self.create(AppDatasetJoin, app_id=app_id, dataset_id=dataset["id"])
+
+        # 复制草稿配置数据，准备创建版本记录
+        draft_app_config_copy = app.draft_app_config.__dict__.copy()
+        # 定义需要移除的字段列表
+        remove_fields = [
+            "id",
+            "version",
+            "config_type",
+            "updated_at",
+            "created_at",
+            "_sa_instance_state",
+        ]
+        # 移除不需要的字段
+        for field in remove_fields:
+            draft_app_config_copy.pop(field, None)
+
+        # 查询当前最大的已发布版本号
+        max_version = (
+            self.db.session.query(
+                func.coalesce(func.max(AppConfigVersion.version), 1),
+            )
+            .filter(
+                AppConfigVersion.app_id == app_id,
+                AppConfigVersion.config_type == AppConfigType.PUBLISHED,
+            )
+            .scalar()
+        )
+
+        # 创建新的配置版本记录
+        self.create(
+            AppConfigVersion,
+            # 版本号递增
+            version=max_version + 1,
+            # 设置配置类型为已发布
+            config_type=AppConfigType.PUBLISHED,
+            # 复制草稿配置的其他字段
+            **draft_app_config_copy,
+        )
+
+        # 返回更新后的应用对象
+        return app
 
     def create_app(self, req: CreateAppReq, account: Account) -> App:
         """创建新应用
@@ -329,6 +450,41 @@ class AppService(BaseService):
             "created_at": datetime_to_timestamp(draft_app_config.created_at),
             "updated_at": datetime_to_timestamp(draft_app_config.updated_at),
         }
+
+    def update_draft_app_config(
+        self,
+        app_id: UUID,
+        draft_app_config: dict[str, Any],
+        account: Account,
+    ) -> dict[str, Any]:
+        """更新应用的草稿配置。
+
+        Args:
+            app_id: 应用ID
+            draft_app_config: 待更新的草稿配置字典
+            account: 执行更新的账户对象
+
+        Returns:
+            dict[str, Any]: 更新后的草稿配置记录
+
+        """
+        # 获取应用信息，验证应用存在性和所有权
+        app = self.get_app(app_id, account)
+
+        # 验证草稿配置的合法性和完整性
+        draft_app_config = self._validate_draft_app_config(draft_app_config, account)
+
+        # 获取应用的当前草稿配置记录
+        draft_app_config_record = app.draft_app_config
+        # 更新草稿配置，包括更新时间和配置内容
+        self.update(
+            draft_app_config_record,
+            updated_at=datetime.now(UTC),
+            **draft_app_config,
+        )
+
+        # 返回更新后的草稿配置记录
+        return draft_app_config_record
 
     def _validate_model_config(self, model_config: dict) -> dict:
         """验证模型配置

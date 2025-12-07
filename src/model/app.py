@@ -98,6 +98,7 @@ class App(db.Model):
             db.session.query(AppConfigVersion)
             .filter(
                 AppConfigVersion.app_id == self.id,
+                AppConfigVersion.config_type == AppConfigType.DRAFT,
             )
             .one_or_none()
         )

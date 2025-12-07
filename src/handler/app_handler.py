@@ -117,13 +117,41 @@ class AppHandler:
     @swag_from(get_swagger_path("app_handler/update_draft_app_config.yaml"))
     @login_required
     def update_draft_app_config(self, app_id: UUID) -> Response:
-        draft_app_config = request.get_json(force=True, silent=True) or {}
-        draft_app_config = self.app_service._validate_draft_app_config(  # noqa: SLF001
-            draft_app_config,
-            current_user,
-        )
+        """更新应用的草稿配置
 
-        return success_json(draft_app_config)
+        Args:
+            app_id (UUID): 应用的唯一标识符
+
+        Returns:
+            Response: 包含更新成功消息的响应对象
+
+        """
+        draft_app_config = request.get_json(force=True, silent=True) or {}
+
+        self.app_service.update_draft_app_config(app_id, draft_app_config, current_user)
+
+        return success_message_json("更新应用草稿配置成功")
+
+    @route("/<uuid:app_id>/publish", methods=["POST"])
+    @swag_from(get_swagger_path("app_handler/publish.yaml"))
+    @login_required
+    def publish(self, app_id: UUID) -> Response:
+        """发布应用配置
+
+        Args:
+            app_id (UUID): 应用ID
+
+        Returns:
+            Response: 包含发布成功消息的响应
+
+        Raises:
+            PermissionError: 当用户没有权限发布应用时
+            ValueError: 当应用ID无效时
+
+        """
+        self.app_service.publish_draft_app_config(app_id, current_user)
+
+        return success_message_json("发布应用成功")
 
     @route("/ping", methods=["GET"])
     def ping(self) -> Response:

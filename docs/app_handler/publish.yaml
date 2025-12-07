@@ -1,0 +1,19 @@
+发布 App
+---
+tags:
+  - App管理
+summary: 发布 App
+description:
+operationId: publish
+parameters:
+  - $ref: "#/components/parameters/appIdParam"
+responses:
+  "200":
+    content:
+      application/json:
+        schema:
+          $ref: "#/components/schemas/BaseRespBody"
+        example:
+          code: "success"
+          message: "发布应用成功"
+          data: {}
