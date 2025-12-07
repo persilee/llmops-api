@@ -1,0 +1,60 @@
+获取应用发布历史记录
+---
+tags:
+  - App管理
+summary: 获取应用发布历史记录
+description:
+operationId: get_publish_histories_with_page
+parameters:
+  - $ref: "#/components/parameters/appIdParam"
+  - $ref: "#/components/parameters/currentPageParam"
+  - $ref: "#/components/parameters/pageSizeParam"
+  - $ref: "#/components/parameters/searchWordParam"
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              required:
+                - "list"
+                - "paginator"
+              properties:
+                list:
+                  type: "array"
+                  items:
+                    $ref: "#/components/schemas/GetPublishHistoriesWithPageResp"
+                paginator:
+                  required:
+                    - "current_page"
+                    - "page_size"
+                    - "total_page"
+                    - "total_record"
+                  properties:
+                    current_page:
+                      type: "number"
+                      example: 1
+                    page_size:
+                      type: "number"
+                      example: 20
+                    total_page:
+                      type: "number"
+                      example: 1
+                    total_record:
+                      type: "number"
+                      example: 1
+                  type: "object"
+              type: "object"
+            message:
+              type: "string"
+              example: ""

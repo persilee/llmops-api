@@ -7,6 +7,7 @@ from flask import request
 from injector import inject
 from sqlalchemy import func
 
+from pkg.paginator.paginator import Paginator
 from pkg.sqlalchemy import SQLAlchemy
 from src.core.tools.builtin_tools.providers.builtin_provider_manager import (
     BuiltinProviderManager,
@@ -25,6 +26,7 @@ from src.entity.app_entity import (
     AppStatus,
 )
 from src.exception.exception import (
+    FailException,
     ForbiddenException,
     NotFoundException,
     ValidateErrorException,
@@ -35,7 +37,7 @@ from src.model.account import Account
 from src.model.api_tool import ApiTool
 from src.model.app import AppConfig, AppConfigVersion, AppDatasetJoin
 from src.model.dataset import Dataset
-from src.schemas.app_schema import CreateAppReq
+from src.schemas.app_schema import CreateAppReq, GetPublishHistoriesWithPageReq
 from src.service.base_service import BaseService
 
 
@@ -44,6 +46,74 @@ from src.service.base_service import BaseService
 class AppService(BaseService):
     db: SQLAlchemy
     builtin_provider_manager: BuiltinProviderManager
+
+    def cancel_publish_app_config(self, app_id: UUID, account: Account) -> App:
+        """取消发布应用的草稿配置。
+
+        将应用的状态设置为草稿状态，并删除应用配置记录。
+
+        Args:
+            app_id: 应用ID
+            account: 账户信息
+
+        """
+        app = self.get_app(app_id, account)
+        if app.status != AppStatus.PUBLISHED:
+            error_msg = "应用未发布，无法取消发布"
+            raise FailException(error_msg)
+
+        self.update(app, status=AppStatus.DRAFT, app_config_id=None)
+
+        with self.db.auto_commit():
+            self.db.session.query(AppDatasetJoin).filter(
+                AppDatasetJoin.app_id == app_id,
+            ).delete()
+
+        return app
+
+    def get_publish_histories_with_page(
+        self,
+        app_id: UUID,
+        req: GetPublishHistoriesWithPageReq,
+        account: Account,
+    ) -> tuple[list[AppConfigVersion], Paginator]:
+        """获取应用的发布历史记录（分页查询）
+
+        Args:
+            app_id (UUID): 应用ID，用于标识要查询的应用
+            req (GetPublishHistoriesWithPageReq): 分页请求参数，包含页码、每页大小等信息
+            account (Account): 当前操作用户的账户信息
+
+        Returns:
+            tuple[list[AppConfigVersion], Paginator]:
+                - list[AppConfigVersion]: 应用配置版本列表，按版本号降序排列
+                - Paginator: 分页器对象，包含分页相关信息
+
+        Raises:
+            NotFoundError: 当应用不存在时抛出
+            PermissionError: 当用户没有访问该应用的权限时抛出
+
+        Note:
+            - 只返回已发布状态(PUBLISHED)的配置版本
+            - 结果按版本号降序排列，最新版本在前
+            - 使用分页器处理分页逻辑
+            - 会验证用户是否有权限访问该应用
+
+        """
+        self.get_app(app_id, account)
+
+        paginator = Paginator(db=self.db, req=req)
+
+        app_config_versions = paginator.paginate(
+            self.db.session.query(AppConfigVersion)
+            .filter(
+                AppConfigVersion.app_id == app_id,
+                AppConfigVersion.config_type == AppConfigType.PUBLISHED,
+            )
+            .order_by(AppConfigVersion.version.desc()),
+        )
+
+        return app_config_versions, paginator
 
     def publish_draft_app_config(self, app_id: UUID, account: Account) -> App:
         """发布应用的草稿配置。

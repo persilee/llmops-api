@@ -1,0 +1,22 @@
+取消 App 发布
+---
+tags:
+  - App管理
+summary: 取消 App 发布
+description: 取消 App 发布
+operationId: cancel_publish
+requestBody:
+  content:
+    application/json:
+      schema:
+        $ref: "#/components/schemas/CreateAppReq"
+responses:
+  "200":
+    content:
+      application/json:
+        schema:
+          $ref: "#/components/schemas/BaseRespBody"
+        example:
+          code: "success"
+          message: "取消发布应用成功"
+          data: {}

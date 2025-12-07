@@ -7,6 +7,7 @@ from flask import request
 from flask_login import current_user, login_required
 from injector import inject
 
+from pkg.paginator.paginator import PageModel
 from pkg.response import success_message_json
 from pkg.response.response import (
     Response,
@@ -17,7 +18,12 @@ from pkg.response.response import (
 from pkg.swagger.swagger import get_swagger_path
 from src.model import App
 from src.router import route
-from src.schemas.app_schema import CreateAppReq, GetAppResp
+from src.schemas.app_schema import (
+    CreateAppReq,
+    GetAppResp,
+    GetPublishHistoriesWithPageReq,
+    GetPublishHistoriesWithPageResp,
+)
 from src.service import AppService
 
 if TYPE_CHECKING:
@@ -152,6 +158,63 @@ class AppHandler:
         self.app_service.publish_draft_app_config(app_id, current_user)
 
         return success_message_json("发布应用成功")
+
+    @route("/<uuid:app_id>/publish/cancel", methods=["POST"])
+    @swag_from(get_swagger_path("app_handler/cancel_publish.yaml"))
+    @login_required
+    def cancel_publish(self, app_id: UUID) -> Response:
+        """取消发布应用配置接口
+
+        Args:
+            app_id (UUID): 应用ID，用于标识要取消发布的应用
+
+        Returns:
+            Response: JSON响应，包含操作结果信息
+
+        """
+        self.app_service.cancel_publish_app_config(app_id, current_user)
+
+        return success_message_json("取消发布应用成功")
+
+    @route("/<uuid:app_id>/publish/histories", methods=["GET"])
+    @swag_from(get_swagger_path("app_handler/get_publish_histories_with_page.yaml"))
+    @login_required
+    def get_publish_histories_with_page(self, app_id: UUID) -> Response:
+        """获取应用发布历史记录（分页）
+
+        Args:
+            app_id (UUID): 应用ID，用于标识要查询发布历史的应用
+
+        Returns:
+            Response: JSON响应，包含分页的发布历史记录数据
+                - list: 发布历史记录列表
+                - paginator: 分页信息（总数、当前页、每页大小等）
+
+        Raises:
+            401: 用户未登录
+            404: 应用不存在
+            400: 请求参数验证失败
+
+        Note:
+            - 需要用户登录才能访问此接口
+            - 支持分页查询，通过请求参数控制页码和每页大小
+            - 返回的数据按发布时间倒序排列
+            - 包含每个版本的详细信息（版本号、发布时间、发布人等）
+
+        """
+        req = GetPublishHistoriesWithPageReq(request.args)
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        app_config_versions, paginator = (
+            self.app_service.get_publish_histories_with_page(app_id, req, current_user)
+        )
+
+        resp = GetPublishHistoriesWithPageResp(many=True)
+
+        return success_json(
+            PageModel(list=resp.dump(app_config_versions), paginator=paginator),
+        )
 
     @route("/ping", methods=["GET"])
     def ping(self) -> Response:

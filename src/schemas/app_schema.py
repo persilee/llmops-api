@@ -141,10 +141,12 @@ class GetAppResp(Schema):
         }
 
 
+@req_schema
 class GetPublishHistoriesWithPageReq(PaginatorReq):
     """获取应用发布历史配置分页列表请求"""
 
 
+@resp_schema()
 class GetPublishHistoriesWithPageResp(Schema):
     """获取应用发布历史配置列表分页数据"""
 
