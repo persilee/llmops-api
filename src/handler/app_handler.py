@@ -20,6 +20,7 @@ from src.model import App
 from src.router import route
 from src.schemas.app_schema import (
     CreateAppReq,
+    FallbackHistoryToDraftReq,
     GetAppResp,
     GetPublishHistoriesWithPageReq,
     GetPublishHistoriesWithPageResp,
@@ -215,6 +216,44 @@ class AppHandler:
         return success_json(
             PageModel(list=resp.dump(app_config_versions), paginator=paginator),
         )
+
+    @route("/<uuid:app_id>/fallback/history", methods=["POST"])
+    @swag_from(get_swagger_path("app_handler/fallback_history_to_draft.yaml"))
+    @login_required
+    def fallback_history_to_draft(self, app_id: UUID) -> Response:
+        """将历史版本回退到草稿配置接口
+
+        Args:
+            app_id (UUID): 应用ID，用于标识要操作的应用
+
+        Returns:
+            Response: JSON响应，包含操作结果信息
+
+        Raises:
+            401: 用户未登录
+            404: 应用或历史版本不存在
+            400: 请求参数验证失败
+            403: 用户没有操作权限
+
+        Note:
+            - 需要用户登录才能访问此接口
+            - 需要在请求参数中指定要回退的历史版本ID
+            - 会将指定历史版本的配置内容复制到草稿配置
+            - 草稿配置会被完全覆盖，原有草稿内容将丢失
+            - 操作成功后返回成功消息
+
+        """
+        req = FallbackHistoryToDraftReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        self.app_service.fallback_history_to_draft(
+            app_id,
+            req,
+            current_user,
+        )
+
+        return success_message_json("回退历史配置到草稿成功")
 
     @route("/ping", methods=["GET"])
     def ping(self) -> Response:

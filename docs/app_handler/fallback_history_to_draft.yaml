@@ -1,0 +1,24 @@
+回退App历史版本到草稿
+---
+tags:
+  - App管理
+summary: 回退App历史版本到草稿
+description:
+operationId: fallback_history_to_draft
+parameters:
+  - $ref: "#/components/parameters/appIdParam"
+requestBody:
+  content:
+    application/json:
+      schema:
+        $ref: "#/components/schemas/FallbackHistoryToDraftReq"
+responses:
+  "200":
+    content:
+      application/json:
+        schema:
+          $ref: "#/components/schemas/BaseRespBody"
+        example:
+          code: "success"
+          message: "回退历史配置到草稿成功"
+          data: {}

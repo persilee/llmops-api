@@ -37,7 +37,11 @@ from src.model.account import Account
 from src.model.api_tool import ApiTool
 from src.model.app import AppConfig, AppConfigVersion, AppDatasetJoin
 from src.model.dataset import Dataset
-from src.schemas.app_schema import CreateAppReq, GetPublishHistoriesWithPageReq
+from src.schemas.app_schema import (
+    CreateAppReq,
+    FallbackHistoryToDraftReq,
+    GetPublishHistoriesWithPageReq,
+)
 from src.service.base_service import BaseService
 
 
@@ -46,6 +50,75 @@ from src.service.base_service import BaseService
 class AppService(BaseService):
     db: SQLAlchemy
     builtin_provider_manager: BuiltinProviderManager
+
+    def fallback_history_to_draft(
+        self,
+        app_id: UUID,
+        req: FallbackHistoryToDraftReq,
+        account: Account,
+    ) -> AppConfigVersion:
+        """将历史版本回退到草稿配置
+
+        Args:
+            app_id (UUID): 应用ID，用于标识要操作的应用
+            req (FallbackHistoryToDraftReq): 回退请求参数，包含要回退的版本ID
+            account (Account): 当前操作用户的账户信息
+
+        Returns:
+            AppConfigVersion: 更新后的草稿配置版本对象
+
+        Raises:
+            NotFoundException: 当应用或配置版本不存在时抛出
+            PermissionError: 当用户没有操作权限时抛出
+            ValidationError: 当配置数据验证失败时抛出
+
+        Note:
+            - 会验证用户是否有权限访问该应用
+            - 验证指定的历史版本是否存在
+            - 复制历史版本的配置数据到草稿配置
+            - 移除不需要的字段（如id、版本号、时间戳等）
+            - 对配置数据进行验证
+            - 更新草稿配置记录，并记录更新时间
+
+        """
+        app = self.get_app(app_id, account)
+
+        app_config_version = self.get(AppConfigVersion, req.app_config_version_id.data)
+        if not app_config_version:
+            error_msg = "该应用配置版本不存在"
+            raise NotFoundException(error_msg)
+
+        # 复制草稿配置数据，准备创建版本记录
+        draft_app_config_copy = app_config_version.__dict__.copy()
+        # 定义需要移除的字段列表
+        remove_fields = [
+            "id",
+            "app_id",
+            "version",
+            "config_type",
+            "updated_at",
+            "created_at",
+            "_sa_instance_state",
+        ]
+        # 移除不需要的字段
+        for field in remove_fields:
+            draft_app_config_copy.pop(field, None)
+
+        # 验证草稿配置数据
+        draft_app_config_dict = self._validate_draft_app_config(
+            draft_app_config_copy,
+            account,
+        )
+
+        # 更新草稿配置记录
+        draft_app_config_record = app.draft_app_config
+        self.update(
+            draft_app_config_record,
+            updated_at=datetime.now(UTC),
+            **draft_app_config_dict,
+        )
+
+        return draft_app_config_dict
 
     def cancel_publish_app_config(self, app_id: UUID, account: Account) -> App:
         """取消发布应用的草稿配置。

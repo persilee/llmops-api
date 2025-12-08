@@ -163,6 +163,7 @@ class GetPublishHistoriesWithPageResp(Schema):
         }
 
 
+@req_schema
 class FallbackHistoryToDraftReq(FlaskForm):
     """回退历史版本到草稿请求结构体"""
 
