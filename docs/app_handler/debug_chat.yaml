@@ -1,0 +1,24 @@
+调试 APP 会话
+---
+tags:
+  - App管理
+summary: 调试 APP 会话
+description:
+operationId: debug_chat
+parameters:
+  - $ref: "#/components/parameters/appIdParam"
+requestBody:
+  content:
+    application/json:
+      schema:
+        $ref: "#/components/schemas/DebugChatReq"
+responses:
+  "200":
+    content:
+      application/json:
+        schema:
+          $ref: "#/components/schemas/BaseRespBody"
+        example:
+          code: "success"
+          message: "发布应用成功"
+          data: {}

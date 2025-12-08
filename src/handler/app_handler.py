@@ -11,6 +11,7 @@ from pkg.paginator.paginator import PageModel
 from pkg.response import success_message_json
 from pkg.response.response import (
     Response,
+    compact_generate_response,
     fail_message_json,
     success_json,
     validate_error_json,
@@ -20,6 +21,7 @@ from src.model import App
 from src.router import route
 from src.schemas.app_schema import (
     CreateAppReq,
+    DebugChatReq,
     FallbackHistoryToDraftReq,
     GetAppResp,
     GetPublishHistoriesWithPageReq,
@@ -330,6 +332,30 @@ class AppHandler:
         )
 
         return success_message_json("删除调试对话长期记忆成功")
+
+    @route("/<uuid:app_id>/debug", methods=["POST"])
+    @swag_from(get_swagger_path("app_handler/debug_chat.yaml"))
+    @login_required
+    def debug_chat(self, app_id: UUID) -> Response:
+        """处理调试聊天请求。
+
+        Args:
+            app_id (UUID): 应用程序的唯一标识符
+
+        Returns:
+            Response: 包含调试聊天结果的响应对象
+
+        Raises:
+            ValidationError: 当请求数据验证失败时
+
+        """
+        req = DebugChatReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        response = self.app_service.debug_chat(app_id, req.query.data, current_user)
+
+        return compact_generate_response(response)
 
     @route("/ping", methods=["GET"])
     def ping(self) -> Response:

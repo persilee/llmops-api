@@ -109,7 +109,7 @@ class DatasetService(BaseService):
         # 使用检索服务在指定知识库中搜索相关文档
         lc_documents = self.retrieval_service.search_in_datasets(
             dataset_ids=[dataset_id],
-            account=account,
+            account_id=account.id,
             **req.data,
         )
         # 将搜索结果转换为字典，以segment_id为键

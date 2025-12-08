@@ -1,17 +1,28 @@
+import json
+import uuid
+from collections.abc import Generator
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from flask import request
+from flask import current_app, request
 from injector import inject
+from langchain_openai import ChatOpenAI
+from redis import Redis
 from sqlalchemy import func
 
 from pkg.paginator.paginator import Paginator
 from pkg.sqlalchemy import SQLAlchemy
+from src.core.agent.agents.agent_queue_manager import AgentQueueManager
+from src.core.agent.agents.function_call_agent import FunctionCallAgent
+from src.core.agent.entities.agent_entity import AgentConfig
+from src.core.memory.token_buffer_memory import TokenBufferMemory
+from src.core.tools.api_tool.entities.tool_entity import ToolEntity
 from src.core.tools.builtin_tools.providers.builtin_provider_manager import (
     BuiltinProviderManager,
 )
+from src.core.tools.providers.api_provider_manager import ApiProviderManager
 from src.entity.app_entity import (
     DEFAULT_APP_CONFIG,
     MAX_DATASET_COUNT,
@@ -25,6 +36,8 @@ from src.entity.app_entity import (
     AppConfigType,
     AppStatus,
 )
+from src.entity.conversation_entity import InvokeFrom
+from src.entity.dataset_entity import RetrievalSource
 from src.exception.exception import (
     FailException,
     ForbiddenException,
@@ -44,6 +57,7 @@ from src.schemas.app_schema import (
     GetPublishHistoriesWithPageReq,
 )
 from src.service.base_service import BaseService
+from src.service.retrieval_service import RetrievalConfig, RetrievalService
 
 
 @inject
@@ -51,6 +65,155 @@ from src.service.base_service import BaseService
 class AppService(BaseService):
     db: SQLAlchemy
     builtin_provider_manager: BuiltinProviderManager
+    api_provider_manager: ApiProviderManager
+    retrieval_service: RetrievalService
+    redis_client: Redis
+
+    def debug_chat(self, app_id: UUID, query: str, account: Account) -> Generator:
+        """处理应用的调试对话功能。
+
+        Args:
+            app_id (UUID): 应用ID
+            query (str): 用户输入的查询内容
+            account (Account): 当前用户账户信息
+
+        Yields:
+            str: 服务器发送事件格式的响应数据，包含对话过程中的各种事件信息
+
+        Raises:
+            NotFoundException: 当应用不存在时
+            ForbiddenException: 当用户无权访问应用时
+
+        Note:
+            该方法会执行以下步骤：
+            1. 验证应用存在性和所有权
+            2. 获取应用的草稿配置
+            3. 初始化 LLM 模型和对话记忆
+            4. 处理内置工具和 API 工具配置
+            5. 如果配置了知识库，创建知识库检索工具
+            6. 创建并运行 FunctionCallAgent
+            7. 返回事件流响应
+
+        """
+        # 获取应用信息，验证应用存在性和所有权
+        app = self.get_app(app_id, account)
+
+        # 获取应用的草稿配置
+        draft_app_config = self.get_draft_app_config(app_id, account)
+
+        # 获取应用的调试对话记录
+        debug_conversation = app.debug_conversation
+
+        # TODO: 多 LLM 模型待开发
+        # 初始化ChatOpenAI模型实例
+        llm = ChatOpenAI(
+            model=draft_app_config["model_config"]["model"],
+            **draft_app_config["model_config"]["parameters"],
+        )
+
+        # 创建令牌缓冲记忆实例，用于管理对话历史
+        token_buffer_memory = TokenBufferMemory(
+            db=self.db,
+            conversation=debug_conversation,
+            model_instance=llm,
+        )
+
+        # 获取历史对话消息，限制消息数量为配置的对话轮次
+        history = token_buffer_memory.get_history_prompt_messages(
+            message_limit=draft_app_config["dialog_round"],
+        )
+
+        # 初始化工具列表
+        tools = []
+        # 遍历草稿配置中的工具列表
+        for tool in draft_app_config["tools"]:
+            # 处理内置工具
+            if tool["type"] == "builtin_tool":
+                # 获取内置工具实例
+                builtin_tool = self.builtin_provider_manager.get_tool(
+                    tool["provider"]["id"],
+                    tool["tool"]["name"],
+                )
+                if not builtin_tool:
+                    continue
+                # 将工具实例添加到工具列表
+                tools.append(builtin_tool(**tool["tool"]["params"]))
+            else:
+                # 处理API工具
+                api_tool = self.get(ApiTool, tool["tool"]["id"])
+                if not api_tool:
+                    continue
+                # 创建API工具实例并添加到工具列表
+                tools.append(
+                    self.api_provider_manager.get_tool(
+                        ToolEntity(
+                            id=str(api_tool.id),
+                            name=api_tool.name,
+                            url=api_tool.url,
+                            method=api_tool.method,
+                            description=api_tool.description,
+                            headers=api_tool.provider.headers,
+                            parameters=api_tool.parameters,
+                        ),
+                    ),
+                )
+
+        # 如果配置了知识库，创建知识库检索工具
+        if draft_app_config["datasets"]:
+            # 创建检索配置实例
+            retrieval_config = RetrievalConfig(
+                flask_app=current_app._get_current_object(),  # noqa: SLF001
+                dataset_ids=[dataset["id"] for dataset in draft_app_config["datasets"]],
+                account_id=account.id,
+                retrieval_source=RetrievalSource.APP,
+                **draft_app_config["retrieval_config"],
+            )
+            # 创建知识库检索工具
+            dataset_retrieval = (
+                self.retrieval_service.create_langchain_tool_from_search(
+                    retrieval_config,
+                )
+            )
+            # 将知识库检索工具添加到工具列表
+            tools.append(dataset_retrieval)
+
+        # TODO: 暂时使用 FunctionCallAgent
+        # 生成任务ID
+        task_id = uuid.uuid4()
+        # 创建FunctionCallAgent实例
+        agent = FunctionCallAgent(
+            # 创建代理配置
+            AgentConfig(
+                user_id=account.id,
+                llm=llm,
+                enable_long_term_memory=draft_app_config["long_term_memory"]["enable"],
+                tools=tools,
+            ),
+            # 创建代理队列管理器
+            AgentQueueManager(
+                user_id=account.id,
+                task_id=task_id,
+                invoke_from=InvokeFrom.DEBUGGER,
+                redis_client=self.redis_client,
+            ),
+        )
+
+        # 运行代理并处理事件流
+        for agent_queue_event in agent.run(query, history, debug_conversation.summary):
+            # 构建事件数据
+            data = {
+                "id": str(agent_queue_event.id),
+                "task_id": str(agent_queue_event.task_id),
+                "event": agent_queue_event.event,
+                "thought": agent_queue_event.thought,
+                "observation": agent_queue_event.observation,
+                "tool": agent_queue_event.tool,
+                "tool_input": agent_queue_event.tool_input,
+                "answer": agent_queue_event.answer,
+                "latency": agent_queue_event.latency,
+            }
+            # 生成服务器发送事件格式的响应
+            yield f"event: {agent_queue_event}\ndata: {json.dumps(data)}\n\n"
 
     def get_debug_conversation_summary(self, app_id: UUID, account: Account) -> str:
         """获取应用的调试对话摘要
@@ -297,7 +460,7 @@ class AppService(BaseService):
         将应用的草稿配置发布为正式配置，包括：
         - 创建新的应用配置记录
         - 更新应用状态为已发布
-        - 更新数据集关联
+        - 更新知识库关联
         - 创建配置版本记录
 
         Args:
@@ -359,13 +522,13 @@ class AppService(BaseService):
         # 更新应用状态为已发布，并关联新的配置ID
         self.update(app, app_config_id=app_config.id, status=AppStatus.PUBLISHED)
 
-        # 使用事务上下文，删除原有的数据集关联
+        # 使用事务上下文，删除原有的知识库关联
         with self.db.auto_commit():
             self.db.session.query(AppDatasetJoin).filter(
                 AppDatasetJoin.app_id == app_id,
             ).delete()
 
-        # 创建新的数据集关联记录
+        # 创建新的知识库关联记录
         for dataset in draft_app_config["datasets"]:
             self.create(AppDatasetJoin, app_id=app_id, dataset_id=dataset["id"])
 
@@ -581,13 +744,13 @@ class AppService(BaseService):
                         "provider": {
                             "id": provider_entity.name,
                             "name": provider_entity.name,
-                            "label": provider_entity.name,
+                            "label": provider_entity.provider_entity.label,
                             "icon": f"{request.scheme}://{request.host}/builtin-tools/{provider_entity.name}/icon",
                         },
                         "tool": {
                             "id": tool_entity.name,
                             "name": tool_entity.name,
-                            "label": tool_entity.name,
+                            "label": tool_entity.label,
                             "description": tool_entity.description,
                             "params": draft_tool["params"],
                         },
@@ -620,9 +783,10 @@ class AppService(BaseService):
                             "name": provider.name,
                             "label": provider.name,
                             "icon": provider.icon,
+                            "description": provider.description,
                         },
                         "tool": {
-                            "id": tool_record.name,
+                            "id": str(tool_record.id),
                             "name": tool_record.name,
                             "label": tool_record.name,
                             "description": tool_record.description,

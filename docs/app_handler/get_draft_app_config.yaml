@@ -71,7 +71,7 @@ responses:
                   properties:
                     enable:
                       type: "boolean"
-                      example: false
+                      example: true
                   type: "object"
                 model_config:
                   required:
@@ -113,8 +113,9 @@ responses:
                 opening_questions:
                   type: "array"
                   items:
-                    type: "undefined"
-                  example: []
+                    type: "string"
+                  example:
+                    - "你知道什么是 LLM 吗？"
                 opening_statement:
                   type: "string"
                   example: ""
@@ -146,7 +147,7 @@ responses:
                   properties:
                     enable:
                       type: "boolean"
-                      example: false
+                      example: true
                     inputs_config:
                       required:
                         - "enable"
@@ -157,20 +158,21 @@ responses:
                           example: false
                         preset_response:
                           type: "string"
-                          example: ""
+                          example: "xxxx"
                       type: "object"
                     keywords:
                       type: "array"
                       items:
-                        type: "undefined"
-                      example: []
+                        type: "string"
+                      example:
+                        - "test"
                     outputs_config:
                       required:
                         - "enable"
                       properties:
                         enable:
                           type: "boolean"
-                          example: false
+                          example: true
                       type: "object"
                   type: "object"
                 speech_to_text:
@@ -238,7 +240,7 @@ responses:
                             example: "google_serper"
                           label:
                             type: "string"
-                            example: "google_serper"
+                            example: "谷歌 serper 搜索"
                           name:
                             type: "string"
                             example: "google_serper"
@@ -252,7 +254,7 @@ responses:
                         example: "builtin_tool"
                 updated_at:
                   type: "number"
-                  example: 1764968142
+                  example: 1765161140
                 workflows:
                   type: "array"
                   items:

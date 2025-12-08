@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from uuid import UUID
 
+from flask import Flask
 from injector import inject
 from langchain.tools import BaseTool, tool
 from langchain_classic.retrievers import EnsembleRetriever
@@ -13,7 +14,6 @@ from src.core.agent.entities.agent_entity import DATASET_RETRIEVAL_TOOL_NAME
 from src.entity.dataset_entity import RetrievalSource, RetrievalStrategy
 from src.exception.exception import NotFoundException
 from src.lib.helper import combine_documents
-from src.model.account import Account
 from src.model.dataset import Dataset, DatasetQuery, Segment
 from src.service.base_service import BaseService
 from src.service.jieba_service import JiebaService
@@ -22,8 +22,9 @@ from src.service.vector_database_service import VectorDatabaseService
 
 @dataclass
 class RetrievalConfig:
+    flask_app: Flask
     dataset_ids: list[UUID]
-    account: Account
+    account_id: UUID
     retrieval_strategy: str = RetrievalStrategy.SEMANTIC
     k: int = 4
     score: float = 0
@@ -40,7 +41,7 @@ class RetrievalService(BaseService):
     def search_in_datasets(
         self,
         dataset_ids: list[UUID],
-        account: Account,
+        account_id: UUID,
         query: str,
         retrieval_strategy: str = RetrievalStrategy.SEMANTIC,
         retrieval_source: str = RetrievalSource.HIT_TESTING,
@@ -50,7 +51,7 @@ class RetrievalService(BaseService):
 
         Args:
             dataset_ids (list[UUID]): 要搜索的知识库ID列表
-            account (Account): 当前用户账户
+            account_id: 当前用户账户ID
             query (str): 搜索查询字符串
             retrieval_strategy (str, optional): 检索策略，默认为语义检索(SEMANTIC)。
                 可选值包括：
@@ -80,7 +81,7 @@ class RetrievalService(BaseService):
             self.db.session.query(Dataset)
             .filter(
                 Dataset.id.in_(dataset_ids),
-                Dataset.account_id == account.id,
+                Dataset.account_id == account_id,
             )
             .all()
         )
@@ -138,7 +139,7 @@ class RetrievalService(BaseService):
                 query=query,
                 source=retrieval_source,
                 source_app_id=None,
-                created_by=account.id,
+                created_by=account_id,
             )
 
         # 更新检索到的文档段的命中次数
@@ -198,15 +199,16 @@ class RetrievalService(BaseService):
             输出：检索内容字符串
             """
             # 调用search_in_datasets方法执行知识库搜索
-            documents = self.search_in_datasets(
-                dataset_ids=config.dataset_ids,  # 指定要搜索的知识库ID列表
-                query=query,  # 搜索查询语句
-                account=config.account,  # 执行搜索的账户信息
-                retrieval_strategy=config.retrieval_strategy,  # 检索策略
-                k=config.k,  # 返回结果数量
-                score=config.score,  # 相似度阈值
-                retrieval_source=config.retrieval_source,  # 检索来源
-            )
+            with config.flask_app.app_context():
+                documents = self.search_in_datasets(
+                    dataset_ids=config.dataset_ids,  # 指定要搜索的知识库ID列表
+                    query=query,  # 搜索查询语句
+                    account_id=config.account_id,  # 执行搜索的账户信息
+                    retrieval_strategy=config.retrieval_strategy,  # 检索策略
+                    k=config.k,  # 返回结果数量
+                    score=config.score,  # 相似度阈值
+                    retrieval_source=config.retrieval_source,  # 检索来源
+                )
 
             # 检查是否找到相关文档
             if len(documents) == 0:

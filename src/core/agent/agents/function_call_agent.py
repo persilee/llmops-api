@@ -289,6 +289,7 @@ class FunctionCallAgent(BaseAgent):
                     id=id,
                     task_id=self.agent_queue_manager.task_id,
                     event=QueueEvent.AGENT_THOUGHT,
+                    thought=json.dumps(gathered.tool_calls),
                     message=messages_to_dict(state["messages"]),
                     latency=(time.perf_counter() - start_at),
                 ),

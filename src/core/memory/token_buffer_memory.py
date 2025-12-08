@@ -65,7 +65,7 @@ class TokenBufferMemory:
         return trim_messages(
             messages=prompt_messages,
             max_tokens=max_token_limit,
-            token_counter=self.token_counter,
+            token_counter=self.model_instance,
             strategy="last",
         )
 

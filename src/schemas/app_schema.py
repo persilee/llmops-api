@@ -188,6 +188,7 @@ class UpdateDebugConversationSummaryReq(FlaskForm):
     summary = StringField("summary", default="")
 
 
+@req_schema
 class DebugChatReq(FlaskForm):
     """应用调试会话请求结构体"""
 
