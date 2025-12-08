@@ -2,18 +2,32 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from injector import inject
+from langchain.tools import BaseTool, tool
 from langchain_classic.retrievers import EnsembleRetriever
 from langchain_core.documents import Document as LCDocument
+from pydantic import BaseModel, Field
 from sqlalchemy import update
 
 from pkg.sqlalchemy.sqlalchemy import SQLAlchemy
+from src.core.agent.entities.agent_entity import DATASET_RETRIEVAL_TOOL_NAME
 from src.entity.dataset_entity import RetrievalSource, RetrievalStrategy
 from src.exception.exception import NotFoundException
+from src.lib.helper import combine_documents
 from src.model.account import Account
 from src.model.dataset import Dataset, DatasetQuery, Segment
 from src.service.base_service import BaseService
 from src.service.jieba_service import JiebaService
 from src.service.vector_database_service import VectorDatabaseService
+
+
+@dataclass
+class RetrievalConfig:
+    dataset_ids: list[UUID]
+    account: Account
+    retrieval_strategy: str = RetrievalStrategy.SEMANTIC
+    k: int = 4
+    score: float = 0
+    retrieval_source: str = RetrievalSource.HIT_TESTING
 
 
 @inject
@@ -146,3 +160,60 @@ class RetrievalService(BaseService):
             self.db.session.execute(stmt)
 
         return lc_documents  # 返回检索结果
+
+    def create_langchain_tool_from_search(self, config: RetrievalConfig) -> BaseTool:
+        """创建一个用于知识库搜索的LangChain工具。
+
+        该方法创建一个可被LangChain使用的工具，用于在指定的知识库中搜索相关内容。
+        工具支持语义检索、全文检索和混合检索等多种检索策略。
+
+        Args:
+            config (RetrievalConfig): 检索配置对象，包含以下属性：
+                - dataset_ids: 要搜索的知识库ID列表
+                - account: 执行搜索的账户信息
+                - retrieval_strategy: 检索策略（语义/全文/混合）
+                - k: 返回结果数量
+                - score: 相似度阈值
+                - retrieval_source: 检索来源
+
+        Returns:
+            BaseTool: 返回一个配置好的LangChain工具实例，该工具可以：
+                - 接收查询字符串作为输入
+                - 在指定的知识库中执行搜索
+                - 返回格式化的搜索结果
+                - 处理无结果的情况
+
+        """
+
+        # 定义输入数据模型，用于验证和描述工具的输入参数
+        class DatasetRetrievalInput(BaseModel):
+            query: str = Field(description="知识库搜索的查询语句，例如：'python'")
+
+        # 使用@tool装饰器创建LangChain工具，指定工具名称和输入模式
+        @tool(DATASET_RETRIEVAL_TOOL_NAME, args_schema=DatasetRetrievalInput)
+        def dataset_retrieval(query: str) -> str:
+            """工具描述：如果需要搜索扩展的知识库内容，当你觉得用户的提问超过你的知识范围时，可以尝试调用该工具
+
+            输入：搜索query语句
+            输出：检索内容字符串
+            """
+            # 调用search_in_datasets方法执行知识库搜索
+            documents = self.search_in_datasets(
+                dataset_ids=config.dataset_ids,  # 指定要搜索的知识库ID列表
+                query=query,  # 搜索查询语句
+                account=config.account,  # 执行搜索的账户信息
+                retrieval_strategy=config.retrieval_strategy,  # 检索策略
+                k=config.k,  # 返回结果数量
+                score=config.score,  # 相似度阈值
+                retrieval_source=config.retrieval_source,  # 检索来源
+            )
+
+            # 检查是否找到相关文档
+            if len(documents) == 0:
+                return "没有找到相关内容，请重新输入问题"
+
+            # 使用combine_documents函数将检索到的文档合并为一个字符串
+            return combine_documents(documents)
+
+        # 返回创建的工具
+        return dataset_retrieval

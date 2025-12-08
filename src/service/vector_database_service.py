@@ -2,7 +2,6 @@ import os
 
 import weaviate
 from injector import inject
-from langchain_core.documents import Document
 from langchain_core.vectorstores import VectorStoreRetriever
 from langchain_weaviate import WeaviateVectorStore
 from weaviate import WeaviateClient
@@ -77,19 +76,6 @@ class VectorDatabaseService:
 
         """
         return self.vector_store.as_retriever()
-
-    @classmethod
-    def combine_documents(cls, documents: list[Document]) -> str:
-        """将多个文档合并为一个字符串
-
-        Args:
-            documents (list[Document]): 要合并的文档列表
-
-        Returns:
-            str: 合并后的字符串，每个文档之间用两个换行符分隔
-
-        """
-        return "\n\n".join([document.page_content for document in documents])
 
     @property
     def collection(self) -> Collection:

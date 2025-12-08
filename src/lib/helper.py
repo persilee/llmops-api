@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from flask import current_app
+from langchain_core.documents import Document
 
 
 def dynamic_import(module_name: str, class_name: str) -> Any:
@@ -92,3 +93,16 @@ def datetime_to_timestamp(dt: datetime) -> int:
         return 0
 
     return int(dt.timestamp())
+
+
+def combine_documents(documents: list[Document]) -> str:
+    """将多个文档合并为一个字符串
+
+    Args:
+        documents (list[Document]): 要合并的文档列表
+
+    Returns:
+        str: 合并后的字符串，每个文档之间用两个换行符分隔
+
+    """
+    return "\n\n".join([document.page_content for document in documents])

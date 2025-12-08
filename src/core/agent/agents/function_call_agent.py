@@ -13,6 +13,7 @@ from langgraph.graph.state import CompiledStateGraph
 from src.core.agent.agents.base_agent import BaseAgent
 from src.core.agent.entities.agent_entity import (
     AGENT_SYSTEM_PROMPT_TEMPLATE,
+    DATASET_RETRIEVAL_TOOL_NAME,
     AgentState,
 )
 from src.core.agent.entities.queue_entity import AgentThought, QueueEvent
@@ -353,7 +354,7 @@ class FunctionCallAgent(BaseAgent):
             # dataset_retrieval工具使用专门的事件类型，其他工具使用通用事件类型
             event = (
                 QueueEvent.AGENT_ACTION
-                if tool_call["name"] != "dataset_retrieval"
+                if tool_call["name"] != DATASET_RETRIEVAL_TOOL_NAME
                 else QueueEvent.DATASET_RETRIEVAL
             )
 
