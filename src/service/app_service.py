@@ -36,6 +36,7 @@ from src.model import App
 from src.model.account import Account
 from src.model.api_tool import ApiTool
 from src.model.app import AppConfig, AppConfigVersion, AppDatasetJoin
+from src.model.conversation import Conversation
 from src.model.dataset import Dataset
 from src.schemas.app_schema import (
     CreateAppReq,
@@ -50,6 +51,108 @@ from src.service.base_service import BaseService
 class AppService(BaseService):
     db: SQLAlchemy
     builtin_provider_manager: BuiltinProviderManager
+
+    def get_debug_conversation_summary(self, app_id: UUID, account: Account) -> str:
+        """获取应用的调试对话摘要
+
+        Args:
+            app_id (UUID): 应用ID，用于标识要查询的应用
+            account (Account): 当前操作用户的账户信息
+
+        Returns:
+            str: 调试对话的摘要文本
+
+        Raises:
+            NotFoundException: 当应用不存在时抛出
+            PermissionError: 当用户没有访问该应用的权限时抛出
+            FailException: 当应用的长时记忆功能未开启时抛出
+
+        Note:
+            - 会验证用户是否有权限访问该应用
+            - 检查应用的草稿配置中是否开启了长时记忆功能
+            - 只有在长时记忆功能开启时才能获取对话摘要
+            - 返回的是调试对话的摘要信息
+
+        """
+        app = self.get_app(app_id, account)
+
+        draft_app_config = self.get_draft_app_config(app_id, account)
+        if draft_app_config["long_term_memory"]["enable"] is False:
+            error_msg = "长时记忆未开启"
+            raise FailException(error_msg)
+
+        return app.debug_conversation.summary
+
+    def update_debug_conversation_summary(
+        self,
+        app_id: UUID,
+        summary: str,
+        account: Account,
+    ) -> Conversation:
+        """更新应用的调试对话摘要
+
+        Args:
+            app_id (UUID): 应用ID，用于标识要更新的应用
+            summary (str): 新的对话摘要内容
+            account (Account): 当前操作用户的账户信息
+
+        Returns:
+            Conversation: 更新后的对话对象
+
+        Raises:
+            NotFoundException: 当应用不存在时抛出
+            PermissionError: 当用户没有访问该应用的权限时抛出
+            FailException: 当应用的长时记忆功能未开启时抛出
+
+        Note:
+            - 会验证用户是否有权限访问该应用
+            - 检查应用的草稿配置中是否开启了长时记忆功能
+            - 只有在长时记忆功能开启时才能更新对话摘要
+            - 会更新调试对话的摘要内容
+            - 返回更新后的对话对象
+
+        """
+        app = self.get_app(app_id, account)
+
+        draft_app_config = self.get_draft_app_config(app_id, account)
+        if draft_app_config["long_term_memory"]["enable"] is False:
+            error_msg = "长时记忆未开启"
+            raise FailException(error_msg)
+
+        debug_conversation = app.debug_conversation
+        self.update(debug_conversation, summary=summary)
+
+        return debug_conversation
+
+    def delete_debug_conversation_summary(self, app_id: UUID, account: Account) -> App:
+        """删除应用的调试对话
+
+        Args:
+            app_id (UUID): 应用ID，用于标识要删除调试对话的应用
+            account (Account): 当前操作用户的账户信息
+
+        Returns:
+            App: 更新后的应用对象
+
+        Raises:
+            NotFoundException: 当应用不存在时抛出
+            PermissionError: 当用户没有访问该应用的权限时抛出
+
+        Note:
+            - 会验证用户是否有权限访问该应用
+            - 如果应用没有关联的调试对话，直接返回应用对象
+            - 通过将debug_conversation_id设置为None来删除调试对话关联
+            - 返回更新后的应用对象
+
+        """
+        app = self.get_app(app_id, account)
+
+        if not app.debug_conversation_id:
+            return app
+
+        self.update(app, debug_conversation_id=None)
+
+        return app
 
     def fallback_history_to_draft(
         self,

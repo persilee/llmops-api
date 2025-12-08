@@ -1,0 +1,19 @@
+删除调试会话长期记忆信息
+---
+tags:
+  - App管理
+summary: 删除调试会话长期记忆信息
+description:
+operationId: delete_debug_conversation_summary
+parameters:
+  - $ref: "#/components/parameters/appIdParam"
+responses:
+  "200":
+    content:
+      application/json:
+        schema:
+          $ref: "#/components/schemas/BaseRespBody"
+        example:
+          code: "success"
+          message: "删除调试对话长期记忆成功"
+          data: {}

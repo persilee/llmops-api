@@ -181,6 +181,7 @@ class FallbackHistoryToDraftReq(FlaskForm):
             raise ValidationError(error_msg) from e
 
 
+@req_schema
 class UpdateDebugConversationSummaryReq(FlaskForm):
     """更新应用调试会话长期记忆请求体"""
 

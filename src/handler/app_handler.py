@@ -24,6 +24,7 @@ from src.schemas.app_schema import (
     GetAppResp,
     GetPublishHistoriesWithPageReq,
     GetPublishHistoriesWithPageResp,
+    UpdateDebugConversationSummaryReq,
 )
 from src.service import AppService
 
@@ -254,6 +255,81 @@ class AppHandler:
         )
 
         return success_message_json("回退历史配置到草稿成功")
+
+    @route("/<uuid:app_id>/conversation/summary", methods=["GET"])
+    @swag_from(get_swagger_path("app_handler/get_debug_conversation_summary.yaml"))
+    @login_required
+    def get_debug_conversation_summary(self, app_id: UUID) -> Response:
+        """获取指定应用的调试对话摘要信息
+
+        Args:
+            app_id (UUID): 应用的唯一标识符
+
+        Returns:
+            Response: 包含对话摘要的成功响应，格式为:
+                {
+                    "message": "success",
+                    "data": {
+                        "summary": "对话摘要内容"
+                    }
+                }
+
+        """
+        summary = self.app_service.get_debug_conversation_summary(app_id, current_user)
+
+        return success_message_json({"summary": summary})
+
+    @route("/<uuid:app_id>/conversation/summary/update", methods=["POST"])
+    @swag_from(get_swagger_path("app_handler/update_debug_conversation_summary.yaml"))
+    @login_required
+    def update_debug_conversation_summary(self, app_id: UUID) -> Response:
+        """更新调试对话的摘要信息
+
+        Args:
+            app_id (UUID): 应用程序的唯一标识符
+
+        Returns:
+            Response: 包含操作结果的响应对象
+                - 成功时返回成功消息
+                - 验证失败时返回验证错误信息
+
+        处理流程：
+            1. 验证请求数据
+            2. 调用服务层更新摘要信息
+            3. 返回操作结果
+
+        """
+        req = UpdateDebugConversationSummaryReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        self.app_service.update_debug_conversation_summary(
+            app_id,
+            req.summary.data,
+            current_user,
+        )
+
+        return success_message_json("更新调试对话长期记忆成功")
+
+    @route("/<uuid:app_id>/conversation/summary/delete", methods=["POST"])
+    @swag_from(get_swagger_path("app_handler/delete_debug_conversation_summary.yaml"))
+    @login_required
+    def delete_debug_conversation_summary(self, app_id: UUID) -> Response:
+        """删除指定应用的调试对话摘要
+
+        Args:
+            app_id (UUID): 应用ID
+
+        Returns:
+            Response: 包含操作结果消息的响应对象
+
+        """
+        self.app_service.delete_debug_conversation_summary(
+            app_id,
+            current_user,
+        )
+
+        return success_message_json("删除调试对话长期记忆成功")
 
     @route("/ping", methods=["GET"])
     def ping(self) -> Response:

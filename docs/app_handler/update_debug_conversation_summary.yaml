@@ -1,0 +1,24 @@
+更新调试会话长期记忆信息
+---
+tags:
+  - App管理
+summary: 更新调试会话长期记忆信息
+description:
+operationId: update_debug_conversation_summary
+parameters:
+  - $ref: "#/components/parameters/appIdParam"
+requestBody:
+  content:
+    application/json:
+      schema:
+        $ref: "#/components/schemas/UpdateDebugConversationSummaryReq"
+responses:
+  "200":
+    content:
+      application/json:
+        schema:
+          $ref: "#/components/schemas/BaseRespBody"
+        example:
+          code: "success"
+          message: "更新调试对话长期记忆成功"
+          data: {}
