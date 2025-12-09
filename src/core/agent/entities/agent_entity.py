@@ -1,6 +1,5 @@
 from uuid import UUID
 
-from langchain_core.language_models import BaseLanguageModel
 from langchain_core.messages import AnyMessage
 from langchain_core.tools import BaseTool
 from langgraph.graph import MessagesState
@@ -141,8 +140,6 @@ class AgentConfig(BaseModel):
     # 智能体长期记忆是否开启
     # 是否开启会话信息汇总/长期记忆
     enable_long_term_memory: bool = False
-
-    llm: BaseLanguageModel
 
     # 智能体使用的工具列表
     tools: list[BaseTool] = Field(default_factory=list)
