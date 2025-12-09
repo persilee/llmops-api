@@ -357,6 +357,24 @@ class AppHandler:
 
         return compact_generate_response(response)
 
+    @route("/<uuid:app_id>/debug/<uuid:task_id>/stop", methods=["POST"])
+    @swag_from(get_swagger_path("app_handler/stop_debug_chat.yaml"))
+    @login_required
+    def stop_debug_chat(self, app_id: UUID, task_id: UUID) -> Response:
+        """停止调试对话
+
+        Args:
+            app_id (UUID): 应用ID
+            task_id (UUID): 调试任务ID
+
+        Returns:
+            Response: 包含成功消息的响应对象
+
+        """
+        self.app_service.stop_debug_chat(app_id, task_id, current_user)
+
+        return success_message_json("停止调试对话成功")
+
     @route("/ping", methods=["GET"])
     def ping(self) -> Response:
         return "pong"

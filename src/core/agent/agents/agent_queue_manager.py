@@ -257,3 +257,56 @@ class AgentQueueManager:
 
         """
         return f"generate_task_stopped:{task_id!s}"
+
+    @classmethod
+    def set_stop_flag(
+        cls,
+        task_id: UUID,
+        invoke_from: InvokeFrom,
+        user_id: UUID,
+    ) -> None:
+        """设置任务停止标志。
+
+        Args:
+            task_id (UUID): 任务ID
+            invoke_from (InvokeFrom): 调用来源，包括WEB_APP、DEBUGGER等
+            user_id (UUID): 用户ID
+
+        Returns:
+            None
+
+        该方法会：
+        1. 检查任务是否已有停止标志
+        2. 验证当前用户是否有权限操作此任务
+        3. 如果验证通过，设置停止标志，过期时间为600秒
+
+        """
+        # 导入依赖注入器
+        from app.http.module import injector
+
+        # 获取Redis客户端实例
+        redis_client = injector.get(Redis)
+
+        # 获取当前任务的停止标志缓存键对应的值
+        result = redis_client.get(cls.generate_task_stopped_cache_key(task_id))
+        # 如果不存在停止标志，直接返回
+        if not result:
+            return
+
+        # 根据调用来源确定用户前缀
+        # WEB_APP和DEBUGGER使用"account"前缀
+        # 其他来源使用"end-user"前缀
+        user_prefix = (
+            "account"
+            if invoke_from in [InvokeFrom.WEB_APP, InvokeFrom.DEBUGGER]
+            else "end-user"
+        )
+        # 验证当前用户是否有权限操作此任务
+        # 比较缓存中的用户标识与当前用户标识是否匹配
+        if result.decode("utf-8") != f"{user_prefix}-{user_id!s}":
+            return
+
+        # 生成任务停止标志的缓存键
+        stopped_cache_key = cls.generate_task_stopped_cache_key(task_id)
+        # 设置停止标志，过期时间为600秒（10分钟）
+        redis_client.setex(stopped_cache_key, 600, 1)

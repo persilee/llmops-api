@@ -15,6 +15,7 @@ from sqlalchemy import func
 
 from pkg.paginator.paginator import Paginator
 from pkg.sqlalchemy import SQLAlchemy
+from src.core.agent.agents.agent_queue_manager import AgentQueueManager
 from src.core.agent.agents.function_call_agent import FunctionCallAgent
 from src.core.agent.entities.agent_entity import AgentConfig
 from src.core.agent.entities.queue_entity import QueueEvent
@@ -71,6 +72,24 @@ class AppService(BaseService):
     retrieval_service: RetrievalService
     redis_client: Redis
     conversation_service: ConversationService
+
+    def stop_debug_chat(self, app_id: UUID, task_id: UUID, account: Account) -> None:
+        """停止调试对话
+
+        Args:
+            app_id (UUID): 应用ID
+            task_id (UUID): 任务ID，用于标识需要停止的调试对话任务
+            account (Account): 账户信息，用于验证权限
+
+        Returns:
+            None
+
+        """
+        # 获取应用信息，验证应用存在性和所有权
+        self.get_app(app_id, account)
+
+        # 设置停止标志，终止指定的调试对话任务
+        AgentQueueManager.set_stop_flag(task_id, InvokeFrom.DEBUGGER, account.id)
 
     def debug_chat(self, app_id: UUID, query: str, account: Account) -> Generator:
         """处理应用的调试对话功能。
