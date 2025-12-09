@@ -1,11 +1,17 @@
 import json
+import logging
+import re
 import time
 import uuid
-from collections.abc import Generator
-from threading import Thread
 from typing import Literal
 
-from langchain.messages import HumanMessage, RemoveMessage, SystemMessage, ToolMessage
+from langchain.messages import (
+    AIMessage,
+    HumanMessage,
+    RemoveMessage,
+    SystemMessage,
+    ToolMessage,
+)
 from langchain_core.messages import messages_to_dict
 from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
@@ -14,10 +20,13 @@ from src.core.agent.agents.base_agent import BaseAgent
 from src.core.agent.entities.agent_entity import (
     AGENT_SYSTEM_PROMPT_TEMPLATE,
     DATASET_RETRIEVAL_TOOL_NAME,
+    MAX_ITERATION_RESPONSE,
     AgentState,
 )
 from src.core.agent.entities.queue_entity import AgentThought, QueueEvent
 from src.exception.exception import FailException
+
+logger = logging.getLogger(__name__)
 
 
 class FunctionCallAgent(BaseAgent):
@@ -33,71 +42,45 @@ class FunctionCallAgent(BaseAgent):
     3. 支持长期记忆功能
     4. 集成工具调用能力
     5. 提供流式响应处理
+    6. 支持内容审查和过滤
+    7. 处理最大迭代次数限制
 
     状态图执行流程：
-    - long_term_memory_recall: 处理长期记忆和消息预处理
-    - llm: 大语言模型处理节点，支持工具绑定
-    - tools: 工具调用执行节点
+    - preset_operation: 预设操作节点，处理输入审查和预设响应
+    - long_term_memory_recall: 长期记忆召回节点，处理历史消息和长期记忆
+    - llm: 大语言模型处理节点，支持工具绑定和流式响应
+    - tools: 工具调用执行节点，处理工具调用请求
 
     Attributes:
         agent_config: 代理配置对象，包含LLM配置、工具列表等
         agent_queue_manager: 队列管理器，用于处理事件发布和监听
 
     Methods:
-        run: 执行代理的主要逻辑，处理用户查询
-        _build_graph: 构建并编译状态图
+        _build_agent: 构建并编译状态图
+        _preset_operation_node: 处理预设操作和输入审查
+        _preset_operation_condition: 判断是否需要进行预设操作
         _long_term_memory_recall_node: 处理长期记忆召回和消息预处理
         _llm_node: 处理大语言模型节点的逻辑
         _tools_node: 执行工具调用的节点方法
         _tools_condition: 判断是否需要调用工具的条件函数
+        _check_iteration_limit: 检查是否达到最大迭代次数
+        _handle_max_iteration: 处理达到最大迭代次数的情况
+        _process_stream_response: 处理流式响应
+        _process_content_with_review: 处理内容审查
+        _publish_final_response: 发布最终响应
+
+    Note:
+        该类继承自BaseAgent，需要配合相应的配置和队列管理器使用。
+        状态图的执行流程可以通过修改_build_agent方法中的节点和边来调整。
+
+    Example:
+        >>> agent = FunctionCallAgent(config, queue_manager)
+        >>> graph = agent._build_agent()
+        >>> result = graph.invoke(initial_state)
 
     """
 
-    def run(
-        self,
-        query,
-        history=None,
-        long_term_memory="",
-    ) -> Generator[AgentThought, None, None]:
-        """执行FunctionCallAgent的主要逻辑，处理用户查询并返回生成器形式的响应。
-
-        Args:
-            query (str): 用户输入的查询内容
-            history (list, optional): 历史对话记录，默认为None，会被初始化为空列表
-            long_term_memory (str, optional): 长期记忆内容，默认为空字符串
-
-        Returns:
-            Generator[AgentThought, None, None]: 生成器对象，
-            用于异步产生agent的思考过程和结果
-
-        Raises:
-            FailException: 当agent执行过程中发生错误时抛出
-
-        """
-        # 初始化历史记录和状态图实例
-        if history is None:
-            history = []
-
-        # 创建状态图实例
-        agent = self._build_graph()
-
-        # 创建并启动新线程来异步执行agent
-        thread = Thread(
-            target=agent.invoke,
-            args=(
-                {
-                    "messages": [HumanMessage(content=query)],
-                    "history": history,
-                    "long_term_memory": long_term_memory,
-                },
-            ),
-        )
-        thread.start()
-
-        # 监听并返回agent的执行结果
-        yield from self.agent_queue_manager.listen()
-
-    def _build_graph(self) -> CompiledStateGraph:
+    def _build_agent(self) -> CompiledStateGraph:
         """构建并编译状态图。
 
         创建一个包含以下节点的状态图：
@@ -118,13 +101,19 @@ class FunctionCallAgent(BaseAgent):
         # 创建状态图实例
         graph = StateGraph(AgentState)
 
-        # 添加三个主要节点
+        # 添加节点
+        graph.add_node("preset_operation", self._preset_operation_node)
         graph.add_node("long_term_memory_recall", self._long_term_memory_recall_node)
         graph.add_node("llm", self._llm_node)
         graph.add_node("tools", self._tools_node)
 
         # 设置图的入口点
-        graph.set_entry_point("long_term_memory_recall")
+        graph.set_entry_point("preset_operation")
+        # 添加从预设操作到长期记忆召回的边
+        graph.add_conditional_edges(
+            "preset_operation",
+            self._preset_operation_condition,
+        )
         # 添加从长期记忆召回到大语言模型的边
         graph.add_edge("long_term_memory_recall", "llm")
         # 添加从大语言模型的条件边，根据条件决定是否调用工具
@@ -134,6 +123,84 @@ class FunctionCallAgent(BaseAgent):
 
         # 编译并返回状态图
         return graph.compile()
+
+    def _preset_operation_node(self, state: AgentState) -> AgentState:
+        """处理预设操作的节点函数。
+
+        该方法负责检查用户输入是否包含预设关键词，如果匹配则返回预设响应，
+        否则继续正常的处理流程。主要用于处理特定场景的快速响应。
+
+        处理流程：
+        1. 获取审查配置和用户查询
+        2. 检查是否启用输入审查功能
+        3. 检查查询中是否包含预设关键词
+        4. 如果匹配关键词，返回预设响应并结束流程
+        5. 如果不匹配，返回空消息继续后续处理
+
+        Args:
+            state (AgentState): 当前代理状态，包含：
+                - messages: 消息列表，最后一条为用户查询
+                - task_id: 任务ID，用于事件追踪
+
+        Returns:
+            AgentState: 更新后的状态，包含：
+                - 如果匹配关键词：包含预设AI响应的消息列表
+                - 如果不匹配：空消息列表
+
+        Events Published:
+            - AGENT_MESSAGE: 当匹配关键词时，发布预设响应消息
+            - AGENT_END: 当匹配关键词时，发布流程结束事件
+
+        Note:
+            该方法会根据配置中的关键词列表进行匹配，匹配成功时直接返回预设响应，
+            跳过后续的长期记忆召回和LLM处理流程。
+
+        """
+        # 获取审查配置
+        review_config = self.agent_config.review_config
+        # 获取用户查询内容
+        query = state["messages"][-1].content
+
+        # 检查是否启用输入审查功能
+        if review_config["enable"] and review_config["inputs_config"]["enable"]:
+            # 检查查询中是否包含预设关键词
+            contains_keyword = any(
+                keyword in query for keyword in review_config["keywords"]
+            )
+
+            # 如果匹配关键词，返回预设响应并结束流程
+            if contains_keyword:
+                # 获取预设响应
+                preset_response = review_config["inputs_config"]["preset_response"]
+                # 发布预设响应消息事件
+                self.agent_queue_manager.publish(
+                    state["task_id"],
+                    AgentThought(
+                        id=uuid.uuid4(),
+                        task_id=state["task_id"],
+                        event=QueueEvent.AGENT_MESSAGE,
+                        thought=preset_response,
+                        message=messages_to_dict(state["messages"]),
+                        answer=preset_response,
+                        latency=0,
+                    ),
+                )
+
+                # 发布流程结束事件
+                self.agent_queue_manager.publish(
+                    state["task_id"],
+                    AgentThought(
+                        id=uuid.uuid4(),
+                        task_id=state["task_id"],
+                        event=QueueEvent.AGENT_END,
+                    ),
+                )
+
+                # 返回包含预设AI响应的消息列表
+                return {"messages": [AIMessage(preset_response)]}
+
+        # 如果不匹配关键词，返回空消息列表继续后续处理
+        return {"messages": []}
 
     def _long_term_memory_recall_node(self, state: AgentState) -> AgentState:
         """处理长期记忆召回和消息预处理的节点函数。
@@ -167,9 +234,10 @@ class FunctionCallAgent(BaseAgent):
 
             # 发布长期记忆召回事件到队列管理器
             self.agent_queue_manager.publish(
+                state["task_id"],
                 AgentThought(
                     id=uuid.uuid4(),
-                    task_id=self.agent_queue_manager.task_id,
+                    task_id=state["task_id"],
                     event=QueueEvent.LONG_TERM_MEMORY_RECALL,
                     observation=long_term_memory,
                 ),
@@ -194,6 +262,14 @@ class FunctionCallAgent(BaseAgent):
             if len(history) % 2 != 0:
                 # 如果历史消息格式错误，抛出异常
                 error_msg = "历史消息格式错误，请检查历史消息的格式。"
+                self.agent_queue_manager.publish(state["task_id"], error_msg)
+                # 记录错误日志
+                exception_msg = (
+                    f"智能体历史消息格式错误，TaskId: {state['task_id']}, "
+                    f"len(history):{len(history)}, "
+                    f"history: {json.dumps(messages_to_dict(history))} "
+                )
+                logger.exception(exception_msg)
                 raise FailException(error_msg)
 
             # 将历史消息添加到预设消息列表中
@@ -230,76 +306,38 @@ class FunctionCallAgent(BaseAgent):
         7. 返回包含完整响应的状态
 
         """
-        # 初始化响应追踪变量
+        # 检查是否达到最大迭代次数限制
+        if self._check_iteration_limit(state):
+            return self._handle_max_iteration(state)
+
+        # 生成唯一的响应ID用于追踪
         id = uuid.uuid4()
+        # 记录响应开始时间用于性能统计
         start_at = time.perf_counter()
-
         # 获取配置的大语言模型实例
-        llm = self.agent_config.llm
+        llm = self.llm
 
-        # 检查LLM是否支持工具绑定，并且配置中有可用的工具
+        # 检查LLM是否支持工具绑定，并且存在可用工具
         if (
-            hasattr(llm, "bind_tools")  # 检查是否有bind_tools属性
-            and callable(llm.bind_tools)  # 确保bind_tools是可调用的
-            and len(self.agent_config.tools) > 0  # 确保有可用的工具
+            hasattr(llm, "bind_tools")
+            and callable(llm.bind_tools)
+            and len(self.agent_config.tools) > 0
         ):
-            # 将工具绑定到LLM实例上，使其能够调用这些工具
+            # 将可用工具绑定到LLM实例
             llm = llm.bind_tools(self.agent_config.tools)
 
-        # 初始化流式响应处理变量
-        gathered = None  # 用于收集完整的响应
-        is_first_chunk = True  # 标记是否为第一个响应块
-        generation_type = ""  # 响应类型：thought（工具调用）或message（普通消息）
+        # 处理流式响应，获取响应内容和类型
+        gathered, generation_type = self._process_stream_response(
+            state,
+            llm,
+            id,
+            start_at,
+        )
+        # 发布最终的响应结果
+        self._publish_final_response(state, id, gathered, generation_type, start_at)
 
-        # 处理流式响应
-        for chunk in llm.stream(state["messages"]):
-            if is_first_chunk:
-                # 第一个响应块直接赋值
-                gathered = chunk
-                is_first_chunk = False
-            else:
-                # 后续响应块累加到gathered中
-                gathered += chunk
-
-            # 确定响应类型
-            if not generation_type:
-                if chunk.tool_calls:
-                    generation_type = "thought"
-                elif chunk.content:
-                    generation_type = "message"
-
-            # 根据响应类型发布相应的事件
-            if generation_type == "message":
-                self.agent_queue_manager.publish(
-                    AgentThought(
-                        id=id,
-                        task_id=self.agent_queue_manager.task_id,
-                        event=QueueEvent.AGENT_MESSAGE,
-                        thought=chunk.content,
-                        message=messages_to_dict(state["messages"]),
-                        answer=chunk.content,
-                        latency=(time.perf_counter() - start_at),
-                    ),
-                )
-
-        # 处理工具调用类型响应的最终事件发布
-        if generation_type == "thought":
-            self.agent_queue_manager.publish(
-                AgentThought(
-                    id=id,
-                    task_id=self.agent_queue_manager.task_id,
-                    event=QueueEvent.AGENT_THOUGHT,
-                    thought=json.dumps(gathered.tool_calls),
-                    message=messages_to_dict(state["messages"]),
-                    latency=(time.perf_counter() - start_at),
-                ),
-            )
-        elif generation_type == "message":
-            # 普通消息类型响应完成后停止监听
-            self.agent_queue_manager.stop_listen()
-
-        # 返回包含完整响应消息的状态字典
-        return {"messages": [gathered]}
+        # 返回更新后的状态，包含新的消息和递增的迭代计数
+        return {"messages": [gathered], "iteration_count": state["iteration_count"] + 1}
 
     def _tools_node(self, state: AgentState) -> AgentState:
         """执行工具调用的节点方法。
@@ -333,12 +371,17 @@ class FunctionCallAgent(BaseAgent):
             id = uuid.uuid4()
             # 记录工具调用开始时间，用于计算执行耗时
             start_at = time.perf_counter()
-            # 根据工具调用请求中的名称获取对应的工具对象
-            # 如果工具不存在，这里会抛出KeyError异常
-            tool = tools_by_name[tool_call["name"]]
-            # 调用工具并传入参数，获取执行结果
-            # tool.invoke可能会抛出异常，需要由调用方处理
-            tool_result = tool.invoke(tool_call["args"])
+            try:
+                # 根据工具调用请求中的名称获取对应的工具对象
+                # 如果工具不存在，这里会抛出KeyError异常
+                tool = tools_by_name[tool_call["name"]]
+                # 调用工具并传入参数，获取执行结果
+                # tool.invoke可能会抛出异常，需要由调用方处理
+                tool_result = tool.invoke(tool_call["args"])
+            except Exception as e:
+                error_msg = f"工具调用失败: {e}"
+                tool_result = error_msg
+                logger.exception(error_msg)
             # 将工具执行结果封装成ToolMessage对象，包含：
             # - tool_call_id: 关联原始工具调用请求
             # - content: 工具执行结果的JSON字符串
@@ -368,9 +411,10 @@ class FunctionCallAgent(BaseAgent):
             # - tool_input: 工具输入参数
             # - latency: 工具执行耗时
             self.agent_queue_manager.publish(
+                state["task_id"],
                 AgentThought(
                     id=id,
-                    task_id=self.agent_queue_manager.task_id,
+                    task_id=state["task_id"],
                     event=event,
                     observation=json.dumps(tool_result),
                     tool=tool_call["name"],
@@ -411,3 +455,227 @@ class FunctionCallAgent(BaseAgent):
 
         # 如果没有工具调用请求，返回END结束流程
         return END
+
+    @classmethod
+    def _preset_operation_condition(
+        cls,
+        state: AgentState,
+    ) -> Literal["long_term_memory_recall", "__end__"]:
+        """预设操作条件判断函数
+
+        Args:
+            state (AgentState): 当前Agent的状态，包含消息列表等信息
+
+        Returns:
+            Literal["long_term_memory_recall", "__end__"]:
+                - "long_term_memory_recall": 如果最后一条消息不是AI消息，
+                继续进行长期记忆召回
+                - "__end__": 如果最后一条消息是AI消息，结束流程
+
+        """
+        # 获取消息列表中的最后一条消息
+        message = state["messages"][-1]
+
+        # 如果最后一条消息是AI生成的回复，说明已经完成对话，直接结束流程
+        if message.type == "ai":
+            return END
+
+        # 如果不是AI消息，继续进行长期记忆召回流程
+        return "long_term_memory_recall"
+
+    def _check_iteration_limit(self, state: AgentState) -> bool:
+        """检查是否达到最大迭代次数"""
+        return state["iteration_count"] > self.agent_config.max_iteration_count
+
+    def _handle_max_iteration(self, state: AgentState) -> AgentState:
+        """处理达到最大迭代次数的情况
+
+        当对话达到最大迭代次数限制时，此方法会被调用以优雅地结束对话。
+        它会：
+        1. 发布一个包含最大迭代响应的消息
+        2. 发布一个对话结束事件
+        3. 返回一个包含最大迭代响应的AI消息
+
+        Args:
+            state (AgentState): 当前对话状态，包含任务ID和消息历史等信息
+
+        Returns:
+            AgentState: 更新后的状态，包含最大迭代响应的AI消息
+
+        """
+        # 发布最大迭代次数响应消息
+        self.agent_queue_manager.publish(
+            state["task_id"],
+            AgentThought(
+                id=uuid.uuid4(),  # 生成唯一的消息ID
+                task_id=state["task_id"],  # 设置任务ID
+                event=QueueEvent.AGENT_MESSAGE,  # 设置事件类型为代理消息
+                thought=MAX_ITERATION_RESPONSE,  # 设置思考内容为最大迭代响应
+                message=messages_to_dict(state["messages"]),  # 转换消息历史为字典格式
+                answer=MAX_ITERATION_RESPONSE,  # 设置回答内容为最大迭代响应
+                latency=0,  # 设置延迟为0，因为这是即时响应
+            ),
+        )
+        # 发布对话结束事件
+        self.agent_queue_manager.publish(
+            state["task_id"],
+            AgentThought(
+                id=uuid.uuid4(),  # 生成唯一的事件ID
+                task_id=state["task_id"],  # 设置任务ID
+                event=QueueEvent.AGENT_END,  # 设置事件类型为代理结束
+            ),
+        )
+        # 返回包含最大迭代响应的AI消息
+        return {"messages": [AIMessage(MAX_ITERATION_RESPONSE)]}
+
+    def _process_stream_response(
+        self,
+        state: AgentState,
+        llm,
+        response_id: str,
+        start_at: float,
+    ) -> tuple:
+        """处理流式响应
+
+        Args:
+            state: 当前代理状态，包含消息列表和任务ID等信息
+            llm: 大语言模型实例，用于生成流式响应
+            response_id: 响应的唯一标识符，用于追踪
+            start_at: 响应开始时间戳，用于计算延迟
+
+        Returns:
+            tuple: 包含两个元素的元组
+                - gathered: 收集到的完整响应内容
+                - generation_type: 响应类型，"thought"表示工具调用，
+                "message"表示普通消息
+
+        """
+        # 初始化收集变量，用于存储完整的响应内容
+        gathered = None
+        # 标记是否为第一个数据块，用于特殊处理第一个响应
+        is_first_chunk = True
+        # 生成类型，用于区分是工具调用还是普通消息
+        generation_type = ""
+
+        try:
+            # 遍历LLM返回的流式响应数据块
+            for chunk in llm.stream(state["messages"]):
+                # 如果是第一个数据块，直接赋值
+                if is_first_chunk:
+                    gathered = chunk
+                    is_first_chunk = False
+                # 否则将新数据块追加到已有内容中
+                else:
+                    gathered += chunk
+
+                # 确定生成类型（仅第一次确定）
+                if not generation_type:
+                    # 如果包含工具调用，标记为思考过程
+                    if chunk.tool_calls:
+                        generation_type = "thought"
+                    # 如果包含文本内容，标记为普通消息
+                    elif chunk.content:
+                        generation_type = "message"
+
+                # 如果是普通消息类型，进行内容处理和发布
+                if generation_type == "message":
+                    # 对消息内容进行审查处理
+                    content = self._process_content_with_review(chunk.content)
+                    # 将处理后的消息发布到队列中
+                    self.agent_queue_manager.publish(
+                        state["task_id"],
+                        AgentThought(
+                            id=response_id,  # 响应ID
+                            task_id=state["task_id"],  # 任务ID
+                            event=QueueEvent.AGENT_MESSAGE,  # 事件类型
+                            thought=content,  # 处理后的内容
+                            message=messages_to_dict(state["messages"]),  # 原始消息
+                            answer=content,  # 答案内容
+                            latency=(time.perf_counter() - start_at),  # 响应延迟
+                        ),
+                    )
+        except Exception as e:
+            # 构造异常消息
+            exception_msg = f"LLM 节点发生异常: {e!s}"
+            # 记录异常日志
+            logger.exception(exception_msg)
+            # 将异常消息发布到队列
+            self.agent_queue_manager.publish(state["task_id"], exception_msg)
+            # 重新抛出异常
+            raise e from e
+
+        # 返回收集到的完整响应内容和生成类型
+        return gathered, generation_type
+
+    def _process_content_with_review(self, content: str) -> str:
+        """处理内容审查，对输出内容进行关键词过滤
+
+        Args:
+            content (str): 待处理的原始内容
+
+        Returns:
+            str: 经过审查处理后的内容，如果启用了审查功能，会将匹配的关键词替换为"**"
+
+        处理流程：
+        1. 检查是否启用了内容审查功能
+        2. 如果启用，遍历所有需要审查的关键词
+        3. 使用正则表达式进行不区分大小写的匹配和替换
+        4. 返回处理后的内容
+
+        """
+        # 获取审查配置
+        review_config = self.agent_config.review_config
+        # 检查是否启用了审查功能和输出审查
+        if review_config["enable"] and review_config["outputs_config"]["enable"]:
+            # 遍历所有需要审查的关键词
+            for keyword in review_config["keywords"]:
+                # 使用正则表达式进行不区分大小写的匹配和替换
+                content = re.sub(
+                    re.escape(keyword),  # 转义特殊字符
+                    "**",  # 替换为星号
+                    content,
+                    flags=re.IGNORECASE,  # 不区分大小写
+                )
+        return content
+
+    def _publish_final_response(
+        self,
+        state: AgentState,
+        response_id: str,
+        gathered,
+        generation_type: str,
+        start_at: float,
+    ) -> None:
+        """发布最终响应
+
+        根据生成类型发布不同的事件：
+        - thought: 发布代理思考过程事件，包含工具调用信息
+        - message: 发布代理结束事件
+        """
+        if generation_type == "thought":
+            # 发布代理思考事件，包含工具调用的详细信息
+            self.agent_queue_manager.publish(
+                state["task_id"],  # 任务ID
+                AgentThought(
+                    id=response_id,  # 使用传入的响应ID
+                    task_id=state["task_id"],  # 任务ID
+                    event=QueueEvent.AGENT_THOUGHT,  # 事件类型为代理思考
+                    thought=json.dumps(
+                        gathered.tool_calls,
+                    ),  # 将工具调用信息转为JSON字符串
+                    message=messages_to_dict(
+                        state["messages"],
+                    ),  # 将消息列表转为字典格式
+                    latency=(time.perf_counter() - start_at),  # 计算响应延迟时间
+                ),
+            )
+        elif generation_type == "message":
+            # 发布代理结束事件，表示对话完成
+            self.agent_queue_manager.publish(
+                state["task_id"],  # 任务ID
+                AgentThought(
+                    id=uuid.uuid4(),  # 生成新的唯一ID
+                    task_id=state["task_id"],  # 任务ID
+                    event=QueueEvent.AGENT_END,  # 事件类型为代理结束
+                ),
+            )
