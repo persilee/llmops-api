@@ -7,6 +7,11 @@ description:
 operationId: update_app
 parameters:
   - $ref: "#/components/parameters/appIdParam"
+requestBody:
+  content:
+    application/json:
+      schema:
+        $ref: "#/components/schemas/UpdateAppReq"
 responses:
   "200":
     content:
@@ -15,5 +20,5 @@ responses:
           $ref: "#/components/schemas/BaseRespBody"
         example:
           code: "success"
-          message: "更新成功，app_id: 123e4567-e89b-12d3-a456-426614174000"
+          message: "更新Agent智能体应用成功"
           data: {}

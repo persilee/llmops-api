@@ -12,7 +12,6 @@ from pkg.response import success_message_json
 from pkg.response.response import (
     Response,
     compact_generate_response,
-    fail_message_json,
     success_json,
     validate_error_json,
 )
@@ -28,6 +27,7 @@ from src.schemas.app_schema import (
     GetDebugConversationMessagesWithPageResp,
     GetPublishHistoriesWithPageReq,
     GetPublishHistoriesWithPageResp,
+    UpdateAppReq,
     UpdateDebugConversationSummaryReq,
 )
 from src.service import AppService
@@ -88,22 +88,47 @@ class AppHandler:
     @swag_from(get_swagger_path("app_handler/update_app.yaml"))
     @login_required
     def update_app(self, app_id: UUID) -> str:
-        """更新 App 表"""
-        app: App = self.app_service.update_app(app_id)
+        """更新指定的应用信息
 
-        return success_message_json(f"更新成功, app_id: {app.id}")
+        Args:
+            app_id (UUID): 要更新的应用的唯一标识符
+
+        Returns:
+            str: JSON格式的响应消息，包含更新操作的结果
+
+        Raises:
+            ValidationError: 当请求数据验证失败时
+
+        """
+        req = UpdateAppReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        self.app_service.update_app(app_id, current_user, **req.data)
+
+        return success_message_json("更新 Agent 智能体应用成功")
 
     @route("/<uuid:app_id>/delete", methods=["POST"])
     @swag_from(get_swagger_path("app_handler/delete_app.yaml"))
     @login_required
     def delete_app(self, app_id: UUID) -> str:
-        app: App = self.app_service.get_app(app_id)
-        if app is not None:
-            """删除 App 表"""
-            app: App = self.app_service.delete_app(app_id)
+        """删除指定的应用
 
-            return success_message_json(f"删除成功, app_id: {app.id}")
-        return fail_message_json(f"删除失败,记录不存在，app_id: {app_id}")
+        Args:
+            app_id (UUID): 要删除的应用的唯一标识符
+
+        Returns:
+            str: 包含成功消息的JSON响应字符串
+
+        Raises:
+            可能抛出相关的业务异常，如应用不存在、无权限等
+
+        """
+        # 调用服务层删除应用
+        self.app_service.delete_app(app_id, current_user)
+
+        # 返回删除成功的响应消息
+        return success_message_json("删除 Agent 智能体应用成功")
 
     @route("/<uuid:app_id>/draft-config", methods=["GET"])
     @swag_from(get_swagger_path("app_handler/get_draft_app_config.yaml"))
@@ -281,7 +306,7 @@ class AppHandler:
         """
         summary = self.app_service.get_debug_conversation_summary(app_id, current_user)
 
-        return success_message_json({"summary": summary})
+        return success_json({"summary": summary})
 
     @route("/<uuid:app_id>/conversation/summary/update", methods=["POST"])
     @swag_from(get_swagger_path("app_handler/update_debug_conversation_summary.yaml"))

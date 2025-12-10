@@ -5,11 +5,8 @@ tags:
 summary: 取消 App 发布
 description: 取消 App 发布
 operationId: cancel_publish
-requestBody:
-  content:
-    application/json:
-      schema:
-        $ref: "#/components/schemas/CreateAppReq"
+parameters:
+  - $ref: "#/components/parameters/appIdParam"
 responses:
   "200":
     content:

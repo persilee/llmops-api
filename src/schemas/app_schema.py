@@ -45,6 +45,7 @@ class CreateAppReq(FlaskForm):
     )
 
 
+@req_schema
 class UpdateAppReq(FlaskForm):
     """更新Agent应用请求结构体"""
 

@@ -21,10 +21,6 @@ responses:
               type: "string"
               example: "success"
             data:
-              required: []
-              properties: {}
-              type: "object"
-            message:
               required:
                 - "summary"
               properties:
@@ -32,3 +28,6 @@ responses:
                   type: "string"
                   example: "你是一个民谣音乐歌手，拥有 18 年创作、作词、作曲等全能音乐创作人的经验"
               type: "object"
+            message:
+              type: "string"
+              example: ""

@@ -911,18 +911,45 @@ class AppService(BaseService):
         # 返回应用对象
         return app
 
-    def update_app(self, app_id: UUID) -> App:
-        with self.db.auto_commit():
-            app: App = self.get_app(app_id)
-            app.name = "聊天机器人6"
+    def update_app(self, app_id: UUID, account: Account, **kwargs: dict) -> App:
+        """更新应用信息
 
+        Args:
+            app_id: 应用ID
+            account: 账户信息
+            **kwargs: 要更新的应用字段键值对
+
+        Returns:
+            App: 更新后的应用对象
+
+        """
+        # 获取应用信息，验证应用存在性和所有权
+        app = self.get_app(app_id, account)
+
+        # 更新应用信息
+        self.update(app, **kwargs)
+
+        # 返回更新后的应用对象
         return app
 
-    def delete_app(self, app_id: UUID) -> App:
-        with self.db.auto_commit():
-            app: App = self.get_app(app_id)
-            self.db.session.delete(app)
+    def delete_app(self, app_id: UUID, account: Account) -> App:
+        """删除应用
 
+        Args:
+            app_id: 应用ID
+            account: 账户信息
+
+        Returns:
+            App: 被删除的应用对象
+
+        """
+        # 获取应用信息，验证应用存在性和所有权
+        app = self.get_app(app_id, account)
+
+        # 删除应用
+        self.delete(app)
+
+        # 返回被删除的应用对象
         return app
 
     def get_draft_app_config(self, app_id: UUID, account: Account) -> dict:

@@ -15,5 +15,5 @@ responses:
           $ref: "#/components/schemas/BaseRespBody"
         example:
           code: "success"
-          message: "删除成功，app_id: 123e4567-e89b-12d3-a456-426614174000"
+          message: "删除 Agent 智能体应用成功"
           data: {}
