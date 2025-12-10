@@ -4,7 +4,7 @@ description: 使用DALL-E 3生成图像
 params:
   - name: size
     label: 图像尺寸
-    type: select
+    type: array
     default: 1024x1024
     required: true
     options:
@@ -16,7 +16,7 @@ params:
         label: "竖屏 256x256"
   - name: style
     label: 图片风格
-    type: select
+    type: array
     default: vivid
     required: true
     options:

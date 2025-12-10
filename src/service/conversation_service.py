@@ -176,7 +176,7 @@ class ConversationService(BaseService):
         - 使用结构化输出确保返回格式的一致性
 
         """
-        prompt = ChatPromptTemplate.format_messages(
+        prompt = ChatPromptTemplate.from_messages(
             [
                 ("system", SUGGESTED_QUESTIONS_TEMPLATE),  # 系统消息模板
                 ("human", "{histories}"),  # 用户输入模板
@@ -198,7 +198,7 @@ class ConversationService(BaseService):
         try:
             # 尝试从会话信息中提取主题名称
             if suggested_questions and hasattr(suggested_questions, "questions"):
-                questions = suggested_questions.subject
+                questions = suggested_questions.questions
         except Exception as e:
             # 如果提取过程中发生异常，记录错误信息
             error_msg = (

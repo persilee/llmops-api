@@ -1,0 +1,38 @@
+AI 生成建议问题
+---
+tags:
+  - AI辅助
+summary: AI 生成建议问题
+description:
+operationId: generate_suggested_questions
+requestBody:
+  content:
+    application/json:
+      schema:
+        $ref: "#/components/schemas/GenerateSuggestedQuestionsReq"
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              type: "array"
+              items:
+                type: "string"
+              example:
+                - "人类的未来会如何发展？"
+                - "我们能否找到外星生命？"
+                - "如何实现全球和平与合作？"
+            message:
+              type: "string"
+              example: ""

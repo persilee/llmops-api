@@ -5,6 +5,7 @@ from injector import inject
 
 from src.handler import AppHandler, BuiltinToolHandler
 from src.handler.account_handler import AccountHandler
+from src.handler.ai_handler import AIHandler
 from src.handler.api_tool_handler import ApiToolHandler
 from src.handler.auth_handler import AuthHandler
 from src.handler.dataset_handler import DatasetHandler
@@ -30,6 +31,7 @@ class Router:
     oauth_handler: OAuthHandler
     account_handler: AccountHandler
     auth_handler: AuthHandler
+    ai_handler: AIHandler
 
     def register_route(self, app: Flask) -> None:
         """注册路由"""
@@ -45,5 +47,6 @@ class Router:
         register_with_class(self.oauth_handler, bp, url_prefix="oauth")
         register_with_class(self.account_handler, bp, url_prefix="account")
         register_with_class(self.auth_handler, bp, url_prefix="auth")
+        register_with_class(self.ai_handler, bp, url_prefix="ai")
 
         app.register_blueprint(bp)

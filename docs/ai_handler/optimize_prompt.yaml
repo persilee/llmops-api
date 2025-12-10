@@ -1,0 +1,32 @@
+AI 优化提示词
+---
+tags:
+  - AI辅助
+summary: AI 优化提示词
+description:
+operationId: optimize_prompt
+requestBody:
+  content:
+    application/json:
+      schema:
+        $ref: "#/components/schemas/OptimizePromptReq"
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    description: 聊天流式响应
+    content:
+      text/event-stream:
+        schema:
+          type: object
+          properties:
+            event:
+              type: string
+            data:
+              type: object
+              required:
+                - "optimize_prompt"
+              properties:
+                optimize_prompt:
+                  type: "string"
+                  example: ""

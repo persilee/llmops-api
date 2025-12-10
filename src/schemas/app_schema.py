@@ -219,6 +219,7 @@ class DebugChatReq(FlaskForm):
                 raise ValidationError(error_msg)
 
 
+@req_schema
 class GetDebugConversationMessagesWithPageReq(PaginatorReq):
     """获取调试会话消息列表分页请求结构体"""
 

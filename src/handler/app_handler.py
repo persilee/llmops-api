@@ -24,6 +24,8 @@ from src.schemas.app_schema import (
     DebugChatReq,
     FallbackHistoryToDraftReq,
     GetAppResp,
+    GetDebugConversationMessagesWithPageReq,
+    GetDebugConversationMessagesWithPageResp,
     GetPublishHistoriesWithPageReq,
     GetPublishHistoriesWithPageResp,
     UpdateDebugConversationSummaryReq,
@@ -374,6 +376,42 @@ class AppHandler:
         self.app_service.stop_debug_chat(app_id, task_id, current_user)
 
         return success_message_json("停止调试对话成功")
+
+    @route("/<uuid:app_id>/debug/conversations", methods=["GET"])
+    @swag_from(
+        get_swagger_path("app_handler/get_debug_conversation_messages_with_page.yaml"),
+    )
+    @login_required
+    def get_debug_conversation_messages_with_page(self, app_id: UUID) -> Response:
+        """获取指定应用的调试对话消息分页列表
+
+        Args:
+            app_id (UUID): 应用ID
+
+        Returns:
+            Response: 包含分页消息列表的响应对象
+
+        """
+        # 解析请求参数
+        req = GetDebugConversationMessagesWithPageReq(request.args)
+        # 验证请求参数
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        # 获取分页消息数据和分页器
+        messages, paginator = (
+            self.app_service.get_debut_conversation_messages_with_page(
+                app_id,
+                req,
+                current_user,
+            )
+        )
+
+        # 准备响应数据结构
+        resp = GetDebugConversationMessagesWithPageResp(many=True)
+
+        # 返回包含分页消息列表的成功响应
+        return success_json(PageModel(list=resp.dump(messages), paginator=paginator))
 
     @route("/ping", methods=["GET"])
     def ping(self) -> Response:

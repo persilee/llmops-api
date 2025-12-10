@@ -56,6 +56,7 @@ from src.model.dataset import Dataset
 from src.schemas.app_schema import (
     CreateAppReq,
     FallbackHistoryToDraftReq,
+    GetDebugConversationMessagesWithPageReq,
     GetPublishHistoriesWithPageReq,
 )
 from src.service.base_service import BaseService
@@ -72,6 +73,72 @@ class AppService(BaseService):
     retrieval_service: RetrievalService
     redis_client: Redis
     conversation_service: ConversationService
+
+    def get_debut_conversation_messages_with_page(
+        self,
+        app_id: UUID,
+        req: GetDebugConversationMessagesWithPageReq,
+        account: Account,
+    ) -> tuple[list[Message], Paginator]:
+        """获取应用的调试对话消息列表，支持分页查询。
+
+        Args:
+            app_id (UUID): 应用ID
+            req (GetDebugConversationMessagesWithPageReq): 分页请求参数，包含页码、
+            每页数量等信息
+            account (Account): 当前用户账户信息
+
+        Returns:
+            tuple[list[Message], Paginator]: 返回一个元组，包含：
+                - 消息列表，按创建时间倒序排列
+                - 分页器对象，包含分页相关信息
+
+        Raises:
+            NotFoundException: 当应用不存在时抛出
+            ForbiddenException: 当用户无权访问该应用时抛出
+
+        Note:
+            查询的消息满足以下条件：
+            1. 属于指定应用的调试对话
+            2. 消息状态为正常或已停止
+            3. 消息内容不为空
+            4. 如果请求中指定了创建时间过滤条件，则消息创建时间需要满足该条件
+
+        """
+        # 获取应用信息，验证应用存在性和所有权
+        app = self.get_app(app_id, account)
+
+        # 获取应用的调试对话记录
+        debug_conversation = app.debug_conversation
+
+        # 创建分页器实例，用于处理分页查询
+        paginator = Paginator(db=self.db, req=req)
+        filters = []
+        # 如果请求中包含创建时间过滤条件，则添加时间过滤
+        if req.created_at.data:
+            created_at_datetime = datetime.fromtimestamp(req.created_at.data, tz=UTC)
+            filters.append(Message.created_at <= created_at_datetime)
+
+        # 执行分页查询，获取消息列表
+        # 查询条件包括：
+        # 1. 属于指定调试对话
+        # 2. 消息状态为正常或已停止
+        # 3. 消息内容不为空
+        # 4. 满足时间过滤条件（如果有）
+        # 按创建时间倒序排列
+        messages = paginator.paginate(
+            self.db.session.query(Message)
+            .filter(
+                Message.conversation_id == debug_conversation.id,
+                Message.status.in_([MessageStatus.STOP, MessageStatus.NORMAL]),
+                Message.answer != "",
+                *filters,
+            )
+            .order_by(Message.created_at.desc()),
+        )
+
+        # 返回消息列表和分页器信息
+        return messages, paginator
 
     def stop_debug_chat(self, app_id: UUID, task_id: UUID, account: Account) -> None:
         """停止调试对话
@@ -384,21 +451,33 @@ class AppService(BaseService):
                             item["answer"],  # 答案内容
                             conversation.summary,  # 当前摘要
                         )
-                        # 获取新的对话名称
-                        new_conversation_name = conversation.name
-                        # 如果是新对话，生成新的对话名称
-                        if conversation.is_new:
-                            new_conversation_name = (
-                                self.conversation_service.generate_conversation(
-                                    message.query,  # 基于查询内容生成名称
-                                )
+                        self.update(
+                            conversation,
+                            summary=new_summary,
+                        )
+
+                    # 如果是新对话，生成新的对话名称
+                    if conversation.is_new:
+                        new_conversation_name = (
+                            self.conversation_service.generate_conversation(
+                                message.query,  # 基于查询内容生成名称
                             )
+                        )
                         # 更新对话的名称和摘要
                         self.update(
                             conversation,
                             name=new_conversation_name,  # 新的对话名称
-                            summary=new_summary,  # 新的对话摘要
                         )
+
+                if item["event"] in [QueueEvent.STOP, QueueEvent.ERROR]:
+                    self.update(
+                        message,
+                        status=MessageStatus.STOP
+                        if item["event"] == QueueEvent.STOP
+                        else MessageStatus.ERROR,
+                        observation=item["observation"],
+                    )
+                    break
 
     def get_debug_conversation_summary(self, app_id: UUID, account: Account) -> str:
         """获取应用的调试对话摘要
