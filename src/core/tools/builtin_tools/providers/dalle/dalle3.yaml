@@ -12,7 +12,7 @@ params:
         label: "方形 1024x1024"
       - value: 1792x1024
         label: "横屏 1792x1024"
-      - value: 1024x1792
+      - value: 256x256
         label: "竖屏 256x256"
   - name: style
     label: 图片风格

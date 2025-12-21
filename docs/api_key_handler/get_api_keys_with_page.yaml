@@ -1,0 +1,65 @@
+获取 API Key 列表
+---
+tags:
+  - 开发API管理
+summary: 获取 API Key 列表
+description: 获取 API Key 列表
+operationId: get_api_keys_with_page
+parameters:
+  - $ref: "#/components/parameters/currentPageParam"
+  - $ref: "#/components/parameters/pageSizeParam"
+  - $ref: "#/components/parameters/searchWordParam"
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "list"
+            - "paginator"
+          properties:
+            list:
+              type: "array"
+              items:
+                type: "object"
+                properties:
+                  api_key:
+                    type: "string"
+                    example: "llmops-vi/00cD-6eWfh1aaiFGDPhzse-vHe7uXBMVegk_M_ieS8PuYJW13LY0QiA1n8y-4L80"
+                  created_at:
+                    type: "number"
+                    example: 1766355868
+                  id:
+                    type: "string"
+                    example: "d39c4da1-9dca-4ef7-9b47-1fa90a7e5209"
+                  is_active:
+                    type: "boolean"
+                    example: true
+                  remark:
+                    type: "string"
+                    example: "生成一个 API 密钥"
+                  updated_at:
+                    type: "number"
+                    example: 1766355868
+            paginator:
+              required:
+                - "current_page"
+                - "page_size"
+                - "total_page"
+                - "total_record"
+              properties:
+                current_page:
+                  type: "number"
+                  example: 1
+                page_size:
+                  type: "number"
+                  example: 20
+                total_page:
+                  type: "number"
+                  example: 1
+                total_record:
+                  type: "number"
+                  example: 1
+              type: "object"

@@ -73,6 +73,9 @@ DEFAULT_APP_CONFIG = {
     },
     "opening_statement": "",
     "opening_questions": [],
+    "suggested_after_answer": {
+        "enable": True,
+    },
     "speech_to_text": {
         "enable": False,
     },

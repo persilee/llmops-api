@@ -438,6 +438,27 @@ class AppHandler:
         # 返回包含分页消息列表的成功响应
         return success_json(PageModel(list=resp.dump(messages), paginator=paginator))
 
+    @route("/<uuid:app_id>/debug/conversations/delete", methods=["POST"])
+    @swag_from(
+        get_swagger_path("app_handler/delete_debug_conversations.yaml"),
+    )
+    @login_required
+    def delete_debug_conversations(self, app_id: UUID) -> Response:
+        """删除应用的调试对话记录
+
+        Args:
+            app_id (UUID): 应用ID
+
+        Returns:
+            Response: 包含成功消息的响应对象
+
+        """
+        # 调用服务层删除调试对话记录
+        self.app_service.delete_debug_conversations(app_id, current_user)
+
+        # 返回删除成功的响应消息
+        return success_message_json("清空调试对话记录成功")
+
     @route("/ping", methods=["GET"])
     def ping(self) -> Response:
         return "pong"

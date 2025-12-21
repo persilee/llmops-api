@@ -1,0 +1,19 @@
+删除调试会话记录
+---
+tags:
+  - App管理
+summary: 删除调试会话记录
+description:
+operationId: delete_debug_conversations
+parameters:
+  - $ref: "#/components/parameters/appIdParam"
+responses:
+  "200":
+    content:
+      application/json:
+        schema:
+          $ref: "#/components/schemas/BaseRespBody"
+        example:
+          code: "success"
+          message: "清空调试对话记录成功"
+          data: {}

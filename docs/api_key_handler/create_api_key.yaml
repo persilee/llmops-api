@@ -1,0 +1,22 @@
+创建API Key
+---
+tags:
+  - 开发API管理
+summary: 创建API Key
+description: 创建API Key
+operationId: create_api_key
+requestBody:
+  content:
+    application/json:
+      schema:
+        $ref: "#/components/schemas/CreateApiKeyReq"
+responses:
+  "200":
+    content:
+      application/json:
+        schema:
+          $ref: "#/components/schemas/BaseRespBody"
+        example:
+          code: "success"
+          message: "创建API Key成功"
+          data: {}

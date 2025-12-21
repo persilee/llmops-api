@@ -266,6 +266,12 @@ class AppConfig(db.Model):
         server_default=text("'[]'::jsonb"),
         info={"description": "开场白建议问题"},
     )
+    suggested_after_answer = Column(
+        JSONB,
+        nullable=False,
+        server_default=text("'{\"enable\": true}'::jsonb"),
+        info={"description": "对话后自动生成建议问题"},
+    )
     speech_to_text = Column(
         JSONB,
         nullable=False,
@@ -344,9 +350,9 @@ class AppConfigVersion(db.Model):
         info={"description": "上下文轮数"},
     )
     preset_prompt = Column(
-        String(255),
+        Text,
         nullable=False,
-        server_default=text("''::character varying"),
+        server_default=text("''::text"),
         info={"description": "预设提示词"},
     )
     tools = Column(
@@ -384,6 +390,12 @@ class AppConfigVersion(db.Model):
         nullable=False,
         server_default=text("'[]'::jsonb"),
         info={"description": "开场白建议问题"},
+    )
+    suggested_after_answer = Column(
+        JSONB,
+        nullable=False,
+        server_default=text("'{\"enable\": true}'::jsonb"),
+        info={"description": "对话后自动生成建议问题"},
     )
     speech_to_text = Column(
         JSONB,

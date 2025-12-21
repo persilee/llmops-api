@@ -1,5 +1,6 @@
 from .account_service import AccountService
 from .ai_service import AIService
+from .api_key_service import ApiKeyService
 from .api_tool_service import ApiToolService
 from .app_service import AppService
 from .base_service import BaseService
@@ -22,6 +23,7 @@ from .vector_database_service import VectorDatabaseService
 __all__ = [
     "AIService",
     "AccountService",
+    "ApiKeyService",
     "ApiToolService",
     "AppService",
     "BaseService",

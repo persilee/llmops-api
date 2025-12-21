@@ -22,6 +22,7 @@ requestBody:
           - "long_term_memory"
           - "opening_statement"
           - "opening_questions"
+          - "suggested_after_answer"
           - "speech_to_text"
           - "text_to_speech"
           - "review_config"
@@ -117,6 +118,14 @@ requestBody:
                 example: 0.5
             type: "object"
           long_term_memory:
+            required:
+              - "enable"
+            properties:
+              enable:
+                type: "boolean"
+                example: false
+            type: "object"
+          suggested_after_answer:
             required:
               - "enable"
             properties:

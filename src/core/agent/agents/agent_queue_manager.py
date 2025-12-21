@@ -213,7 +213,12 @@ class AgentQueueManager:
             # 其他来源使用"end-user"前缀
             user_prefix = (
                 "account"
-                if self.invoke_from in [InvokeFrom.WEB_APP, InvokeFrom.DEBUGGER]
+                if self.invoke_from
+                in [
+                    InvokeFrom.WEB_APP,
+                    InvokeFrom.DEBUGGER,
+                    InvokeFrom.ASSISTANT_AGENT,
+                ]
                 else "end-user"
             )
 
@@ -288,7 +293,7 @@ class AgentQueueManager:
         redis_client = injector.get(Redis)
 
         # 获取当前任务的停止标志缓存键对应的值
-        result = redis_client.get(cls.generate_task_stopped_cache_key(task_id))
+        result = redis_client.get(cls.generate_task_belong_cache_key(task_id))
         # 如果不存在停止标志，直接返回
         if not result:
             return
@@ -298,7 +303,12 @@ class AgentQueueManager:
         # 其他来源使用"end-user"前缀
         user_prefix = (
             "account"
-            if invoke_from in [InvokeFrom.WEB_APP, InvokeFrom.DEBUGGER]
+            if invoke_from
+            in [
+                InvokeFrom.WEB_APP,
+                InvokeFrom.DEBUGGER,
+                InvokeFrom.ASSISTANT_AGENT,
+            ]
             else "end-user"
         )
         # 验证当前用户是否有权限操作此任务

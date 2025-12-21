@@ -30,6 +30,7 @@ responses:
                 - "model_config"
                 - "opening_questions"
                 - "opening_statement"
+                - "suggested_after_answer"
                 - "preset_prompt"
                 - "retrieval_config"
                 - "review_config"
@@ -66,6 +67,14 @@ responses:
                   type: "string"
                   example: "e74e708f-faf5-408d-9855-b405d7e9db76"
                 long_term_memory:
+                  required:
+                    - "enable"
+                  properties:
+                    enable:
+                      type: "boolean"
+                      example: true
+                  type: "object"
+                suggested_after_answer:
                   required:
                     - "enable"
                   properties:

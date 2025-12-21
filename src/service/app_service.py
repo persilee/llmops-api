@@ -74,6 +74,29 @@ class AppService(BaseService):
     redis_client: Redis
     conversation_service: ConversationService
 
+    def delete_debug_conversations(self, app_id: UUID, account: Account) -> App:
+        """删除应用的调试对话记录
+
+        Args:
+            app_id: 应用ID
+            account: 账户信息
+
+        Returns:
+            App: 更新后的应用对象
+
+        """
+        # 获取应用信息，验证应用存在性和所有权
+        app = self.get_app(app_id, account)
+
+        # 如果应用没有调试对话记录，直接返回
+        if not app.debug_conversation_id:
+            return app
+
+        # 清空应用的调试对话ID
+        self.update(app, debug_conversation_id=None)
+
+        return app
+
     def get_debut_conversation_messages_with_page(
         self,
         app_id: UUID,
@@ -122,7 +145,7 @@ class AppService(BaseService):
         # 执行分页查询，获取消息列表
         # 查询条件包括：
         # 1. 属于指定调试对话
-        # 2. 消息状态为正常或已停止
+        # 2. 消息状态为正常(不返回已停止的消息)
         # 3. 消息内容不为空
         # 4. 满足时间过滤条件（如果有）
         # 按创建时间倒序排列
@@ -130,7 +153,7 @@ class AppService(BaseService):
             self.db.session.query(Message)
             .filter(
                 Message.conversation_id == debug_conversation.id,
-                Message.status.in_([MessageStatus.STOP, MessageStatus.NORMAL]),
+                Message.status.in_([MessageStatus.NORMAL]),
                 Message.answer != "",
                 *filters,
             )
@@ -366,7 +389,7 @@ class AppService(BaseService):
             }
 
             # 生成服务器发送事件格式的响应
-            yield f"event: {agent_thought}\ndata: {json.dumps(data)}\n\n"
+            yield f"event: {agent_thought.event.value}\ndata: {json.dumps(data)}\n\n"
 
         # 创建异步线程保存智能体思考记录，避免阻塞主流程
         thread = Thread(
@@ -472,10 +495,8 @@ class AppService(BaseService):
                 if item["event"] in [QueueEvent.STOP, QueueEvent.ERROR]:
                     self.update(
                         message,
-                        status=MessageStatus.STOP
-                        if item["event"] == QueueEvent.STOP
-                        else MessageStatus.ERROR,
-                        observation=item["observation"],
+                        status=item["event"],
+                        error=item["observation"],
                     )
                     break
 
@@ -775,6 +796,8 @@ class AppService(BaseService):
             opening_statement=draft_app_config["opening_statement"],
             # 设置开场问题
             opening_questions=draft_app_config["opening_questions"],
+            # 设置建议配置
+            suggested_after_answer=draft_app_config["suggested_after_answer"],
             # 设置语音转文字配置
             speech_to_text=draft_app_config["speech_to_text"],
             # 设置文字转语音配置
@@ -978,6 +1001,7 @@ class AppService(BaseService):
                 - long_term_memory: 长期记忆配置
                 - opening_statement: 开场白
                 - opening_questions: 开场问题列表
+                - suggested_after_answer 对话后生成建议问题列表
                 - speech_to_text: 语音转文本配置
                 - text_to_speech: 文本转语音配置
                 - review_config: 审核配置
@@ -1054,7 +1078,7 @@ class AppService(BaseService):
                     self.db.session.query(ApiTool)
                     .filter(
                         ApiTool.provider_id == draft_tool["provider_id"],
-                        ApiTool.name == draft_tool["tool_id"],
+                        ApiTool.id == draft_tool["tool_id"],
                     )
                     .one_or_none()
                 )
@@ -1145,6 +1169,7 @@ class AppService(BaseService):
             "long_term_memory": draft_app_config.long_term_memory,
             "opening_statement": draft_app_config.opening_statement,
             "opening_questions": draft_app_config.opening_questions,
+            "suggested_after_answer": draft_app_config.suggested_after_answer,
             "speech_to_text": draft_app_config.speech_to_text,
             "text_to_speech": draft_app_config.text_to_speech,
             "review_config": draft_app_config.review_config,
@@ -1298,7 +1323,7 @@ class AppService(BaseService):
                     self.db.session.query(ApiTool)
                     .filter(
                         ApiTool.provider_id == tool["provider_id"],
-                        ApiTool.name == tool["tool_id"],
+                        ApiTool.id == tool["tool_id"],
                         ApiTool.account_id == account.id,
                     )
                     .one_or_none()
@@ -1438,6 +1463,20 @@ class AppService(BaseService):
             )
             raise ValidateErrorException(error_msg)
         return long_term_memory
+
+    def _validate_suggested_after_answer(self, suggested_after_answer: dict) -> dict:
+        if not suggested_after_answer or not isinstance(suggested_after_answer, dict):
+            error_msg = "用户建议问题配置必须是字典"
+            raise ValidateErrorException(error_msg)
+        if set(suggested_after_answer.keys()) != {"enable"} or not isinstance(
+            suggested_after_answer["enable"],
+            bool,
+        ):
+            error_msg = (
+                "用户建议问题配置必须是包含enable键的字典，且enable的值必须是布尔类型"
+            )
+            raise ValidateErrorException(error_msg)
+        return suggested_after_answer
 
     def _validate_opening_statement(self, opening_statement: str) -> str:
         """验证开场白配置
@@ -1671,6 +1710,7 @@ class AppService(BaseService):
             "long_term_memory",  # 长期记忆配置
             "opening_statement",  # 开场白
             "opening_questions",  # 开场问题
+            "suggested_after_answer",  # 对话后生成的建议问题
             "speech_to_text",  # 语音转文字配置
             "text_to_speech",  # 文字转语音配置
             "review_config",  # 审核配置
@@ -1748,6 +1788,14 @@ class AppService(BaseService):
         if "opening_questions" in draft_app_config:
             draft_app_config["opening_questions"] = self._validate_opening_questions(
                 draft_app_config["opening_questions"],
+            )
+
+        # 验证对话生成建议问题配置
+        if "suggested_after_answer" in draft_app_config:
+            draft_app_config["suggested_after_answer"] = (
+                self._validate_suggested_after_answer(
+                    draft_app_config["suggested_after_answer"],
+                )
             )
 
         # 验证语音转文字配置
