@@ -12,6 +12,7 @@ from src.handler.auth_handler import AuthHandler
 from src.handler.dataset_handler import DatasetHandler
 from src.handler.document_handler import DocumentHandler
 from src.handler.oauth_handler import OAuthHandler
+from src.handler.openapi_handler import OpenApiHandler
 from src.handler.segment_handler import SegmentHandler
 from src.handler.upload_file_handler import UploadFileHandler
 from src.router import register_with_class
@@ -34,10 +35,12 @@ class Router:
     auth_handler: AuthHandler
     ai_handler: AIHandler
     api_key_handler: ApiKeyHandler
+    openapi_handler: OpenApiHandler
 
     def register_route(self, app: Flask) -> None:
         """注册路由"""
         bp = Blueprint("llmops", __name__, url_prefix="")
+        bp_openapi = Blueprint("openapi", __name__, url_prefix="")
 
         register_with_class(self.app_handler, bp, url_prefix="apps")
         register_with_class(self.builtin_tool_handler, bp, url_prefix="builtin-tools")
@@ -51,5 +54,7 @@ class Router:
         register_with_class(self.auth_handler, bp, url_prefix="auth")
         register_with_class(self.ai_handler, bp, url_prefix="ai")
         register_with_class(self.api_key_handler, bp, url_prefix="api-keys")
+        register_with_class(self.openapi_handler, bp_openapi, url_prefix="openapi")
 
         app.register_blueprint(bp)
+        app.register_blueprint(bp_openapi)

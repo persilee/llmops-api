@@ -12,7 +12,7 @@ from pydantic import PrivateAttr
 
 from src.core.agent.agents.agent_queue_manager import AgentQueueManager
 from src.core.agent.entities.agent_entity import AgentConfig, AgentState
-from src.core.agent.entities.queue_entity import AgentResult, AgentThought
+from src.core.agent.entities.queue_entity import AgentResult, AgentThought, QueueEvent
 from src.exception.exception import FailException
 
 
@@ -87,6 +87,70 @@ class BaseAgent(Serializable, Runnable):
             AgentResult: 智能体执行结果
 
         """
+        # 初始化智能体结果对象，使用输入消息的第一个消息内容作为查询
+        agent_result = AgentResult(query=input["messages"][0].content)
+        # 初始化字典用于存储智能体的思考过程
+        agent_thoughts = {}
+        # 通过stream方法获取智能体的思考过程
+        for agent_thought in self.stream(input, config):
+            # 获取当前思考事件的ID
+            event_id = str(agent_thought.id)
+
+            # 跳过心跳事件
+            if agent_thought.event != QueueEvent.PING:
+                # 处理智能体消息事件
+                if agent_thought.event == QueueEvent.AGENT_MESSAGE:
+                    # 如果是新的思考事件，直接存储
+                    if event_id not in agent_thoughts:
+                        agent_thoughts[event_id] = agent_thought
+                    # 如果是已存在的思考事件，合并其内容和答案
+                    else:
+                        agent_thoughts[event_id] = agent_thoughts[event_id].model_copy(
+                            update={
+                                "thought": agent_thoughts[event_id].thought
+                                + agent_thought.thought,
+                                "answer": agent_thoughts[event_id].answer
+                                + agent_thought.answer,
+                                "latency": agent_thought.latency,
+                            },
+                        )
+                        # 累加答案内容
+                        agent_result.answer += agent_result.answer
+                # 处理其他类型的事件
+                else:
+                    agent_thoughts[event_id] = agent_thought
+
+                    # 如果是终止类事件，更新结果状态和错误信息
+                    if agent_thought.event in [
+                        QueueEvent.STOP,
+                        QueueEvent.ERROR,
+                        QueueEvent.TIMEOUT,
+                    ]:
+                        agent_result.status = agent_thought.event
+                        # 如果是错误事件，记录错误信息
+                        agent_result.error = (
+                            agent_thought.observation
+                            if agent_thought.event == QueueEvent.ERROR
+                            else ""
+                        )
+
+        # 获取智能体消息事件中的消息内容
+        agent_result.message = next(
+            (
+                agent_thought.message
+                for agent_thought in agent_thoughts.values()
+                if agent_thought.event == QueueEvent.AGENT_MESSAGE
+            ),
+            [],
+        )
+
+        # 计算总延迟时间
+        agent_result.latency = sum(
+            [agent_thought.latency for agent_thought in agent_thoughts.values()],
+        )
+
+        # 返回完整的执行结果
+        return agent_result
 
     def stream(
         self,

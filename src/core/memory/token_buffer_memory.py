@@ -41,7 +41,9 @@ class TokenBufferMemory:
                 Message.conversation_id == self.conversation.id,
                 Message.answer != "",
                 not Message.is_deleted,
-                Message.status.in_([MessageStatus.NORMAL, MessageStatus.STOP]),
+                Message.status.in_(
+                    [MessageStatus.NORMAL, MessageStatus.STOP, MessageStatus.TIMEOUT],
+                ),
             )
             .order_by(desc("created_at"))
             .limit(message_limit)

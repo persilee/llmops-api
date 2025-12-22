@@ -16,14 +16,22 @@ from src.service.base_service import BaseService
 @inject
 @dataclass
 class ApiKeyService(BaseService):
-    """API密钥服务类，负责处理API密钥的生成、创建、查询、更新和删除等操作。
+    """API密钥服务类，负责处理API密钥的完整生命周期管理。
 
-    该类提供了完整的API密钥管理功能，包括：
-    - 生成新的API密钥
-    - 创建API密钥记录
-    - 查询单个或分页查询API密钥
-    - 更新API密钥信息
-    - 删除API密钥
+    该服务类提供了API密钥的全面管理功能，包括：
+    - 生成符合安全规范的API密钥
+    - 创建新的API密钥记录并关联账户
+    - 查询单个API密钥详情
+    - 分页查询API密钥列表
+    - 更新API密钥的属性信息
+    - 软删除API密钥
+    - 通过凭证验证API密钥
+
+    注意事项：
+    - 所有操作都需要账户认证
+    - API密钥采用安全的随机生成方式
+    - 删除操作采用软删除方式
+    - 支持分页查询以提高性能
     """
 
     db: SQLAlchemy
@@ -154,3 +162,21 @@ class ApiKeyService(BaseService):
         )
 
         return api_keys, paginator
+
+    def get_api_by_credential(self, api_key: str) -> ApiKey:
+        """通过API密钥凭证获取API密钥对象。
+
+        Args:
+            api_key (str): API密钥字符串
+
+        Returns:
+            ApiKey: 找到的API密钥对象，如果未找到则返回None
+
+        """
+        return (
+            self.db.session.query(ApiKey)
+            .filter(
+                ApiKey.api_key == api_key,
+            )
+            .one_or_none()
+        )
