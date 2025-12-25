@@ -1,7 +1,7 @@
 更新API Key启用状态
 ---
 tags:
-  - 开发API管理
+  - 开放API
 summary: 更新API Key启用状态
 description: 更新API Key启用状态
 operationId: update_api_key_is_active

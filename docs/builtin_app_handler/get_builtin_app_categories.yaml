@@ -1,0 +1,36 @@
+获取内置应用分类信息
+---
+tags:
+  - 内置应用
+summary: 获取内置应用分类信息
+description:
+operationId: get_builtin_app_categories
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              type: "array"
+              items:
+                type: "object"
+                properties:
+                  category:
+                    type: "string"
+                    example: "assistant"
+                  name:
+                    type: "string"
+                    example: "助手"
+            message:
+              type: "string"
+              example: ""

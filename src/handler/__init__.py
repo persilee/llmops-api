@@ -4,6 +4,7 @@ from .api_key_handler import ApiKeyHandler
 from .api_tool_handler import ApiToolHandler
 from .app_handler import AppHandler
 from .auth_handler import AuthHandler
+from .builtin_app_handler import BuiltinAppHandler
 from .builtin_tool_handler import BuiltinToolHandler
 from .dataset_handler import DatasetHandler
 from .document_handler import DocumentHandler
@@ -19,6 +20,7 @@ __all__ = [
     "ApiToolHandler",
     "AppHandler",
     "AuthHandler",
+    "BuiltinAppHandler",
     "BuiltinToolHandler",
     "DatasetHandler",
     "DocumentHandler",

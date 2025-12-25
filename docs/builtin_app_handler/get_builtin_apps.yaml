@@ -1,0 +1,60 @@
+获取所有内置应用列表
+---
+tags:
+  - 内置应用
+summary: 获取所有内置应用列表
+description:
+operationId: get_builtin_apps
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              type: "array"
+              items:
+                type: "object"
+                properties:
+                  category:
+                    type: "string"
+                    example: "assistant"
+                  created_at:
+                    type: "number"
+                    example: 1731439009
+                  description:
+                    type: "string"
+                    example: "我是一个高级产品经理，对于市场上各类软件应用产品都了解，擅长应用产品的架构规划。擅长产品宣传和营销，精通用户心理学，用户行为学。"
+                  icon:
+                    type: "string"
+                    example: "https://cdn.lishaoy.net/images%E4%BA%A7%E5%93%81%E7%BB%8F%E7%90%86.png"
+                  id:
+                    type: "string"
+                    example: "6b476bc2-fb11-4ff7-a24e-ae8ec30605f5"
+                  model_config:
+                    required:
+                      - "model"
+                      - "provider"
+                    properties:
+                      model:
+                        type: "string"
+                        example: "gpt-4o-mini"
+                      provider:
+                        type: "string"
+                        example: "openai"
+                    type: "object"
+                  name:
+                    type: "string"
+                    example: "LLM应用产品经理"
+            message:
+              type: "string"
+              example: ""

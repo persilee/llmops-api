@@ -1,7 +1,7 @@
 创建API Key
 ---
 tags:
-  - 开发API管理
+  - 开放API
 summary: 创建API Key
 description: 创建API Key
 operationId: create_api_key

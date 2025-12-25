@@ -9,6 +9,7 @@ from src.handler.ai_handler import AIHandler
 from src.handler.api_key_handler import ApiKeyHandler
 from src.handler.api_tool_handler import ApiToolHandler
 from src.handler.auth_handler import AuthHandler
+from src.handler.builtin_app_handler import BuiltinAppHandler
 from src.handler.dataset_handler import DatasetHandler
 from src.handler.document_handler import DocumentHandler
 from src.handler.oauth_handler import OAuthHandler
@@ -36,6 +37,7 @@ class Router:
     ai_handler: AIHandler
     api_key_handler: ApiKeyHandler
     openapi_handler: OpenApiHandler
+    builtin_app_handler: BuiltinAppHandler
 
     def register_route(self, app: Flask) -> None:
         """注册路由"""
@@ -54,6 +56,7 @@ class Router:
         register_with_class(self.auth_handler, bp, url_prefix="auth")
         register_with_class(self.ai_handler, bp, url_prefix="ai")
         register_with_class(self.api_key_handler, bp, url_prefix="api-keys")
+        register_with_class(self.builtin_app_handler, bp, url_prefix="builtin-apps")
         register_with_class(self.openapi_handler, bp_openapi, url_prefix="openapi")
 
         app.register_blueprint(bp)

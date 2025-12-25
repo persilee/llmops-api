@@ -1,7 +1,7 @@
 OpenAPI 会话
 ---
 tags:
-  - 开发API管理
+  - 开放API
 summary: OpenAPI 会话
 description:
 operationId: chat

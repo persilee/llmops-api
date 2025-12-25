@@ -1,0 +1,36 @@
+创建内置应用副本
+---
+tags:
+  - 内置应用
+summary: 创建内置应用副本
+description: 创建内置应用副本
+operationId: add_builtin_app_to_space
+requestBody:
+  content:
+    application/json:
+      schema:
+        $ref: "#/components/schemas/AddBuiltinAppToSpaceReq"
+responses:
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              required:
+                - "app_id"
+              properties:
+                id:
+                  type: "string"
+                  example: "ce991a57-97cc-42d9-8bbd-4426bd335ad5"
+              type: "object"
+            message:
+              type: "string"
+              example: ""

@@ -1,7 +1,7 @@
 获取 API Key 列表
 ---
 tags:
-  - 开发API管理
+  - 开放API
 summary: 获取 API Key 列表
 description: 获取 API Key 列表
 operationId: get_api_keys_with_page
