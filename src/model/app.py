@@ -95,6 +95,12 @@ class App(db.Model):
     )
 
     @property
+    def app_config(self) -> "AppConfig":
+        if not self.app_config_id:
+            return None
+        return db.session.query(AppConfig).get(self.app_config_id)
+
+    @property
     def draft_app_config(self) -> "AppConfigVersion":
         app_config_version = (
             db.session.query(AppConfigVersion)
@@ -303,6 +309,16 @@ class AppConfig(db.Model):
         server_default=text("CURRENT_TIMESTAMP(0)"),
         info={"description": "创建时间"},
     )
+
+    @property
+    def app_dataset_joins(self) -> list["AppDatasetJoin"]:
+        return (
+            db.session.query(AppDatasetJoin)
+            .filter(
+                AppDatasetJoin.app_id == self.app_id,
+            )
+            .all()
+        )
 
 
 class AppConfigVersion(db.Model):

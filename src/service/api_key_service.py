@@ -36,7 +36,7 @@ class ApiKeyService(BaseService):
 
     db: SQLAlchemy
 
-    def generate_api_key(self, api_key_prefix: str = "llmops-vi/") -> str:
+    def generate_api_key(self, api_key_prefix: str = "llmops-v1/") -> str:
         """生成API密钥
 
         Args:

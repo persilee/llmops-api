@@ -1,0 +1,91 @@
+OpenAPI 会话
+---
+tags:
+  - 开发API管理
+summary: OpenAPI 会话
+description:
+operationId: chat
+requestBody:
+  content:
+    application/json:
+      schema:
+        $ref: "#/components/schemas/OpenAPIChatReq"
+responses:
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              required:
+                - "agent_thoughts"
+                - "answer"
+                - "conversation_id"
+                - "end_user_id"
+                - "id"
+                - "latency"
+                - "query"
+                - "total_token_count"
+              properties:
+                agent_thoughts:
+                  type: "array"
+                  items:
+                    type: "object"
+                    properties:
+                      created_at:
+                        type: "number"
+                        example: 0
+                      event:
+                        type: "string"
+                        example: "long_term_memory_recall"
+                      id:
+                        type: "string"
+                        example: "7f007927-20fa-400d-b93b-72a64471c8b3"
+                      latency:
+                        type: "number"
+                        example: 0
+                      observation:
+                        type: "string"
+                        example: "人类询问深圳今天的天气，AI提供天气情况：多云，可能有小雨，气温最高约24°C，最低约17°C，湿度约56%，东南风约2级，并建议穿轻便衣物和准备雨伞以防降雨。"
+                      thought:
+                        type: "string"
+                        example: ""
+                      tool:
+                        type: "string"
+                        example: ""
+                      tool_input:
+                        required: []
+                        properties: {}
+                        type: "object"
+                answer:
+                  type: "string"
+                  example: "深圳的天气是多云，可能有小雨，气温最高约24°C，最低约17°C，湿度约56%，东南风约2级。建议穿轻便衣物，并准备雨伞以防降雨。"
+                conversation_id:
+                  type: "string"
+                  example: "706cbc65-d074-4938-af5f-1a8381194ec0"
+                end_user_id:
+                  type: "string"
+                  example: "f3e519ab-bfbb-4c3b-a4b1-8fe8f8e3450a"
+                id:
+                  type: "string"
+                  example: "8c544c43-494b-474a-b5d8-3d5a12695326"
+                latency:
+                  type: "number"
+                  example: 3.0029247910133563
+                query:
+                  type: "string"
+                  example: "深圳今天的天气如何？"
+                total_token_count:
+                  type: "number"
+                  example: 0
+              type: "object"
+            message:
+              type: "string"
+              example: ""

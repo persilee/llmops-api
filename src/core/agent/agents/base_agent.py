@@ -88,11 +88,17 @@ class BaseAgent(Serializable, Runnable):
 
         """
         # 初始化智能体结果对象，使用输入消息的第一个消息内容作为查询
-        agent_result = AgentResult(query=input["messages"][0].content)
+        content = agent_input["messages"][0].content
+        query = ""
+        if isinstance(content, str):
+            query = content
+        elif isinstance(content, list):
+            query = content[0]["text"]
+        agent_result = AgentResult(query=query)
         # 初始化字典用于存储智能体的思考过程
         agent_thoughts = {}
         # 通过stream方法获取智能体的思考过程
-        for agent_thought in self.stream(input, config):
+        for agent_thought in self.stream(agent_input, config):
             # 获取当前思考事件的ID
             event_id = str(agent_thought.id)
 
@@ -115,7 +121,7 @@ class BaseAgent(Serializable, Runnable):
                             },
                         )
                         # 累加答案内容
-                        agent_result.answer += agent_result.answer
+                        agent_result.answer += agent_thought.answer
                 # 处理其他类型的事件
                 else:
                     agent_thoughts[event_id] = agent_thought
@@ -133,6 +139,9 @@ class BaseAgent(Serializable, Runnable):
                             if agent_thought.event == QueueEvent.ERROR
                             else ""
                         )
+
+        # 将智能体思考过程字典转换为列表，并赋值给结果对象
+        agent_result.agent_thoughts = list(agent_thoughts.values())
 
         # 获取智能体消息事件中的消息内容
         agent_result.message = next(

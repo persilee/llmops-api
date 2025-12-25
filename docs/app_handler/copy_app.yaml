@@ -1,0 +1,33 @@
+创建App副本
+---
+tags:
+  - App管理
+summary: 创建App副本
+description: 创建App副本
+operationId: copy_app
+parameters:
+  - $ref: "#/components/parameters/appIdParam"
+responses:
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              required:
+                - "app_id"
+              properties:
+                id:
+                  type: "string"
+                  example: "ce991a57-97cc-42d9-8bbd-4426bd335ad5"
+              type: "object"
+            message:
+              type: "string"
+              example: ""

@@ -23,6 +23,8 @@ from src.schemas.app_schema import (
     DebugChatReq,
     FallbackHistoryToDraftReq,
     GetAppResp,
+    GetAppsWithPageReq,
+    GetAppsWithPageResp,
     GetDebugConversationMessagesWithPageReq,
     GetDebugConversationMessagesWithPageResp,
     GetPublishHistoriesWithPageReq,
@@ -40,6 +42,23 @@ if TYPE_CHECKING:
 @dataclass
 class AppHandler:
     app_service: AppService
+
+    @route("<uuid:app_id>/copy", methods=["POST"])
+    @swag_from(get_swagger_path("app_handler/copy_app.yaml"))
+    @login_required
+    def copy_app(self, app_id: UUID) -> Response:
+        """复制应用
+
+        Args:
+            app_id (UUID): 要复制的应用ID
+
+        Returns:
+            Response: 包含新应用ID的成功响应
+
+        """
+        app = self.app_service.copy_app(app_id, current_user)
+
+        return success_json({"app_id": app.id})
 
     @route("/create", methods=["POST"])
     @swag_from(get_swagger_path("app_handler/create_app.yaml"))
@@ -129,6 +148,20 @@ class AppHandler:
 
         # 返回删除成功的响应消息
         return success_message_json("删除 Agent 智能体应用成功")
+
+    @route("", methods=["GET"])
+    @swag_from(get_swagger_path("app_handler/get_apps_with_page.yaml"))
+    @login_required
+    def get_apps_with_page(self) -> Response:
+        req = GetAppsWithPageReq(request.args)
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        apps, paginator = self.app_service.get_apps_with_page(req, current_user)
+
+        resp = GetAppsWithPageResp(many=True)
+
+        return success_json(PageModel(list=resp.dump(apps), paginator=paginator))
 
     @route("/<uuid:app_id>/draft-config", methods=["GET"])
     @swag_from(get_swagger_path("app_handler/get_draft_app_config.yaml"))

@@ -20,5 +20,5 @@ responses:
           $ref: "#/components/schemas/BaseRespBody"
         example:
           code: "success"
-          message: "发布应用成功"
+          message: ""
           data: {}

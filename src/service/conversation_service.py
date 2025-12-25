@@ -34,7 +34,7 @@ class AgentThoughtConfig:
     flask_app: Flask
     account_id: UUID
     app_id: UUID
-    draft_app_config: dict[str, Any]
+    app_config: dict[str, Any]
     conversation_id: UUID
     message_id: UUID
     agent_thoughts: dict[str, Any]
@@ -307,7 +307,7 @@ class ConversationService(BaseService):
                         latency=latency,  # 总延迟时间
                     )
                     # 如果启用了长期记忆功能
-                    if config.draft_app_config["long_term_memory"]["enable"]:
+                    if config.app_config["long_term_memory"]["enable"]:
                         # 生成新的对话摘要
                         new_summary = self.summary(
                             message.query,  # 查询内容

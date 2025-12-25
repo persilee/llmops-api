@@ -53,10 +53,10 @@ class ApiKeyHandler:
             return validate_error_json(req.errors)
 
         # 调用服务层方法创建API Key
-        self.api_key_service.create_api_key(req, current_user)
+        resp = self.api_key_service.create_api_key(req, current_user)
 
         # 返回创建成功的消息
-        return success_message_json("创建API Key成功")
+        return success_json({"api_key": resp.api_key})
 
     @route("/<uuid:api_key_id>/delete", methods=["POST"])
     @swag_from(

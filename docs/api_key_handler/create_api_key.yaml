@@ -18,5 +18,8 @@ responses:
           $ref: "#/components/schemas/BaseRespBody"
         example:
           code: "success"
-          message: "创建API Key成功"
-          data: {}
+          message: ""
+          data:
+            {
+              "api_key": "llmops-vi/DG0s2jO5Q0FqZ4yXJqLqJLzoIWpKI0u_MVJIQDPyBLYOyjuz3UFiVtXk2nNFN6KD",
+            }

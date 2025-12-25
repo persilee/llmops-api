@@ -106,3 +106,18 @@ def combine_documents(documents: list[Document]) -> str:
 
     """
     return "\n\n".join([document.page_content for document in documents])
+
+
+def remove_fields(data_dict: dict, fields: list[str]) -> None:
+    """从字典中移除指定的字段。
+
+    Args:
+        data_dict (dict): 要修改的字典
+        fields (list[str]): 要移除的字段列表
+
+    Returns:
+        None: 直接修改原字典，无返回值
+
+    """
+    for field in fields:
+        data_dict.pop(field, None)

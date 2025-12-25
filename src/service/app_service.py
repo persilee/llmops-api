@@ -45,6 +45,7 @@ from src.exception.exception import (
     NotFoundException,
     ValidateErrorException,
 )
+from src.lib.helper import remove_fields
 from src.model import App
 from src.model.account import Account
 from src.model.api_tool import ApiTool
@@ -54,6 +55,7 @@ from src.model.dataset import Dataset
 from src.schemas.app_schema import (
     CreateAppReq,
     FallbackHistoryToDraftReq,
+    GetAppsWithPageReq,
     GetDebugConversationMessagesWithPageReq,
     GetPublishHistoriesWithPageReq,
 )
@@ -73,6 +75,135 @@ class AppService(BaseService):
     redis_client: Redis
     conversation_service: ConversationService
     app_config_service: AppConfigService
+
+    def copy_app(self, app_id: UUID, account: Account) -> App:
+        """复制应用。
+
+        Args:
+            app_id (UUID): 要复制的应用ID
+            account (Account): 执行复制操作的账户信息
+
+        Returns:
+            App: 新创建的应用对象，包含复制的配置信息
+
+        Raises:
+            NotFoundException: 当原应用不存在时抛出
+            ForbiddenException: 当账户无权访问原应用时抛出
+
+        Note:
+            - 新应用的状态将设置为草稿状态(DRAFT)
+            - 新应用的配置版本从1开始
+            - 原应用的调试对话记录不会被复制
+            - 使用数据库事务确保操作的原子性
+
+        """
+        # 获取要复制的原应用信息
+        app = self.get_app(app_id, account)
+        # 获取原应用的草稿配置
+        draft_app_config = app.draft_app_config
+
+        # 创建应用对象的字典副本
+        app_dict = app.__dict__.copy()
+        app_name = app_dict["name"] + "(副本)"
+        # 创建草稿配置对象的字典副本
+        draft_app_config_dict = draft_app_config.__dict__.copy()
+
+        # 定义需要从应用对象中移除的字段列表
+        app_remove_fields = [
+            "id",  # 应用ID，需要重新生成
+            "name",  # 应用名称，需要重新生成
+            "app_config_id",  # 应用配置ID，需要重新生成
+            "draft_app_config_id",  # 草稿配置ID，需要重新生成
+            "debug_conversation_id",  # 调试对话ID，需要重新生成
+            "status",  # 应用状态，新应用默认为草稿状态
+            "updated_at",  # 更新时间，需要重新生成
+            "created_at",  # 创建时间，需要重新生成
+            "_sa_instance_state",  # SQLAlchemy实例状态，需要移除
+        ]
+        # 定义需要从草稿配置对象中移除的字段列表
+        draft_app_config_remove_fields = [
+            "id",  # 配置ID，需要重新生成
+            "app_id",  # 应用ID，需要重新关联
+            "version",  # 版本号，新配置从1开始
+            "updated_at",  # 更新时间，需要重新生成
+            "created_at",  # 创建时间，需要重新生成
+            "_sa_instance_state",  # SQLAlchemy实例状态，需要移除
+        ]
+        # 从应用字典中移除指定字段
+        remove_fields(app_dict, app_remove_fields)
+        # 从草稿配置字典中移除指定字段
+        remove_fields(draft_app_config_dict, draft_app_config_remove_fields)
+
+        # 使用数据库事务上下文，确保操作的原子性
+        with self.db.auto_commit():
+            # 创建新的应用实例，状态设置为草稿
+            new_app = App(
+                **app_dict,
+                status=AppStatus.DRAFT,
+                name=app_name,
+            )
+            # 将新应用添加到数据库会话
+            self.db.session.add(new_app)
+            # 刷新会话，获取新应用的ID
+            self.db.session.flush()
+
+            # 创建新的草稿配置实例
+            new_draft_app_config = AppConfigVersion(
+                **draft_app_config_dict,
+                app_id=new_app.id,  # 关联新应用的ID
+                version=1,  # 版本号从1开始
+            )
+            # 将新草稿配置添加到数据库会话
+            self.db.session.add(new_draft_app_config)
+            # 刷新会话，获取新配置的ID
+            self.db.session.flush()
+
+            # 建立新应用和新草稿配置的关联
+            new_app.draft_app_config_id = new_draft_app_config.id
+
+        # 返回新创建的应用对象
+        return new_app
+
+    def get_apps_with_page(
+        self,
+        req: GetAppsWithPageReq,
+        account: Account,
+    ) -> tuple[list[App], Paginator]:
+        """获取应用列表（分页）。
+
+        Args:
+            req: 分页查询请求参数，包含页码、每页数量、搜索关键词等信息
+            account: 当前用户账户信息，用于权限验证
+
+        Returns:
+            tuple[list[App], Paginator]: 返回一个元组，包含：
+                - 应用列表：当前页的应用对象列表
+                - 分页器：包含分页相关信息的对象
+
+        Note:
+            - 支持按应用名称进行模糊搜索
+            - 查询结果按创建时间倒序排列
+
+        """
+        # 创建分页器实例，用于处理分页查询
+        paginator = Paginator(db=self.db, req=req)
+
+        # 初始化过滤条件列表
+        filters = []
+        # 如果请求中包含搜索关键词，则添加名称模糊匹配过滤条件
+        if req.search_word.data:
+            filters.append(App.name.ilike(f"%{req.search_word.data}%"))
+
+        # 执行分页查询：
+        # 1. 查询应用表
+        # 2. 应用过滤条件
+        # 3. 按创建时间倒序排列
+        apps = paginator.paginate(
+            self.db.session.query(App).filter(*filters).order_by(App.created_at.desc()),
+        )
+
+        # 返回查询结果和分页器信息
+        return apps, paginator
 
     def delete_debug_conversations(self, app_id: UUID, account: Account) -> App:
         """删除应用的调试对话记录
@@ -350,7 +481,7 @@ class AppService(BaseService):
             flask_app=current_app._get_current_object(),  # noqa: SLF001
             account_id=account.id,
             app_id=app_id,
-            draft_app_config=draft_app_config,
+            app_config=draft_app_config,
             conversation_id=debug_conversation.id,
             message_id=message.id,
             agent_thoughts=list(agent_thoughts.values()),
@@ -504,19 +635,20 @@ class AppService(BaseService):
 
         # 复制草稿配置数据，准备创建版本记录
         draft_app_config_copy = app_config_version.__dict__.copy()
-        # 定义需要移除的字段列表
-        remove_fields = [
-            "id",
-            "app_id",
-            "version",
-            "config_type",
-            "updated_at",
-            "created_at",
-            "_sa_instance_state",
-        ]
+
         # 移除不需要的字段
-        for field in remove_fields:
-            draft_app_config_copy.pop(field, None)
+        remove_fields(
+            draft_app_config_copy,
+            [
+                "id",
+                "app_id",
+                "version",
+                "config_type",
+                "updated_at",
+                "created_at",
+                "_sa_instance_state",
+            ],
+        )
 
         # 验证草稿配置数据
         draft_app_config_dict = self._validate_draft_app_config(
@@ -685,17 +817,17 @@ class AppService(BaseService):
         # 复制草稿配置数据，准备创建版本记录
         draft_app_config_copy = app.draft_app_config.__dict__.copy()
         # 定义需要移除的字段列表
-        remove_fields = [
-            "id",
-            "version",
-            "config_type",
-            "updated_at",
-            "created_at",
-            "_sa_instance_state",
-        ]
-        # 移除不需要的字段
-        for field in remove_fields:
-            draft_app_config_copy.pop(field, None)
+        remove_fields(
+            draft_app_config_copy,
+            [
+                "id",
+                "version",
+                "config_type",
+                "updated_at",
+                "created_at",
+                "_sa_instance_state",
+            ],
+        )
 
         # 查询当前最大的已发布版本号
         max_version = (
