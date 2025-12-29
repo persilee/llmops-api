@@ -27,7 +27,7 @@ responses:
               required:
                 - "app_id"
               properties:
-                id:
+                app_id:
                   type: "string"
                   example: "ce991a57-97cc-42d9-8bbd-4426bd335ad5"
               type: "object"

@@ -43,7 +43,7 @@ if TYPE_CHECKING:
 class AppHandler:
     app_service: AppService
 
-    @route("<uuid:app_id>/copy", methods=["POST"])
+    @route("/<uuid:app_id>/copy", methods=["POST"])
     @swag_from(get_swagger_path("app_handler/copy_app.yaml"))
     @login_required
     def copy_app(self, app_id: UUID) -> Response:
