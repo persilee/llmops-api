@@ -32,7 +32,16 @@ class HttpRequestInputType(str, Enum):
 
 
 class HttpRequestNodeData(BaseNodeData):
-    """HTTP请求节点数据"""
+    """HTTP请求节点的数据模型类，用于存储HTTP请求相关的配置信息。
+
+    Attributes:
+        url (HttpUrl | None): 请求的URL地址，可以为空
+        method (HttpRequestMethod): HTTP请求方法，默认为GET
+        inputs (list[VariableEntity]): 输入变量列表，包含请求所需的参数、头部等信息
+        outputs (list[VariableEntity]): 输出变量列表，包含请求的响应结果，
+        默认包含状态码和响应文本
+
+    """
 
     url: HttpUrl | None = None  # 请求URL地址
     method: HttpRequestMethod = HttpRequestMethod.GET  # API请求方法
@@ -51,11 +60,37 @@ class HttpRequestNodeData(BaseNodeData):
     @classmethod
     @field_validator("url", pre=True, always=True)
     def validate_url(cls, url: HttpUrl | None) -> HttpUrl | None:
+        """验证并处理HTTP请求的URL字段
+
+        Args:
+            url (HttpUrl | None): 待验证的URL对象，可能为None或空字符串
+
+        Returns:
+            HttpUrl | None: 如果输入为空字符串则返回None，否则返回原始URL对象
+
+        Note:
+            该验证器在字段验证之前运行(pre=True)，并且总是运行(always=True)
+
+        """
         return url if url != "" else None
 
     @classmethod
     @field_validator("outputs", pre=True)
     def validate_outputs(cls, _outputs: list[VariableEntity]) -> list[VariableEntity]:
+        """验证并设置HTTP请求节点的输出变量
+
+        Args:
+            _outputs: 原始输出变量列表（实际上会被忽略）
+
+        Returns:
+            list[VariableEntity]: 固定的输出变量列表，包含：
+                - status_code: HTTP状态码，整数类型
+                - text: 响应文本内容
+
+        Note:
+            无论输入什么，都会返回固定的输出变量配置
+
+        """
         return [
             VariableEntity(
                 name="status_code",

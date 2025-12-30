@@ -15,7 +15,18 @@ from src.model.api_tool import ApiTool
 
 
 class ToolNode(BaseNode):
-    """扩展插件节点"""
+    """工具节点类，用于在工作流中执行具体的工具操作。
+
+    继承自BaseNode，实现了工具节点的核心功能，包括：
+    - 工具的初始化和配置
+    - 工具的执行和结果处理
+    - 输入输出数据的转换和管理
+
+    Attributes:
+        node_data (ToolNodeData): 节点配置数据，包含工具的参数和配置信息
+        _tool (BaseTool): 私有属性，存储具体的工具实例
+
+    """
 
     node_data: ToolNodeData
     _tool: BaseTool = PrivateAttr(None)
@@ -87,36 +98,64 @@ class ToolNode(BaseNode):
         state: WorkflowState,
         config: RunnableConfig | None = None,
     ) -> WorkflowState:
-        """扩展插件执行节点，根据传递的信息调用预设的插件，涵盖内置插件及API插件"""
+        """执行工具节点的核心方法
+
+        Args:
+            state: 工作流状态对象，包含当前执行上下文
+            config: 可选的运行配置参数
+
+        Returns:
+            WorkflowState: 包含执行结果的工作流状态
+
+        Raises:
+            FailException: 当工具执行失败时抛出
+
+        """
         # 1.提取节点中的输入数据
+        # 从工作流状态中提取当前节点所需的输入变量
         inputs_dict = extract_variables_from_state(self.node_data.inputs, state)
 
         # 2.调用插件并获取结果
+        # 使用try-except捕获可能的异常，确保系统稳定性
         try:
+            # 调用工具的实际执行方法，传入提取的输入参数
             result = self._tool.invoke(inputs_dict)
         except Exception as e:
+            # 构造友好的错误提示信息
             error_msg = "扩展插件执行失败，请稍后尝试"
+            # 抛出业务异常，同时保留原始异常信息
             raise FailException(error_msg) from e
 
         # 3.检测result是否为字符串，如果不是则转换
+        # 确保结果为字符串格式，便于后续处理和展示
         if not isinstance(result, str):
             # 3.1[升级更新] 避免汉字被转义
+            # 使用json序列化非字符串结果，ensure_ascii=False确保中文字符正常显示
             result = json.dumps(result, ensure_ascii=False)
 
         # 4.提取并构建输出数据结构
+        # 初始化输出字典
         outputs = {}
+        # 检查节点是否定义了输出配置
         if self.node_data.outputs:
+            # 使用配置的第一个输出变量名作为键
             outputs[self.node_data.outputs[0].name] = result
         else:
+            # 如果没有配置输出，使用默认的"text"作为键
             outputs["text"] = result
 
         # 5.构建响应状态并返回
+        # 构造包含执行结果的工作流状态
         return {
             "node_results": [
                 NodeResult(
+                    # 当前节点的配置数据
                     node_data=self.node_data,
+                    # 标记节点执行成功
                     status=NodeStatus.SUCCEEDED,
+                    # 记录节点的输入参数
                     inputs=inputs_dict,
+                    # 记录节点的输出结果
                     outputs=outputs,
                 ),
             ],

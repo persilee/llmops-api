@@ -6,6 +6,7 @@ from .conversation import Conversation, Message, MessageAgentThought
 from .dataset import Dataset, DatasetQuery, Document, KeywordTable, ProcessRule, Segment
 from .end_user import EndUser
 from .upload_file import UploadFile
+from .workflow import Workflow, WorkflowResult
 
 __all__ = [
     "Account",
@@ -28,4 +29,6 @@ __all__ = [
     "ProcessRule",
     "Segment",
     "UploadFile",
+    "Workflow",
+    "WorkflowResult",
 ]
