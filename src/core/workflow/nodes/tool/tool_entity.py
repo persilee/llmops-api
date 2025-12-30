@@ -37,7 +37,7 @@ class ToolNodeData(BaseNodeData):
     )  # 输出字段列表信息
 
     @classmethod
-    @field_validator("outputs", pre=True)
+    @field_validator("outputs", mode="before")
     def validate_outputs(cls, _outputs: list[VariableEntity]) -> list[VariableEntity]:
         """验证并标准化工具节点的输出字段配置
 

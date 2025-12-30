@@ -367,7 +367,7 @@ class WorkflowConfig(BaseModel):
         cls._validate_inputs_ref(node_data_dict, reverse_adj_list)
 
     @classmethod
-    @model_validator(pre=True)
+    @model_validator(mode="before")
     def validate_workflow_config(cls, values: dict[str, Any]) -> dict[str, Any]:
         """验证工作流配置的完整性和正确性。
 

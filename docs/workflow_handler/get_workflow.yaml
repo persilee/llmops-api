@@ -1,0 +1,81 @@
+获取工作流信息
+---
+tags:
+  - 工作流
+summary: 获取工作流信息
+description:
+operationId: get_workflow
+parameters:
+  - name: workflow_id
+    in: path
+    required: true
+    schema:
+      type: string
+      default: "a72fb5a8-e8b5-4141-9a56-2f8b17407371"
+    format: uuid
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              required:
+                - "created_at"
+                - "description"
+                - "icon"
+                - "id"
+                - "is_debug_passed"
+                - "name"
+                - "node_count"
+                - "published_at"
+                - "status"
+                - "tool_call_name"
+                - "updated_at"
+              properties:
+                created_at:
+                  type: "number"
+                  example: 1767114683
+                description:
+                  type: "string"
+                  example: "这是一个测试"
+                icon:
+                  type: "string"
+                  example: "https://llmops-dev-1253877543.cos.ap-guangzhou.myqcloud.com/2025/11/05/dd34cd16-f248-4030-a19e-a298b42b3999.png"
+                id:
+                  type: "string"
+                  example: "ad79aeff-6dd1-40e0-a965-bffc20ea60f4"
+                is_debug_passed:
+                  type: "boolean"
+                  example: false
+                name:
+                  type: "string"
+                  example: "test workflow"
+                node_count:
+                  type: "number"
+                  example: 0
+                published_at:
+                  type: "number"
+                  example: 0
+                status:
+                  type: "string"
+                  example: "draft"
+                tool_call_name:
+                  type: "string"
+                  example: "test"
+                updated_at:
+                  type: "number"
+                  example: 1767114683
+              type: "object"
+            message:
+              type: "string"
+              example: ""

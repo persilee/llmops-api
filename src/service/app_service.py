@@ -189,7 +189,7 @@ class AppService(BaseService):
         paginator = Paginator(db=self.db, req=req)
 
         # 初始化过滤条件列表
-        filters = []
+        filters = [App.account_id == account.id]
         # 如果请求中包含搜索关键词，则添加名称模糊匹配过滤条件
         if req.search_word.data:
             filters.append(App.name.ilike(f"%{req.search_word.data}%"))

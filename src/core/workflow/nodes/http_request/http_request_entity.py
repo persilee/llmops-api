@@ -58,7 +58,7 @@ class HttpRequestNodeData(BaseNodeData):
     )
 
     @classmethod
-    @field_validator("url", pre=True, always=True)
+    @field_validator("url", mode="before")
     def validate_url(cls, url: HttpUrl | None) -> HttpUrl | None:
         """验证并处理HTTP请求的URL字段
 
@@ -75,7 +75,7 @@ class HttpRequestNodeData(BaseNodeData):
         return url if url != "" else None
 
     @classmethod
-    @field_validator("outputs", pre=True)
+    @field_validator("outputs", mode="before")
     def validate_outputs(cls, _outputs: list[VariableEntity]) -> list[VariableEntity]:
         """验证并设置HTTP请求节点的输出变量
 

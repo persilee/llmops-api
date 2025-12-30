@@ -215,7 +215,7 @@ class Workflow(BaseTool):
             # 识别并记录起始节点和结束节点
             if edge.source_type == NodeType.START:
                 start_node = f"{edge.source_type.value}_{edge.source}"
-            elif edge.target_type == NodeType.END:
+            if edge.target_type == NodeType.END:
                 end_node = f"{edge.target_type.value}_{edge.target}"
 
         # 设置工作流的入口点和结束点

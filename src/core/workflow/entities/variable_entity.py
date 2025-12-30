@@ -76,7 +76,7 @@ class VariableEntity(BaseModel):
             ref_var_name: str = ""
 
             @classmethod
-            @field_validator("ref_node_id", pre=True, always=True)
+            @field_validator("ref_node_id", mode="before")
             def validate_ref_node_id(cls, ref_node_id: UUID | None) -> UUID | None:
                 return ref_node_id if ref_node_id != "" else None
 

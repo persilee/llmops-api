@@ -1,0 +1,38 @@
+创建工作流
+---
+tags:
+  - 工作流
+summary: 创建工作流
+description:
+operationId: create_workflow
+requestBody:
+  content:
+    application/json:
+      schema:
+        $ref: "#/components/schemas/CreateWorkflowReq"
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              required:
+                - "id"
+              properties:
+                id:
+                  type: "string"
+                  example: "ad79aeff-6dd1-40e0-a965-bffc20ea60f4"
+              type: "object"
+            message:
+              type: "string"
+              example: ""

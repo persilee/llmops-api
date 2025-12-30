@@ -16,6 +16,7 @@ from src.handler.oauth_handler import OAuthHandler
 from src.handler.openapi_handler import OpenApiHandler
 from src.handler.segment_handler import SegmentHandler
 from src.handler.upload_file_handler import UploadFileHandler
+from src.handler.workflow_handler import WorkflowHandler
 from src.router import register_with_class
 
 
@@ -38,6 +39,7 @@ class Router:
     api_key_handler: ApiKeyHandler
     openapi_handler: OpenApiHandler
     builtin_app_handler: BuiltinAppHandler
+    workflow_handler: WorkflowHandler
 
     def register_route(self, app: Flask) -> None:
         """注册路由"""
@@ -57,6 +59,7 @@ class Router:
         register_with_class(self.ai_handler, bp, url_prefix="ai")
         register_with_class(self.api_key_handler, bp, url_prefix="api-keys")
         register_with_class(self.builtin_app_handler, bp, url_prefix="builtin-apps")
+        register_with_class(self.workflow_handler, bp, url_prefix="workflows")
         register_with_class(self.openapi_handler, bp_openapi, url_prefix="openapi")
 
         app.register_blueprint(bp)
