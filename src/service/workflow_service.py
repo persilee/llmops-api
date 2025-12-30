@@ -2,10 +2,14 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
+from flask import request
 from injector import inject
 
 from pkg.paginator.paginator import Paginator
 from pkg.sqlalchemy.sqlalchemy import SQLAlchemy
+from src.core.tools.builtin_tools.providers.builtin_provider_manager import (
+    BuiltinProviderManager,
+)
 from src.core.workflow.entities.edge_entity import BaseEdgeData
 from src.core.workflow.entities.node_entity import BaseNodeData, NodeType
 from src.core.workflow.nodes.code.code_entity import CodeNodeData
@@ -28,6 +32,7 @@ from src.exception.exception import (
 )
 from src.lib.helper import convert_model_to_dict
 from src.model.account import Account
+from src.model.api_tool import ApiTool
 from src.model.dataset import Dataset
 from src.model.workflow import Workflow
 from src.schemas.workflow_schema import CreateWorkflowReq, GetWorkflowsWithPageReq
@@ -38,6 +43,191 @@ from src.service.base_service import BaseService
 @dataclass
 class WorkflowService(BaseService):
     db: SQLAlchemy
+    builtin_provider_manager: BuiltinProviderManager
+
+    def get_draft_graph(self, workflow_id: UUID, account: Account) -> dict:
+        """获取工作流的草稿图数据。
+
+        该方法会执行以下操作：
+        1. 验证用户权限并获取工作流
+        2. 验证草稿图结构的合法性
+        3. 为不同类型的节点附加相应的元数据：
+           - 工具节点：附加工具的名称、图标、参数等信息
+           - 知识库检索节点：附加知识库的名称、图标等信息
+           - 迭代节点：附加工作流的名称、图标等信息
+
+        Args:
+            workflow_id (UUID): 工作流的唯一标识符
+            account (Account): 当前操作的用户账户对象
+
+        Returns:
+            dict: 包含验证后的草稿图数据的字典，包括节点和边的完整信息，
+                 以及各类节点的元数据信息
+
+        Raises:
+            ForbiddenException: 当用户没有权限访问该工作流时
+            NotFoundException: 当工作流不存在时
+            ValidateErrorException: 当草稿图结构不合法时
+
+        """
+        # 1.根据传递的id获取工作流并校验权限
+        workflow = self.get_workflow(workflow_id, account)
+
+        # 2.提取草稿图结构信息并校验(不更新校验后的数据到数据库)
+        draft_graph = workflow.draft_graph
+        validate_draft_graph = self._validate_graph(workflow_id, draft_graph, account)
+
+        # 3.循环遍历节点信息，为工具节点/知识库节点附加元数据
+        for node in validate_draft_graph["nodes"]:
+            if node.get("node_type") == NodeType.TOOL:
+                # 4.判断工具的类型执行不同的操作
+                if node.get("tool_type") == "builtin_tool":
+                    # 5.节点类型为工具，则附加工具的名称、图标、参数等额外信息
+                    provider = self.builtin_provider_manager.get_provider(
+                        node.get("provider_id"),
+                    )
+                    if not provider:
+                        continue
+
+                    # 6.获取提供者下的工具实体，并检测是否存在
+                    tool_entity = provider.get_tool_entity(node.get("tool_id"))
+                    if not tool_entity:
+                        continue
+
+                    # 7.判断工具的params和草稿中的params是否一致，
+                    # 如果不一致则全部重置为默认值（或者考虑删除这个工具的引用）
+                    param_keys = {param.name for param in tool_entity.params}
+                    params = node.get("params")
+                    if set(params.keys()) - param_keys:
+                        params = {
+                            param.name: param.default
+                            for param in tool_entity.params
+                            if param.default is not None
+                        }
+
+                    # 8.数据校验成功附加展示信息
+                    provider_entity = provider.provider_entity
+                    node["meta"] = {
+                        "type": "builtin_tool",
+                        "provider": {
+                            "id": provider_entity.name,
+                            "name": provider_entity.name,
+                            "label": provider_entity.label,
+                            "icon": f"{request.scheme}://{request.host}/builtin-tools/{provider_entity.name}/icon",
+                            "description": provider_entity.description,
+                        },
+                        "tool": {
+                            "id": tool_entity.name,
+                            "name": tool_entity.name,
+                            "label": tool_entity.label,
+                            "description": tool_entity.description,
+                            "params": params,
+                        },
+                    }
+                elif node.get("tool_type") == "api_tool":
+                    # 9.查询数据库获取对应的工具记录，并检测是否存在
+                    tool_record = (
+                        self.db.session.query(ApiTool)
+                        .filter(
+                            ApiTool.provider_id == node.get("provider_id"),
+                            ApiTool.name == node.get("tool_id"),
+                            ApiTool.account_id == account.id,
+                        )
+                        .one_or_none()
+                    )
+                    if not tool_record:
+                        continue
+
+                    # 10.组装api工具展示信息
+                    provider = tool_record.provider
+                    node["meta"] = {
+                        "type": "api_tool",
+                        "provider": {
+                            "id": str(provider.id),
+                            "name": provider.name,
+                            "label": provider.name,
+                            "icon": provider.icon,
+                            "description": provider.description,
+                        },
+                        "tool": {
+                            "id": str(tool_record.id),
+                            "name": tool_record.name,
+                            "label": tool_record.name,
+                            "description": tool_record.description,
+                            "params": {},
+                        },
+                    }
+                else:
+                    # 11.处理未知类型的工具节点，设置空的元数据结构
+                    node["meta"] = {
+                        "type": "api_tool",
+                        "provider": {
+                            "id": "",
+                            "name": "",
+                            "label": "",
+                            "icon": "",
+                            "description": "",
+                        },
+                        "tool": {
+                            "id": "",
+                            "name": "",
+                            "label": "",
+                            "description": "",
+                            "params": {},
+                        },
+                    }
+            elif node.get("node_type") == NodeType.DATASET_RETRIEVAL:
+                # 12.节点类型为知识库检索，需要附加知识库的名称、图标等信息
+                datasets = (
+                    self.db.session.query(Dataset)
+                    .filter(
+                        Dataset.id.in_(node.get("dataset_ids", [])),
+                        Dataset.account_id == account.id,
+                    )
+                    .all()
+                )
+                # 13.限制最多显示5个知识库
+                datasets = datasets[:5]
+                node["dataset_ids"] = [str(dataset.id) for dataset in datasets]
+                node["meta"] = {
+                    "datasets": [
+                        {
+                            "id": dataset.id,
+                            "name": dataset.name,
+                            "icon": dataset.icon,
+                            "description": dataset.description,
+                        }
+                        for dataset in datasets
+                    ],
+                }
+            elif node.get("node_type") == NodeType.ITERATION:
+                # 14.节点类型为迭代节点，需要附加工作流的名称、图标等信息
+                workflows = (
+                    self.db.session.query(Workflow)
+                    .filter(
+                        Workflow.id.in_(node.get("workflow_ids", [])),
+                        Workflow.account_id == account.id,
+                        Workflow.status == WorkflowStatus.PUBLISHED,
+                    )
+                    .all()
+                )
+                # 15.限制最多显示1个工作流
+                workflows = workflows[:1]
+                node["workflow_ids"] = [str(workflow.id) for workflow in workflows]
+                node["meta"] = {
+                    "workflows": [
+                        {
+                            "id": workflow.id,
+                            "name": workflow.name,
+                            "icon": workflow.icon,
+                            "description": workflow.description,
+                        }
+                        for workflow in workflows
+                    ],
+                }
+
+        # 16.返回验证后的草稿图数据
+        return validate_draft_graph
 
     def create_workflow(self, req: CreateWorkflowReq, account: Account) -> Workflow:
         """创建新的工作流。

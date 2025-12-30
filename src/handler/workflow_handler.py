@@ -177,3 +177,24 @@ class WorkflowHandler:
 
         # 返回更新成功的响应
         return success_message_json("更新工作流草稿成功")
+
+    @route("/<uuid:workflow_id>/draft", methods=["GET"])
+    @swag_from(get_swagger_path("workflow_handler/get_draft_graph.yaml"))
+    @login_required
+    def get_draft_graph(self, workflow_id: UUID) -> Response:
+        """获取指定工作流的草稿图数据
+
+        Args:
+            workflow_id (UUID): 工作流的唯一标识符
+
+        Returns:
+            Response: 包含草稿图数据的成功响应
+                - nodes: 节点列表
+                - edges: 边列表
+
+        """
+        # 调用服务层获取工作流的草稿图数据
+        draft_graph = self.workflow_service.get_draft_graph(workflow_id, current_user)
+
+        # 返回包含草稿图数据的成功响应
+        return success_json(draft_graph)
