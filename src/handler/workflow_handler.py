@@ -148,3 +148,32 @@ class WorkflowHandler:
         resp = GetWorkflowsWithPageResp(many=True)
 
         return success_json(PageModel(list=resp.dump(workflows), paginator=paginator))
+
+    @route("/<uuid:workflow_id>/draft/update", methods=["POST"])
+    @swag_from(get_swagger_path("workflow_handler/update_draft_graph.yaml"))
+    @login_required
+    def update_draft_graph(self, workflow_id: UUID) -> Response:
+        """更新工作流草稿图
+
+        Args:
+            workflow_id (UUID): 工作流ID
+
+        Returns:
+            Response: 更新成功的响应消息
+
+        """
+        # 获取请求体中的草稿图数据，如果没有则使用空的节点和边
+        draft_graph_dict = request.get_json(force=True, silent=True) or {
+            "nodes": [],
+            "edges": [],
+        }
+
+        # 调用服务层更新工作流草稿图
+        self.workflow_service.update_draft_graph(
+            workflow_id,
+            draft_graph_dict,
+            current_user,
+        )
+
+        # 返回更新成功的响应
+        return success_message_json("更新工作流草稿成功")
