@@ -1,3 +1,4 @@
+import time
 from typing import Any
 
 from langchain.tools import BaseTool
@@ -111,6 +112,8 @@ class ToolNode(BaseNode):
             FailException: 当工具执行失败时抛出
 
         """
+        # 记录开始时间
+        start_at = time.perf_counter()
         # 1.提取节点中的输入数据
         # 从工作流状态中提取当前节点所需的输入变量
         inputs_dict = extract_variables_from_state(self.node_data.inputs, state)
@@ -157,6 +160,8 @@ class ToolNode(BaseNode):
                     inputs=inputs_dict,
                     # 记录节点的输出结果
                     outputs=outputs,
+                    # 记录节点执行时间
+                    latency=(time.perf_counter() - start_at),
                 ),
             ],
         }

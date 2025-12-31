@@ -1,17 +1,24 @@
+import logging
+import time
+import uuid
+from collections.abc import Generator
 from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
 from flask import request
 from injector import inject
+from pydantic import json
 
 from pkg.paginator.paginator import Paginator
 from pkg.sqlalchemy.sqlalchemy import SQLAlchemy
 from src.core.tools.builtin_tools.providers.builtin_provider_manager import (
     BuiltinProviderManager,
 )
+from src.core.workflow import Workflow as WorkflowTool
 from src.core.workflow.entities.edge_entity import BaseEdgeData
-from src.core.workflow.entities.node_entity import BaseNodeData, NodeType
+from src.core.workflow.entities.node_entity import BaseNodeData, NodeStatus, NodeType
+from src.core.workflow.entities.workflow_entity import WorkflowConfig
 from src.core.workflow.nodes.code.code_entity import CodeNodeData
 from src.core.workflow.nodes.dataset_retrieval.dataset_retrieval_entity import (
     DatasetRetrievalNodeData,
@@ -26,6 +33,7 @@ from src.core.workflow.nodes.template_transform.template_transform_entity import
 from src.core.workflow.nodes.tool.tool_entity import ToolNodeData
 from src.entity.workflow_entity import DEFAULT_WORKFLOW_CONFIG, WorkflowStatus
 from src.exception.exception import (
+    FailException,
     ForbiddenException,
     NotFoundException,
     ValidateErrorException,
@@ -34,7 +42,7 @@ from src.lib.helper import convert_model_to_dict
 from src.model.account import Account
 from src.model.api_tool import ApiTool
 from src.model.dataset import Dataset
-from src.model.workflow import Workflow
+from src.model.workflow import Workflow, WorkflowResult
 from src.schemas.workflow_schema import CreateWorkflowReq, GetWorkflowsWithPageReq
 from src.service.base_service import BaseService
 
@@ -44,6 +52,192 @@ from src.service.base_service import BaseService
 class WorkflowService(BaseService):
     db: SQLAlchemy
     builtin_provider_manager: BuiltinProviderManager
+    logger = logging.getLogger(__name__)
+
+    def publish_workflow(self, workflow_id: UUID, account: Account) -> Workflow:
+        """发布工作流。
+
+        Args:
+            workflow_id (UUID): 要发布的工作流ID
+            account (Account): 执行发布操作的账户对象
+
+        Returns:
+            Workflow: 发布成功的工作流对象
+
+        Raises:
+            FailException: 当工作流未通过调试时抛出
+            ValidateErrorException: 当工作流配置验证失败时抛出
+
+        """
+        # 获取指定ID的工作流，同时验证用户权限
+        workflow = self.get_workflow(workflow_id, account)
+        # 检查工作流是否已通过调试，未通过则抛出异常
+        if workflow.is_debug_passed is False:
+            error_msg = "工作流未通过调试"
+            raise FailException(error_msg)
+
+        try:
+            # 尝试创建工作流配置对象，包含账户ID、名称、描述和图结构信息
+            WorkflowConfig(
+                account_id=account.id,
+                name=workflow.tool_call_name,
+                description=workflow.description,
+                nodes=workflow.draft_graph.get("nodes", []),
+                edges=workflow.draft_graph.get("edges", []),
+            )
+        except Exception as e:
+            # 如果创建配置失败，更新工作流的调试状态为未通过
+            self.update(workflow, is_debug_passed=False)
+            error_msg = "工作流发布失败"
+            # 抛出验证错误异常，并保留原始异常信息
+            raise ValidateErrorException(error_msg) from e
+
+        # 更新工作流状态为已发布，并设置调试状态为未通过
+        self.update(
+            workflow,
+            graph=workflow.draft_graph,
+            status=WorkflowStatus.PUBLISHED,
+            is_debug_passed=False,
+        )
+
+        # 返回工作流对象
+        return workflow
+
+    def cancel_workflow(self, workflow_id: UUID, account: Account) -> Workflow:
+        """取消已发布的工作流
+
+        Args:
+            workflow_id: 工作流ID
+            account: 账户信息
+
+        Returns:
+            Workflow: 更新后的工作流对象
+
+        Raises:
+            FailException: 当工作流未发布时抛出异常
+
+        """
+        # 获取工作流并验证权限
+        workflow = self.get_workflow(workflow_id, account)
+        # 检查工作流是否已发布
+        if workflow.status != WorkflowStatus.PUBLISHED:
+            error_msg = "工作流未发布"
+            raise FailException(error_msg)
+
+        # 更新工作流状态：清空图结构、设置为草稿状态、重置调试状态
+        self.update(
+            workflow,
+            graph={},
+            status=WorkflowStatus.DRAFT,
+            is_debug_passed=False,
+        )
+
+        return workflow
+
+    def debug_workflow(
+        self,
+        workflow_id: UUID,
+        inputs: dict[str, Any],
+        account: Account,
+    ) -> Generator:
+        """调试工作流执行
+
+        Args:
+            workflow_id: 工作流ID
+            inputs: 输入参数字典
+            account: 账户信息
+
+        Returns:
+            Generator: 流式返回工作流执行结果
+
+        """
+        # 1.根据传递的id获取工作流并校验权限
+        workflow = self.get_workflow(workflow_id, account)
+
+        # 2.创建工作流工具实例，配置包含账户ID、名称、描述和图结构
+        workflow_tool = WorkflowTool(
+            workflow_config=WorkflowConfig(
+                account_id=account.id,
+                name=workflow.tool_call_name,
+                description=workflow.description,
+                nodes=workflow.draft_graph.get("nodes", []),
+                edges=workflow.draft_graph.get("edges", []),
+            ),
+        )
+
+        def handle_stream() -> Generator:
+            """处理工作流执行的流式输出
+
+            Returns:
+                Generator: 流式返回工作流执行过程中的节点结果
+
+            """
+            # 3.定义变量存储所有节点运行结果
+            node_results = []
+
+            # 4.创建工作流运行结果记录，包含初始状态和运行时信息
+            workflow_result = self.create(
+                WorkflowResult,
+                app_id=None,
+                account_id=account.id,
+                workflow_id=workflow.id,
+                graph=workflow.draft_graph,
+                state=[],
+                latency=0,
+                status=NodeStatus.RUNNING,
+            )
+
+            # 5.开始执行工作流并记录执行时间
+            start_at = time.perf_counter()
+            try:
+                # 5.1 流式获取工作流执行结果
+                for chunk in workflow_tool.stream(inputs):
+                    # 5.2 chunk格式为:{"node_name": WorkflowState}，取出第一个节点名称
+                    first_key = next(iter(chunk))
+
+                    # 5.3 处理节点运行结果
+                    # 5.3.1 跳过虚拟节点（无实际执行结果的节点）
+                    if len(chunk[first_key]["node_results"]) == 0:
+                        continue
+                    # 5.3.2 获取并转换节点结果为字典格式
+                    node_result = chunk[first_key]["node_results"][0]
+                    node_result_dict = convert_model_to_dict(node_result)
+                    node_results.append(node_result_dict)
+
+                    # 5.4 组装响应数据并流式输出
+                    data = {
+                        "id": str(uuid.uuid4()),
+                        **node_result_dict,
+                    }
+                    yield f"event: workflow\ndata: {json.dumps(data)}\n\n"
+
+                # 6.工作流执行成功，更新结果状态和调试状态
+                self.update(
+                    workflow_result,
+                    status=NodeStatus.SUCCEEDED,
+                    state=node_results,
+                    latency=(time.perf_counter() - start_at),
+                )
+                # 6.1 标记工作流调试通过
+                self.update(
+                    workflow,
+                    is_debug_passed=True,
+                )
+            except Exception:
+                # 7.处理执行过程中的异常，记录错误日志并更新失败状态
+                self.logger.exception(
+                    "执行工作流发生错误, workflow_id: %s",
+                    workflow_id,
+                )
+                # 7.1 更新工作流结果为失败状态
+                self.update(
+                    workflow_result,
+                    status=NodeStatus.FAILED,
+                    state=node_results,
+                    latency=(time.perf_counter() - start_at),
+                )
+
+        return handle_stream()
 
     def get_draft_graph(self, workflow_id: UUID, account: Account) -> dict:
         """获取工作流的草稿图数据。

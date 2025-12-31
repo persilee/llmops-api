@@ -1,3 +1,5 @@
+import time
+
 import requests
 from langchain_core.runnables import RunnableConfig
 
@@ -44,6 +46,8 @@ class HttpRequestNode(BaseNode):
             WorkflowState: 包含节点执行结果的工作流状态对象
 
         """
+        # 记录开始时间
+        start_at = time.perf_counter()
         # 1. 从工作流状态中提取节点输入变量字典
         _inputs_dict = extract_variables_from_state(self.node_data.inputs, state)
 
@@ -103,6 +107,7 @@ class HttpRequestNode(BaseNode):
                     status=NodeStatus.SUCCEEDED,  # 执行状态
                     inputs=inputs_dict,  # 输入参数
                     outputs=outputs,  # 输出结果
+                    latency=(time.perf_counter() - start_at),  # 执行耗时
                 ),
             ],
         }

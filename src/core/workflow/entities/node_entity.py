@@ -42,14 +42,25 @@ class BaseNodeData(BaseModel):
 
 
 class NodeStatus(str, Enum):
-    RUNNING = "running"
-    SUCCEEDED = "succeeded"
-    FAILED = "failed"
+    """节点状态枚举
+
+    用于表示工作流中节点的执行状态
+    """
+
+    RUNNING = "running"  # 运行中
+    SUCCEEDED = "succeeded"  # 执行成功
+    FAILED = "failed"  # 执行失败
 
 
 class NodeResult(BaseModel):
-    node_data: BaseNodeData
-    status: NodeStatus = NodeStatus.RUNNING
-    inputs: dict[str, Any] = Field(default_factory=dict)
-    outputs: dict[str, Any] = Field(default_factory=dict)
-    error: str = ""
+    """节点执行结果模型
+
+    用于存储工作流中节点的执行结果，包括节点数据、状态、输入输出等信息
+    """
+
+    node_data: BaseNodeData  # 节点的基础数据信息
+    status: NodeStatus = NodeStatus.RUNNING  # 节点执行状态，默认为运行中
+    inputs: dict[str, Any] = Field(default_factory=dict)  # 节点输入数据字典
+    outputs: dict[str, Any] = Field(default_factory=dict)  # 节点输出数据字典
+    latency: float = 0.0  # 节点执行延迟时间（秒）
+    error: str = ""  # 节点执行错误信息，若无错误则为空字符串

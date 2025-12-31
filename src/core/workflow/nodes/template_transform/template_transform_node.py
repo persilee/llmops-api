@@ -1,3 +1,4 @@
+import time
 from typing import Any
 
 from jinja2 import Template
@@ -45,6 +46,8 @@ class TemplateTransformNode(BaseNode):
                 - node_results: 节点执行结果列表，包含转换后的输出数据
 
         """
+        # 记录开始时间
+        start_at = time.perf_counter()
         # 从工作流状态中提取所需的输入变量
         inputs_dict = extract_variables_from_state(self.node_data.inputs, state)
 
@@ -64,6 +67,7 @@ class TemplateTransformNode(BaseNode):
                     status=NodeStatus.SUCCEEDED,
                     inputs=inputs_dict,
                     outputs=outputs,
+                    latency=(time.perf_counter() - start_at),
                 ),
             ],
         }

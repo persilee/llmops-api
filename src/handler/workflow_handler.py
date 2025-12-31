@@ -9,6 +9,7 @@ from injector import inject
 from pkg.paginator.paginator import PageModel
 from pkg.response.response import (
     Response,
+    compact_generate_response,
     success_json,
     success_message_json,
     validate_error_json,
@@ -198,3 +199,45 @@ class WorkflowHandler:
 
         # 返回包含草稿图数据的成功响应
         return success_json(draft_graph)
+
+    @route("/<uuid:workflow_id>/debug", methods=["POST"])
+    @swag_from(get_swagger_path("workflow_handler/debug_workflow.yaml"))
+    @login_required
+    def debug_workflow(self, workflow_id: UUID) -> Response:
+        """调试指定的工作流
+
+        Args:
+            workflow_id (UUID): 要调试的工作流ID
+
+        Returns:
+            Response: 包含调试结果的响应对象
+
+        """
+        # 从请求体中获取输入参数，如果没有则使用空字典
+        inputs = request.get_json(force=True, silent=True) or {}
+
+        # 调用服务层执行工作流调试
+        response = self.workflow_service.debug_workflow(
+            workflow_id,
+            inputs,
+            current_user,
+        )
+
+        # 返回调试结果的响应
+        return compact_generate_response(response)
+
+    @route("/<uuid:workflow_id>/publish", methods=["POST"])
+    @swag_from(get_swagger_path("workflow_handler/publish_workflow.yaml"))
+    @login_required
+    def publish_workflow(self, workflow_id: UUID) -> Response:
+        self.workflow_service.publish_workflow(workflow_id, current_user)
+
+        return success_message_json("工作流发布成功")
+
+    @route("/<uuid:workflow_id>/unpublish", methods=["POST"])
+    @swag_from(get_swagger_path("workflow_handler/cancel_publish_workflow.yaml"))
+    @login_required
+    def cancel_publish_workflow(self, workflow_id: UUID) -> Response:
+        self.workflow_service.cancel_publish_workflow(workflow_id, current_user)
+
+        return success_message_json("取消工作流发布成功")

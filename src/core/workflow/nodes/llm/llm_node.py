@@ -1,3 +1,4 @@
+import time
 from typing import Any
 
 from jinja2 import Template
@@ -60,6 +61,8 @@ class LLMNode(BaseNode):
             5. 返回包含节点执行结果的工作流状态
 
         """
+        # 记录开始时间
+        start_at = time.perf_counter()
         # 从工作流状态中提取所需的输入变量
         inputs_dict = extract_variables_from_state(self.node_data.inputs, state)
 
@@ -76,7 +79,9 @@ class LLMNode(BaseNode):
         )
 
         # 调用模型生成内容
-        content = llm.invoke(prompt_value).content
+        content = ""
+        for chunk in llm.stream(prompt_value):
+            content += chunk.content
 
         # 准备输出结果
         outputs = {}
@@ -95,6 +100,7 @@ class LLMNode(BaseNode):
                     status=NodeStatus.SUCCEEDED,  # 执行状态：成功
                     inputs=inputs_dict,  # 输入数据
                     outputs=outputs,  # 输出数据
+                    latency=(time.perf_counter() - start_at),  # 执行耗时
                 ),
             ],
         }

@@ -1,3 +1,4 @@
+import time
 from typing import Any
 
 from langchain_core.runnables import RunnableConfig
@@ -53,6 +54,8 @@ class StartNode(BaseNode):
             5. 返回包含处理结果的NodeResult对象
 
         """
+        # 记录开始时间
+        start_at = time.perf_counter()
         # 获取节点的输入配置
         inputs = self.node_data.inputs
 
@@ -84,6 +87,7 @@ class StartNode(BaseNode):
                     status=NodeStatus.SUCCEEDED,  # 执行状态为成功
                     inputs=state["inputs"],  # 原始输入参数
                     outputs=outputs,  # 处理后的输出结果
+                    latency=(time.perf_counter() - start_at),  # 执行耗时
                 ),
             ],
         }

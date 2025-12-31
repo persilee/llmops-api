@@ -1,3 +1,4 @@
+import time
 from typing import Any
 
 from langchain_core.runnables import RunnableConfig
@@ -46,6 +47,10 @@ class EndNode(BaseNode):
                     * outputs: 节点输出数据
 
         """
+        # 记录开始时间
+        start_at = time.perf_counter()
+
+        # 从工作流状态中提取指定的输出变量
         outputs_dict = extract_variables_from_state(self.node_data.outputs, state)
 
         return {
@@ -56,6 +61,7 @@ class EndNode(BaseNode):
                     status=NodeStatus.SUCCEEDED,
                     inputs={},
                     outputs=outputs_dict,
+                    latency=(time.perf_counter() - start_at),
                 ),
             ],
         }

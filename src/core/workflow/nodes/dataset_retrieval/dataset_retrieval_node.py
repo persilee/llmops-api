@@ -1,3 +1,4 @@
+import time
 from typing import Any
 from uuid import UUID
 
@@ -73,6 +74,8 @@ class DatasetRetrievalNode(BaseNode):
             WorkflowState: 包含节点执行结果的工作流状态
 
         """
+        # 记录开始时间
+        start_at = time.perf_counter()
         # 从工作流状态中提取输入变量
         inputs_dict = extract_variables_from_state(self.node_data.inputs, state)
 
@@ -96,6 +99,7 @@ class DatasetRetrievalNode(BaseNode):
                     status=NodeStatus.SUCCEEDED,
                     inputs=inputs_dict,
                     outputs=outputs,
+                    latency=(time.perf_counter() - start_at),
                 ),
             ],
         }
