@@ -1,4 +1,4 @@
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from src.core.workflow.entities.node_entity import BaseNodeData
 from src.core.workflow.entities.variable_entity import VariableEntity, VariableValueType
@@ -21,8 +21,24 @@ class TemplateTransformNodeData(BaseNodeData):
     template: str = ""  # 模板字符串，定义转换的模板格式
     inputs: list[VariableEntity] = Field(default_factory=list)  # 输入变量列表
     outputs: list[VariableEntity] = Field(
-        exclude=True,
         default_factory=lambda: [
             VariableEntity(name="output", value={"type": VariableValueType.GENERATED}),
         ],
     )  # 输出变量列表，默认包含一个生成类型的输出变量
+
+    @field_validator("outputs", mode="before")
+    @classmethod
+    def validate_outputs(cls, _values: list[VariableEntity]) -> list[VariableEntity]:
+        """验证并规范化输出变量列表
+
+        Args:
+            _values: 原始的输出变量列表，虽然传入但实际不会被使用
+
+        Returns:
+            list[VariableEntity]: 返回一个包含默认输出变量的列表，
+            该列表包含一个名为"output"的生成类型变量
+
+        """
+        return [
+            VariableEntity(name="output", value={"type": VariableValueType.GENERATED}),
+        ]

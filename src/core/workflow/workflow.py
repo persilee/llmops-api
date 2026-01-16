@@ -7,13 +7,15 @@ from langchain_core.runnables import RunnableConfig
 from langchain_core.runnables.utils import Input, Output
 from langgraph.graph import StateGraph
 from langgraph.graph.state import CompiledStateGraph
-from langgraph.prebuilt import ToolNode
 from pydantic import BaseModel, Field, PrivateAttr, create_model
 
 from src.core.workflow.entities.node_entity import BaseNodeData, NodeType
 from src.core.workflow.entities.variable_entity import VARIABLE_TYPE_MAP
 from src.core.workflow.entities.workflow_entity import WorkflowConfig, WorkflowState
 from src.core.workflow.nodes.code.code_node import CodeNode
+from src.core.workflow.nodes.dataset_retrieval.dataset_retrieval_node import (
+    DatasetRetrievalNode,
+)
 from src.core.workflow.nodes.end.end_node import EndNode
 from src.core.workflow.nodes.http_request.http_request_node import HttpRequestNode
 from src.core.workflow.nodes.llm.llm_node import LLMNode
@@ -21,6 +23,8 @@ from src.core.workflow.nodes.start.start_node import StartNode
 from src.core.workflow.nodes.template_transform.template_transform_node import (
     TemplateTransformNode,
 )
+from src.core.workflow.nodes.tool.tool_node import ToolNode
+from src.exception.exception import FailException
 
 # 节点类型映射字典，用于根据节点类型创建对应的节点实例
 # 键为节点类型枚举值，值为对应的节点类
@@ -29,6 +33,7 @@ NodeClasses = {
     NodeType.END: EndNode,  # 结束节点，工作流的出口点
     NodeType.LLM: LLMNode,  # LLM节点，用于处理大语言模型相关任务
     NodeType.TEMPLATE_TRANSFORM: TemplateTransformNode,  # 模板转换节点，用于格式转换
+    NodeType.DATASET_RETRIEVAL: DatasetRetrievalNode,  # 数据集检索节点，用于检索数据
     NodeType.CODE: CodeNode,  # 代码执行节点，用于执行自定义代码逻辑
     NodeType.TOOL: ToolNode,  # 工具节点，用于调用外部工具
     NodeType.HTTP_REQUEST: HttpRequestNode,  # HTTP请求节点，用于发送HTTP请求
@@ -88,23 +93,26 @@ class Workflow(BaseTool):
         4. 使用create_model动态生成Pydantic模型
 
         """
-        fields = {}
-        # 查找START节点的输入参数配置
-        inputs = next(
+        # 获取开始节点的输入配置
+        start_node = next(
             (
-                node.inputs
+                node
                 for node in workflow_config.nodes
-                if node.node_type == NodeType.START
+                if node.get("node_type") == NodeType.START
             ),
-            [],
+            None,
         )
+        if not start_node:
+            error_msg = "没有找到工作流配置中的开始节点"
+            raise FailException(error_msg)
 
+        fields = {}
         # 遍历每个输入参数，构建字段定义
-        for input in inputs:
-            field_name = input.name  # 字段名称
-            field_type = VARIABLE_TYPE_MAP.get(input.type, str)  # 字段类型，默认为str
-            field_required = input.required  # 是否必填
-            field_description = input.description  # 字段描述
+        for input in start_node.get("inputs", []):
+            field_name = input.get("name")
+            field_type = VARIABLE_TYPE_MAP.get(input.get("type"), str)
+            field_required = input.get("required", False)
+            field_description = input.get("description", "")
 
             # 创建字段定义，如果是非必填字段则允许None值
             fields[field_name] = (
@@ -131,16 +139,20 @@ class Workflow(BaseTool):
 
         """
         # 获取节点类型值
-        node_type = node.node_type.value
+        node_type = node.get("node_type")
         # 生成节点标识，格式为"节点类型_节点ID"
-        node_flag = f"{node_type}_{node.id}"
+        node_flag = f"{node_type}_{node.get('id')}"
 
         # 定义节点创建器字典，将节点类型映射到对应的创建函数
         node_creators = {
             # 开始节点创建器
-            NodeType.START: lambda: NodeClasses[NodeType.START](node_data=node),
+            NodeType.START: lambda: NodeClasses[NodeType.START](
+                node_data=node,
+            ),
             # LLM节点创建器
-            NodeType.LLM: lambda: NodeClasses[NodeType.LLM](node_data=node),
+            NodeType.LLM: lambda: NodeClasses[NodeType.LLM](
+                node_data=node,
+            ),
             # 模板转换节点创建器
             NodeType.TEMPLATE_TRANSFORM: lambda: NodeClasses[
                 NodeType.TEMPLATE_TRANSFORM
@@ -152,15 +164,21 @@ class Workflow(BaseTool):
                 node_data=node,
             ),
             # 代码节点创建器
-            NodeType.CODE: lambda: NodeClasses[NodeType.CODE](node_data=node),
+            NodeType.CODE: lambda: NodeClasses[NodeType.CODE](
+                node_data=node,
+            ),
             # 工具节点创建器
-            NodeType.TOOL: lambda: NodeClasses[NodeType.TOOL](node_data=node),
+            NodeType.TOOL: lambda: NodeClasses[NodeType.TOOL](
+                node_data=node,
+            ),
             # HTTP请求节点创建器
             NodeType.HTTP_REQUEST: lambda: NodeClasses[NodeType.HTTP_REQUEST](
                 node_data=node,
             ),
             # 结束节点创建器
-            NodeType.END: lambda: NodeClasses[NodeType.END](node_data=node),
+            NodeType.END: lambda: NodeClasses[NodeType.END](
+                node_data=node,
+            ),
         }
 
         # 获取对应节点类型的创建器
@@ -206,17 +224,17 @@ class Workflow(BaseTool):
         # 遍历所有边，构建节点间的连接关系
         for edge in self._workflow_config.edges:
             # 构建源节点和目标节点的唯一标识
-            source_node = f"{edge.source_type.value}_{edge.source}"
-            target_node = f"{edge.target_type.value}_{edge.target}"
+            source_node = f"{edge.get('source_type')}_{edge.get('source')}"
+            target_node = f"{edge.get('target_type')}_{edge.get('target')}"
 
             # 记录每个目标节点的所有源节点，用于处理并行边
             parallel_edges.setdefault(target_node, []).append(source_node)
 
             # 识别并记录起始节点和结束节点
-            if edge.source_type == NodeType.START:
-                start_node = f"{edge.source_type.value}_{edge.source}"
-            if edge.target_type == NodeType.END:
-                end_node = f"{edge.target_type.value}_{edge.target}"
+            if edge.get("source_type") == NodeType.START:
+                start_node = f"{edge.get('source_type')}_{edge.get('source')}"
+            if edge.get("target_type") == NodeType.END:
+                end_node = f"{edge.get('target_type')}_{edge.get('target')}"
 
         # 设置工作流的入口点和结束点
         graph.set_entry_point(start_node)

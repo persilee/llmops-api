@@ -2,7 +2,7 @@ import re
 from typing import Annotated, Any, TypedDict
 from uuid import UUID
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from src.core.workflow.entities.edge_entity import BaseEdgeData
 from src.core.workflow.entities.node_entity import BaseNodeData, NodeResult, NodeType
@@ -68,14 +68,19 @@ class WorkflowConfig(BaseModel):
     - 图结构验证（连通性、循环检测等）
     """
 
+    model_config = ConfigDict(
+        # 配置 pydantic 使用 any 序列化
+        arbitrary_types_allowed=True,
+    )
+
     account_id: UUID  # 工作流所属的账户ID
     account_id: UUID  # 工作流所属的账户ID
     name: str = ""  # 工作流名称，用于标识和展示工作流，必须是英文
     description: str = ""  # 工作流描述，详细说明工作流的功能和用途
-    nodes: list[BaseNodeData] = Field(
+    nodes: list[Any] = Field(
         default_factory=list,
     )  # 工作流节点列表，包含所有节点的配置信息
-    edges: list[BaseNodeData] = Field(
+    edges: list[Any] = Field(
         default_factory=list,
     )  # 工作流边列表，定义节点之间的连接关系
 

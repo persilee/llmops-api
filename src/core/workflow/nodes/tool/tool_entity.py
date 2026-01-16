@@ -25,7 +25,7 @@ class ToolNodeData(BaseNodeData):
 
     """
 
-    tool_type: Literal["builtin_tool", "api_tool", ""] = Field(alias="type")  # 工具类型
+    type: Literal["builtin_tool", "api_tool", ""]  # 工具类型
     provider_id: str  # 工具提供者id
     tool_id: str  # 工具id
     params: dict[str, Any] = Field(default_factory=dict)  # 内置工具设置参数
@@ -36,8 +36,8 @@ class ToolNodeData(BaseNodeData):
         ],
     )  # 输出字段列表信息
 
-    @classmethod
     @field_validator("outputs", mode="before")
+    @classmethod
     def validate_outputs(cls, _outputs: list[VariableEntity]) -> list[VariableEntity]:
         """验证并标准化工具节点的输出字段配置
 

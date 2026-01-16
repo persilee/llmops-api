@@ -75,8 +75,8 @@ class VariableEntity(BaseModel):
             ref_node_id: UUID | None = None
             ref_var_name: str = ""
 
-            @classmethod
             @field_validator("ref_node_id", mode="before")
+            @classmethod
             def validate_ref_node_id(cls, ref_node_id: UUID | None) -> UUID | None:
                 return ref_node_id if ref_node_id != "" else None
 
@@ -104,8 +104,8 @@ class VariableEntity(BaseModel):
     )  # 变量对应的值
     meta: dict[str, Any] = Field(default_factory=dict)  # 变量元数据，存储一些额外的信息
 
-    @classmethod
     @field_validator("name")
+    @classmethod
     def validate_name(cls, value: str) -> str:
         """自定义校验函数，用于校验变量名字"""
         if not re.match(VARIABLE_NAME_PATTERN, value):
@@ -113,8 +113,8 @@ class VariableEntity(BaseModel):
             raise ValidateErrorException(error_msg)
         return value
 
-    @classmethod
     @field_validator("description")
+    @classmethod
     def validate_description(cls, value: str) -> str:
         """自定义校验函数，用于校验描述信息，截取前1024个字符"""
         return value[:VARIABLE_DESCRIPTION_MAX_LENGTH]

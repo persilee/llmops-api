@@ -57,8 +57,8 @@ class HttpRequestNodeData(BaseNodeData):
         ],
     )
 
-    @classmethod
     @field_validator("url", mode="before")
+    @classmethod
     def validate_url(cls, url: HttpUrl | None) -> HttpUrl | None:
         """验证并处理HTTP请求的URL字段
 
@@ -68,14 +68,11 @@ class HttpRequestNodeData(BaseNodeData):
         Returns:
             HttpUrl | None: 如果输入为空字符串则返回None，否则返回原始URL对象
 
-        Note:
-            该验证器在字段验证之前运行(pre=True)，并且总是运行(always=True)
-
         """
         return url if url != "" else None
 
-    @classmethod
     @field_validator("outputs", mode="before")
+    @classmethod
     def validate_outputs(cls, _outputs: list[VariableEntity]) -> list[VariableEntity]:
         """验证并设置HTTP请求节点的输出变量
 
@@ -100,8 +97,8 @@ class HttpRequestNodeData(BaseNodeData):
             VariableEntity(name="text", value={"type": VariableValueType.GENERATED}),
         ]
 
-    @classmethod
     @field_validator("inputs")
+    @classmethod
     def validate_inputs(cls, inputs: list[VariableEntity]) -> list[VariableEntity]:
         """校验输入列表数据"""
         # 1.校验判断输入变量列表中的类型信息

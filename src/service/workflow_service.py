@@ -1,14 +1,16 @@
+import json
 import logging
 import time
 import uuid
 from collections.abc import Generator
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
+from venv import logger
 
 from flask import request
 from injector import inject
-from pydantic import json
 
 from pkg.paginator.paginator import Paginator
 from pkg.sqlalchemy.sqlalchemy import SQLAlchemy
@@ -18,6 +20,7 @@ from src.core.tools.builtin_tools.providers.builtin_provider_manager import (
 from src.core.workflow import Workflow as WorkflowTool
 from src.core.workflow.entities.edge_entity import BaseEdgeData
 from src.core.workflow.entities.node_entity import BaseNodeData, NodeStatus, NodeType
+from src.core.workflow.entities.variable_entity import VariableEntity
 from src.core.workflow.entities.workflow_entity import WorkflowConfig
 from src.core.workflow.nodes.code.code_entity import CodeNodeData
 from src.core.workflow.nodes.dataset_retrieval.dataset_retrieval_entity import (
@@ -31,14 +34,18 @@ from src.core.workflow.nodes.template_transform.template_transform_entity import
     TemplateTransformNodeData,
 )
 from src.core.workflow.nodes.tool.tool_entity import ToolNodeData
-from src.entity.workflow_entity import DEFAULT_WORKFLOW_CONFIG, WorkflowStatus
+from src.entity.workflow_entity import (
+    DEFAULT_DRAFT_GRAPH,
+    DEFAULT_WORKFLOW_CONFIG,
+    WorkflowStatus,
+)
 from src.exception.exception import (
     FailException,
     ForbiddenException,
     NotFoundException,
     ValidateErrorException,
 )
-from src.lib.helper import convert_model_to_dict
+from src.lib.helper import convert_model_to_dict, make_serializable
 from src.model.account import Account
 from src.model.api_tool import ApiTool
 from src.model.dataset import Dataset
@@ -223,11 +230,12 @@ class WorkflowService(BaseService):
                     workflow,
                     is_debug_passed=True,
                 )
-            except Exception:
+            except (ValidateErrorException, ValueError, RuntimeError) as e:
                 # 7.处理执行过程中的异常，记录错误日志并更新失败状态
-                self.logger.exception(
-                    "执行工作流发生错误, workflow_id: %s",
+                logger.exception(
+                    "执行工作流发生错误, workflow_id: %s error: %s",
                     workflow_id,
+                    e,
                 )
                 # 7.1 更新工作流结果为失败状态
                 self.update(
@@ -275,7 +283,7 @@ class WorkflowService(BaseService):
         for node in validate_draft_graph["nodes"]:
             if node.get("node_type") == NodeType.TOOL:
                 # 4.判断工具的类型执行不同的操作
-                if node.get("tool_type") == "builtin_tool":
+                if node.get("type") == "builtin_tool":
                     # 5.节点类型为工具，则附加工具的名称、图标、参数等额外信息
                     provider = self.builtin_provider_manager.get_provider(
                         node.get("provider_id"),
@@ -318,7 +326,7 @@ class WorkflowService(BaseService):
                             "params": params,
                         },
                     }
-                elif node.get("tool_type") == "api_tool":
+                elif node.get("type") == "api_tool":
                     # 9.查询数据库获取对应的工具记录，并检测是否存在
                     tool_record = (
                         self.db.session.query(ApiTool)
@@ -463,6 +471,7 @@ class WorkflowService(BaseService):
                 "is_debug_passed": False,  # 初始调试状态为未通过
                 "status": WorkflowStatus.DRAFT,  # 初始状态为草稿
                 "tool_call_name": req.tool_call_name.data.strip(),  # 工作流名称
+                "draft_graph": DEFAULT_DRAFT_GRAPH,  # 草稿图配置
             },
         )
 
@@ -633,7 +642,13 @@ class WorkflowService(BaseService):
         validate_draft_graph = self._validate_graph(workflow_id, draft_graph, account)
 
         # 更新工作流的草稿图，并将调试状态重置为未通过
-        self.update(workflow, draft_graph=validate_draft_graph, is_debug_passed=False)
+        serializable_graph = make_serializable(validate_draft_graph)
+        self.update(
+            workflow,
+            draft_graph=serializable_graph,
+            is_debug_passed=False,
+            updated_at=datetime.now(UTC),
+        )
 
         # 返回更新后的工作流对象
         return workflow
@@ -703,8 +718,35 @@ class WorkflowService(BaseService):
                 )
                 # 将验证通过的节点数据存入字典
                 node_data_dict[node_data.id] = node_data
-            except (ValueError, ValidateErrorException):
+            except (ValueError, ValidateErrorException) as e:
+                if node.get("node_type") == NodeType.END:
+                    # 获取结束节点的输出配置
+                    outputs = node.get("outputs", [])
+                    # 遍历输出配置，找出无效的输出
+                    valid_outputs = []
+                    for output in outputs:
+                        try:
+                            # 验证每个输出项
+                            VariableEntity(**output)
+                            valid_outputs.append(output)
+                        except (ValueError, ValidateErrorException) as output_error:
+                            error_msg = (
+                                f"结束节点输出验证失败: {output}, error: {output_error}"
+                            )
+                            logger.warning(error_msg)
+                            continue
+
+                    # 更新节点的输出配置，只保留有效的输出
+                    node["outputs"] = valid_outputs
+                    node_data = self._validate_node(
+                        node,
+                        node_data_classes,
+                        node_data_dict,
+                    )
+                    node_data_dict[node_data.id] = node_data
+
                 # 如果节点验证失败，跳过该节点
+                logger.warning(f"节点验证失败: {node}, error: {e}")
                 continue
 
         # 初始化边数据字典
@@ -718,6 +760,7 @@ class WorkflowService(BaseService):
                 edge_data_dict[edge_data.id] = edge_data
             except (ValueError, ValidateErrorException):
                 # 如果边验证失败，跳过该边
+                logger.warning(f"边 {edge} 验证失败，跳过该边")
                 continue
 
         # 构建并返回验证后的工作流图

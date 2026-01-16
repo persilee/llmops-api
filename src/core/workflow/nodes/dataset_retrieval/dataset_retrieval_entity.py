@@ -40,7 +40,6 @@ class DatasetRetrievalNodeData(BaseNodeData):
     inputs: list[VariableEntity] = Field(default_factory=list)
     # 输出变量列表，默认包含一个名为combine_documents的生成类型变量
     outputs: list[VariableEntity] = Field(
-        exclude=True,
         default_factory=lambda: [
             VariableEntity(
                 name="combine_documents",
@@ -49,8 +48,31 @@ class DatasetRetrievalNodeData(BaseNodeData):
         ],
     )
 
+    @field_validator("outputs", mode="before")
     @classmethod
+    def validate_outputs(cls, _value: list[VariableEntity]) -> list[VariableEntity]:
+        """验证知识库检索节点的输出参数
+
+        Args:
+            _value: 输入的输出变量列表（会被忽略）
+
+        Returns:
+            list[VariableEntity]: 固定的输出变量列表，\
+                包含一个名为combine_documents的生成类型变量
+
+        Note:
+            该验证器会忽略输入值，始终返回一个固定的输出变量配置
+
+        """
+        return [
+            VariableEntity(
+                name="combine_documents",
+                value={"type": VariableValueType.GENERATED},
+            ),
+        ]
+
     @field_validator("inputs")
+    @classmethod
     def validate_inputs(cls, value: list[VariableEntity]) -> list[VariableEntity]:
         """验证知识库检索节点的输入参数
 

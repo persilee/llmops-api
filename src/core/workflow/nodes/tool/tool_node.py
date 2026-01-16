@@ -41,7 +41,7 @@ class ToolNode(BaseNode):
         from app.http.module import injector
 
         # 3.判断是内置插件还是API插件，执行不同的操作
-        if self.node_data.tool_type == "builtin_tool":
+        if self.node_data.type == "builtin_tool":
             from src.core.tools.builtin_tools.providers import BuiltinProviderManager
 
             builtin_provider_manager = injector.get(BuiltinProviderManager)

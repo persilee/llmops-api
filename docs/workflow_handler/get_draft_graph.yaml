@@ -37,12 +37,95 @@ responses:
                   type: "array"
                   items:
                     type: "object"
-                  example: []
+                    properties:
+                      id:
+                        type: "string"
+                        example: "675fca50-1228-8008-82dc-0c714158534c"
+                      source:
+                        type: "string"
+                        example: "18d938c4-ecd7-4a6b-9403-3625224b96cc"
+                      source_type:
+                        type: "string"
+                        example: "start"
+                      target:
+                        type: "string"
+                        example: "868b5769-1925-4e7b-8aa4-af7c3d444d91"
+                      target_type:
+                        type: "string"
+                        example: "dataset_retrieval"
                 nodes:
                   type: "array"
                   items:
                     type: "object"
-                  example: []
+                    properties:
+                      description:
+                        type: "string"
+                        example: "工作流的起点节点，支持定义工作流的起点输入等信息。"
+                      id:
+                        type: "string"
+                        example: "18d938c4-ecd7-4a6b-9403-3625224b96cc"
+                      inputs:
+                        type: "array"
+                        items:
+                          type: "object"
+                          properties:
+                            description:
+                              type: "string"
+                              example: "用户输入的query信息"
+                            meta:
+                              required: []
+                              properties: {}
+                              type: "object"
+                            name:
+                              type: "string"
+                              example: "query"
+                            required:
+                              type: "boolean"
+                              example: true
+                            type:
+                              type: "string"
+                              example: "string"
+                            value:
+                              required:
+                                - "content"
+                                - "type"
+                              properties:
+                                content:
+                                  oneOf:
+                                    - type: string
+                                      example: "这是字符串内容"
+                                    - type: object
+                                      properties:
+                                        title:
+                                          type: string
+                                        body:
+                                          type: string
+                                      example:
+                                        title: "对象标题"
+                                        body: "对象内容"
+                                description: "可以是字符串或对象类型"
+                                type:
+                                  type: "string"
+                                  example: "generated"
+                              type: "object"
+                      node_type:
+                        type: "string"
+                        example: "start"
+                      position:
+                        required:
+                          - "x"
+                          - "y"
+                        properties:
+                          x:
+                            type: "number"
+                            example: 400
+                          y:
+                            type: "number"
+                            example: 400
+                        type: "object"
+                      title:
+                        type: "string"
+                        example: "开始节点"
               type: "object"
             message:
               type: "string"

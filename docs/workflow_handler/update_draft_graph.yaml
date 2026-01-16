@@ -34,8 +34,8 @@ responses:
               type: "string"
               example: "success"
             data:
-              type: "string"
-              example: ""
+              type: "object"
+              example: {}
             message:
               type: "string"
-              example: "更新工作流成功"
+              example: "更新工作流草稿成功"

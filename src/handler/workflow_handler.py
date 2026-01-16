@@ -15,6 +15,7 @@ from pkg.response.response import (
     validate_error_json,
 )
 from pkg.swagger.swagger import get_swagger_path
+from src.lib.helper import make_serializable
 from src.router.redprint import route
 from src.schemas.workflow_schema import (
     CreateWorkflowReq,
@@ -198,7 +199,8 @@ class WorkflowHandler:
         draft_graph = self.workflow_service.get_draft_graph(workflow_id, current_user)
 
         # 返回包含草稿图数据的成功响应
-        return success_json(draft_graph)
+        serialized_graph = make_serializable(draft_graph)
+        return success_json(serialized_graph)
 
     @route("/<uuid:workflow_id>/debug", methods=["POST"])
     @swag_from(get_swagger_path("workflow_handler/debug_workflow.yaml"))

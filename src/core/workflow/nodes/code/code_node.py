@@ -4,9 +4,10 @@ from typing import Any, ClassVar
 
 from langchain_core.runnables import RunnableConfig
 
-from src.core.workflow.entities.node_entity import BaseNodeData, NodeResult, NodeStatus
+from src.core.workflow.entities.node_entity import NodeResult, NodeStatus
 from src.core.workflow.entities.variable_entity import VARIABLE_TYPE_DEFAULT_VALUE_MAP
 from src.core.workflow.entities.workflow_entity import WorkflowState
+from src.core.workflow.nodes.base_node import BaseNode
 from src.core.workflow.nodes.code.code_entity import CodeNodeData
 from src.core.workflow.utils.helper import extract_variables_from_state
 from src.exception.exception import FailException
@@ -14,60 +15,6 @@ from src.exception.exception import FailException
 
 class SafeCodeExecutor:
     """安全的代码执行器"""
-
-    @classmethod
-    def _validate_code(cls, tree: ast.AST) -> None:
-        """验证代码的安全性"""
-        forbidden_nodes = (
-            ast.Import,
-            ast.ImportFrom,
-            ast.Exec,
-            ast.Eval,
-            ast.Attribute,  # 禁止属性访问
-            ast.Subscript,  # 禁止下标访问
-        )
-
-        forbidden_names = {
-            "eval",
-            "exec",
-            "compile",
-            "__import__",
-            "open",
-            "file",
-            "input",
-            "raw_input",
-            "globals",
-            "locals",
-            "vars",
-            "dir",
-            "reload",
-            "help",
-            "exit",
-            "quit",
-        }
-
-        for node in ast.walk(tree):
-            # 检查禁用的节点类型
-            if isinstance(node, forbidden_nodes):
-                if isinstance(node, ast.Call):
-                    if (
-                        isinstance(node.func, ast.Name)
-                        and node.func.id in forbidden_names
-                    ):
-                        error_msg = f"不允许使用 {node.func.id} 函数"
-                        cls._raise_error(error_msg)
-                else:
-                    error_msg = "不允许使用此类型的操作"
-                    cls._raise_error(error_msg)
-
-            # 检查函数调用
-            if (
-                isinstance(node, ast.Call)
-                and isinstance(node.func, ast.Name)
-                and node.func.id not in cls.ALLOWED_BUILTINS
-            ):
-                error_msg = f"不允许使用 {node.func.id} 函数"
-                cls._raise_error(error_msg)
 
     ALLOWED_BUILTINS: ClassVar[dict[str, Any]] = {
         "print": print,
@@ -137,9 +84,6 @@ class SafeCodeExecutor:
                 error_msg = "代码必须包含一个名为main的函数"
                 cls._raise_error(error_msg)
 
-            # 验证代码中是否包含不安全的操作
-            cls._validate_code(tree)
-
             # 将语法树编译为可执行代码对象
             compiled_code = compile(tree, filename="<ast>", mode="exec")
 
@@ -166,7 +110,7 @@ class SafeCodeExecutor:
             cls._raise_error(error_msg)
 
 
-class CodeNode(BaseNodeData):
+class CodeNode(BaseNode):
     """代码执行节点，用于在工作流中执行Python代码。
 
     该节点可以：

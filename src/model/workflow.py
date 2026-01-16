@@ -59,11 +59,13 @@ class Workflow(db.Model):
         JSONB,
         nullable=False,
         info={"description": "运行时配置"},
+        server_default=text("'{}'::jsonb"),
     )
     draft_graph = Column(
         JSONB,
         nullable=False,
         info={"description": "草稿图配置"},
+        server_default=text("'{}'::jsonb"),
     )
     is_debug_passed = Column(
         Boolean,
@@ -111,7 +113,7 @@ class WorkflowResult(db.Model):
     )
     app_id = Column(
         UUID,
-        nullable=False,
+        nullable=True,
         info={"description": "关联应用id"},
     )
     account_id = Column(
@@ -128,6 +130,7 @@ class WorkflowResult(db.Model):
         JSONB,
         nullable=False,
         info={"description": "运行时配置"},
+        server_default=text("'{}'::jsonb"),
     )
     status = Column(
         String(255),
@@ -139,6 +142,7 @@ class WorkflowResult(db.Model):
         JSONB,
         nullable=False,
         info={"description": "最终状态"},
+        server_default=text("'{}'::jsonb"),
     )
     latency = Column(
         Float,

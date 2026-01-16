@@ -14,6 +14,7 @@ from src.core.workflow.nodes.dataset_retrieval.dataset_retrieval_entity import (
     DatasetRetrievalNodeData,
 )
 from src.core.workflow.utils.helper import extract_variables_from_state
+from src.service.retrieval_service import RetrievalConfig
 
 
 class DatasetRetrievalNode(BaseNode):
@@ -50,11 +51,14 @@ class DatasetRetrievalNode(BaseNode):
         retrieval_service = injector.get(RetrievalService)
 
         # 使用RetrievalService创建知识库检索工具
-        self._retrieval_tool = retrieval_service.create_langchain_tool_from_search(
+        retrieval_config = RetrievalConfig(
             flask_app=flask_app,
             dataset_ids=self.node_data.dataset_ids,  # 使用节点配置中的知识库ID列表
             account_id=account_id,  # 使用传入的账户ID
-            **self.node_data.retrieval_config.dict(),  # 使用节点配置中的检索参数
+            **self.node_data.retrieval_config.model_dump(),  # 使用节点配置中的检索参数
+        )
+        self._retrieval_tool = retrieval_service.create_langchain_tool_from_search(
+            retrieval_config,
         )
 
     def invoke(

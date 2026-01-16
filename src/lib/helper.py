@@ -9,7 +9,7 @@ from uuid import UUID
 
 from flask import current_app
 from langchain_core.documents import Document
-from pydantic import BaseModel
+from pydantic import BaseModel, HttpUrl
 
 
 def dynamic_import(module_name: str, class_name: str) -> Any:
@@ -156,4 +156,31 @@ def convert_model_to_dict(obj: Any, *args: Any, **kwargs: Any) -> dict:
         }
 
     # 7.对其他类型的字段，保持原样
+    return obj
+
+
+def make_serializable(obj: Any) -> Any:
+    """将对象转换为可序列化的格式。
+
+    递归处理对象，确保所有嵌套结构都可以被序列化。
+
+    Args:
+        obj (Any): 需要序列化的对象
+
+    Returns:
+        Any: 可序列化的对象
+
+    处理规则：
+        1. HttpUrl类型转换为字符串
+        2. 字典类型递归处理每个键值对
+        3. 列表类型递归处理每个元素
+        4. 其他类型保持原样
+
+    """
+    if isinstance(obj, HttpUrl):
+        return str(obj)
+    if isinstance(obj, dict):
+        return {k: make_serializable(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [make_serializable(item) for item in obj]
     return obj
