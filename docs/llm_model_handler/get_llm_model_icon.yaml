@@ -1,0 +1,23 @@
+获取大语言图标
+---
+tags:
+  - 大语言模型
+summary: 获取大语言图标
+description:
+operationId: get_llm_model_icon
+parameters:
+  - name: provider_name
+    in: path
+    required: true
+    schema:
+      type: string
+      default: "deepseek"
+responses:
+  "200":
+    description: 获取图标成功
+    content:
+      image/svg+xml:
+        schema:
+          type: string
+          format: binary
+          description: 提供商图标

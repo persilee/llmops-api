@@ -1,0 +1,142 @@
+获取大语言详情
+---
+tags:
+  - 大语言模型
+summary: 获取大语言模型详情
+description:
+operationId: get_llm_model
+parameters:
+  - name: provider_name
+    in: path
+    required: true
+    schema:
+      type: string
+      default: "deepseek"
+  - name: model_name
+    in: path
+    required: true
+    schema:
+      type: string
+      default: "deepseek-chat"
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              required:
+                - "attributes"
+                - "context_window"
+                - "features"
+                - "label"
+                - "max_output_tokens"
+                - "metadata"
+                - "model_name"
+                - "model_type"
+                - "parameters"
+              properties:
+                attributes:
+                  required:
+                    - "model"
+                  properties:
+                    model:
+                      type: "string"
+                      example: "deepseek-chat"
+                  type: "object"
+                context_window:
+                  type: "number"
+                  example: 64000
+                features:
+                  type: "array"
+                  items:
+                    type: "string"
+                  example:
+                    - "agent_thought"
+                label:
+                  type: "string"
+                  example: "deepseek-v3"
+                max_output_tokens:
+                  type: "number"
+                  example: 8000
+                metadata:
+                  required:
+                    - "pricing"
+                  properties:
+                    pricing:
+                      required:
+                        - "currency"
+                        - "input"
+                        - "output"
+                        - "unit"
+                      properties:
+                        currency:
+                          type: "string"
+                          example: "RMB"
+                        input:
+                          type: "number"
+                          example: 0.002
+                        output:
+                          type: "number"
+                          example: 0.008
+                        unit:
+                          type: "number"
+                          example: 0.001
+                      type: "object"
+                  type: "object"
+                model_name:
+                  type: "string"
+                  example: "deepseek-chat"
+                model_type:
+                  type: "string"
+                  example: "chat"
+                parameters:
+                  type: "array"
+                  items:
+                    type: "object"
+                    properties:
+                      default:
+                        type: "number"
+                        example: 4000
+                      help:
+                        type: "string"
+                        example: "要生成的标记的最大数量，类型为整型"
+                      label:
+                        type: "string"
+                        example: "最大标记"
+                      max:
+                        type: "number"
+                        example: 8000
+                      min:
+                        type: "number"
+                        example: 1
+                      name:
+                        type: "string"
+                        example: "max_tokens"
+                      options:
+                        type: "array"
+                        items:
+                          type: "undefined"
+                        example: []
+                      precision:
+                        type: "number"
+                        example: 0
+                      required:
+                        type: "boolean"
+                        example: false
+                      type:
+                        type: "string"
+                        example: "int"
+              type: "object"
+            message:
+              type: "string"
+              example: ""

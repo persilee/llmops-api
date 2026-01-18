@@ -1,0 +1,153 @@
+获取大语言模型列表
+---
+tags:
+  - 大语言模型
+summary: 获取大语言模型列表
+description:
+operationId: get_llm_models
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              type: "array"
+              items:
+                type: "object"
+                properties:
+                  background:
+                    type: "string"
+                    example: "#E5E7EB"
+                  description:
+                    type: "string"
+                    example: "OpenAI提供的模型，例如GPT-4o-mini和GPT-4o。"
+                  icon:
+                    type: "string"
+                    example: "icon.svg"
+                  label:
+                    type: "string"
+                    example: "OpenAI"
+                  models:
+                    type: "array"
+                    items:
+                      type: "object"
+                      properties:
+                        attributes:
+                          required:
+                            - "model"
+                          properties:
+                            model:
+                              type: "string"
+                              example: "gpt-4o"
+                          type: "object"
+                        context_window:
+                          type: "number"
+                          example: 128000
+                        features:
+                          type: "array"
+                          items:
+                            type: "string"
+                          example:
+                            - "tool_call"
+                            - "agent_thought"
+                            - "image_input"
+                        label:
+                          type: "string"
+                          example: "gpt-4o"
+                        max_output_tokens:
+                          type: "number"
+                          example: 16384
+                        metadata:
+                          required:
+                            - "pricing"
+                          properties:
+                            pricing:
+                              required:
+                                - "currency"
+                                - "input"
+                                - "output"
+                                - "unit"
+                              properties:
+                                currency:
+                                  type: "string"
+                                  example: "RMB"
+                                input:
+                                  type: "number"
+                                  example: 0.0183
+                                output:
+                                  type: "number"
+                                  example: 0.0733
+                                unit:
+                                  type: "number"
+                                  example: 0.001
+                              type: "object"
+                          type: "object"
+                        model_name:
+                          type: "string"
+                          example: "gpt-4o"
+                        model_type:
+                          type: "string"
+                          example: "chat"
+                        parameters:
+                          type: "array"
+                          items:
+                            type: "object"
+                            properties:
+                              default:
+                                type: "number"
+                                example: 1
+                              help:
+                                type: "string"
+                                example: "温度控制随机性，较低的温度会导致较少的随机生成。随着温度接近零，模型将变得更确定，较高的温度会导致更多随机内容被生成"
+                              label:
+                                type: "string"
+                                example: "温度"
+                              max:
+                                type: "number"
+                                example: 2
+                              min:
+                                type: "number"
+                                example: 0
+                              name:
+                                type: "string"
+                                example: "temperature"
+                              options:
+                                type: "array"
+                                items:
+                                  type: "undefined"
+                                example: []
+                              precision:
+                                type: "number"
+                                example: 2
+                              required:
+                                type: "boolean"
+                                example: false
+                              type:
+                                type: "string"
+                                example: "float"
+                  name:
+                    type: "string"
+                    example: "openai"
+                  position:
+                    type: "number"
+                    example: 1
+                  support_model_types:
+                    type: "array"
+                    items:
+                      type: "string"
+                    example:
+                      - "chat"
+                      - "completion"
+            message:
+              type: "string"
+              example: ""

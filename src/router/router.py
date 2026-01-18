@@ -12,6 +12,7 @@ from src.handler.auth_handler import AuthHandler
 from src.handler.builtin_app_handler import BuiltinAppHandler
 from src.handler.dataset_handler import DatasetHandler
 from src.handler.document_handler import DocumentHandler
+from src.handler.llm_model_handler import LLMModelHandler
 from src.handler.oauth_handler import OAuthHandler
 from src.handler.openapi_handler import OpenApiHandler
 from src.handler.segment_handler import SegmentHandler
@@ -40,6 +41,7 @@ class Router:
     openapi_handler: OpenApiHandler
     builtin_app_handler: BuiltinAppHandler
     workflow_handler: WorkflowHandler
+    llm_model_handler: LLMModelHandler
 
     def register_route(self, app: Flask) -> None:
         """注册路由"""
@@ -60,6 +62,7 @@ class Router:
         register_with_class(self.api_key_handler, bp, url_prefix="api-keys")
         register_with_class(self.builtin_app_handler, bp, url_prefix="builtin-apps")
         register_with_class(self.workflow_handler, bp, url_prefix="workflows")
+        register_with_class(self.llm_model_handler, bp, url_prefix="llm-models")
         register_with_class(self.openapi_handler, bp_openapi, url_prefix="openapi")
 
         app.register_blueprint(bp)

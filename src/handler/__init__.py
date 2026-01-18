@@ -8,6 +8,7 @@ from .builtin_app_handler import BuiltinAppHandler
 from .builtin_tool_handler import BuiltinToolHandler
 from .dataset_handler import DatasetHandler
 from .document_handler import DocumentHandler
+from .llm_model_handler import LLMModelHandler
 from .oauth_handler import OAuthHandler
 from .openapi_handler import OpenApiHandler
 from .segment_handler import SegmentHandler
@@ -24,6 +25,7 @@ __all__ = [
     "BuiltinToolHandler",
     "DatasetHandler",
     "DocumentHandler",
+    "LLMModelHandler",
     "OAuthHandler",
     "OpenApiHandler",
     "SegmentHandler",
