@@ -16,6 +16,7 @@ from pkg.response.response import (
     validate_error_json,
 )
 from pkg.swagger.swagger import get_swagger_path
+from src.core.llm_model.llm_model_manager import LLMModelManager
 from src.model import App
 from src.router import route
 from src.schemas.app_schema import (
@@ -42,6 +43,7 @@ if TYPE_CHECKING:
 @dataclass
 class AppHandler:
     app_service: AppService
+    llm_model_manager: LLMModelManager
 
     @route("/<uuid:app_id>/copy", methods=["POST"])
     @swag_from(get_swagger_path("app_handler/copy_app.yaml"))
@@ -494,4 +496,9 @@ class AppHandler:
 
     @route("/ping", methods=["GET"])
     def ping(self) -> Response:
-        return "pong"
+        model_class = self.llm_model_manager.get_model_class_by_provider_and_model(
+            "deepseek",
+            "deepseek-chat",
+        )
+        llm = model_class(model="deepseek-chat")
+        return success_message_json(llm.invoke("你好!").content)
