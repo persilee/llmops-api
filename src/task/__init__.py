@@ -1,5 +1,5 @@
-from .test_task import test_task
+from .app_task import auto_create_app
 
 __all__ = [
-    "test_task",
+    "auto_create_app",
 ]

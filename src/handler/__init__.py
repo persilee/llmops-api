@@ -3,6 +3,7 @@ from .ai_handler import AIHandler
 from .api_key_handler import ApiKeyHandler
 from .api_tool_handler import ApiToolHandler
 from .app_handler import AppHandler
+from .assistant_agent_handler import AssistantAgentHandler
 from .auth_handler import AuthHandler
 from .builtin_app_handler import BuiltinAppHandler
 from .builtin_tool_handler import BuiltinToolHandler
@@ -20,6 +21,7 @@ __all__ = [
     "ApiKeyHandler",
     "ApiToolHandler",
     "AppHandler",
+    "AssistantAgentHandler",
     "AuthHandler",
     "BuiltinAppHandler",
     "BuiltinToolHandler",

@@ -1,0 +1,22 @@
+辅助智能体会话
+---
+tags:
+  - 辅助智能体
+summary: 辅助智能体会话
+description:
+operationId: assistant_agent_chat
+requestBody:
+  content:
+    application/json:
+      schema:
+        $ref: "#/components/schemas/AssistantAgentChat"
+responses:
+  "200":
+    content:
+      application/json:
+        schema:
+          $ref: "#/components/schemas/BaseRespBody"
+        example:
+          code: "success"
+          message: ""
+          data: {}

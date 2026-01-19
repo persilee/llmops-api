@@ -1,0 +1,25 @@
+停止辅助智能体对话
+---
+tags:
+  - 辅助智能体
+summary: 停止辅助智能体对话
+description:
+operationId: stop_assistant_agent_chat
+parameters:
+  - name: task_id
+    in: path
+    required: true
+    schema:
+      type: string
+      default: "a72fb5a8-e8b5-4141-9a56-2f8b17407371"
+    format: uuid
+responses:
+  "200":
+    content:
+      application/json:
+        schema:
+          $ref: "#/components/schemas/BaseRespBody"
+        example:
+          code: "success"
+          message: "停止调试对话成功"
+          data: {}

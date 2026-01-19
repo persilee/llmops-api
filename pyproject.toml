@@ -43,6 +43,7 @@ dependencies = [
     "jinja2>=3.1.6",
     "langchain-ollama>=1.0.1",
     "dashscope>=1.25.8",
+    "faiss-cpu>=1.13.2",
 ]
 
 [tool.rye.scripts]

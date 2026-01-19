@@ -1,0 +1,132 @@
+获取辅助智能体会话记录列表
+---
+tags:
+  - 辅助智能体
+summary: 获取辅助智能体会话记录列表
+description:
+operationId: get_assistant_agent_messages_with_page
+parameters:
+  - $ref: "#/components/parameters/currentPageParam"
+  - $ref: "#/components/parameters/pageSizeParam"
+  - name: created_at
+    in: query
+    schema:
+      type: number
+      default: 1764968142
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              required:
+                - "list"
+                - "paginator"
+              properties:
+                list:
+                  type: "array"
+                  items:
+                    required:
+                      - "agent_thoughts"
+                      - "answer"
+                      - "conversation_id"
+                      - "created_at"
+                      - "id"
+                      - "image_urls"
+                      - "latency"
+                      - "query"
+                      - "total_token_count"
+                    properties:
+                      agent_thoughts:
+                        type: "array"
+                        items:
+                          type: "object"
+                          properties:
+                            created_at:
+                              type: "number"
+                              example: 1765272155
+                            event:
+                              type: "string"
+                              example: "long_term_memory_recall"
+                            id:
+                              type: "string"
+                              example: "9ef55739-5a19-4e62-96ee-501b06a4dc71"
+                            latency:
+                              type: "number"
+                              example: 0
+                            observation:
+                              type: "string"
+                              example: "人类询问AI对自己身份的看法，AI认为人类Persilee是一位对民谣音乐充满热情的爱好者，可能对创作、作词和作曲有兴趣。AI表示乐意提供帮助，解答具体问题或讨论内容。此前，人类询问2025年马拉松的前三名，AI无法提供相关信息，因为赛事尚未举行。人类随后询问2024年马拉松和半程马拉松的前三名，AI均表示无法提供结果，但可查询历史成绩。最后，人类询问2023年半程马拉松的前三名，AI提供了结果：男子组前三名均为肯尼亚选手和一名中国选手，女子组前三名均为中国选手，并表示乐意提供更多信息。最近，人类请求AI查询关于Vim的知识，AI介绍了Vim的定义、优势、基本操作和学习资源，强调了其高效性和插件支持，并邀请人类提出更具体的问题以获取深入了解。"
+                            position:
+                              type: "number"
+                              example: 1
+                            thought:
+                              type: "string"
+                              example: ""
+                            tool:
+                              type: "string"
+                              example: ""
+                            tool_input:
+                              required: []
+                              properties: {}
+                              type: "object"
+                      answer:
+                        type: "string"
+                        example: "我无法直接画图，但我可以描述一幅画的构思，帮助你或者其他人进行创作。\n\n**构思描述：**\n- **背景**：选择一个自然的场景，比如阳光明媚的草地或宁静的山谷，周围有绿树和花朵，给人一种温暖和放松的感觉。\n- **人物**：画一个名叫瑶的歌手，穿着传统的民谣服装，可能是色彩鲜艳的长裙，头上可以戴着花环或民族风格的饰品。\n- **动作**：瑶歌手坐在草地上，双腿交叉，手中拿着一把吉他，面带微笑，正在专注地演唱。她的表情充满热情和投入。\n- **细节**：可以在周围添加一些小动物，比如小鸟在树枝上聆听，或是蝴蝶飞舞，以增强生动感。\n\n希望这个描述能激发你的灵感！如果你需要更多具体的细节或元素，请告诉我。"
+                      conversation_id:
+                        type: "string"
+                        example: "f22197cb-f9bc-4bf5-b094-1227ab6a7f41"
+                      created_at:
+                        type: "number"
+                        example: 1765272147
+                      id:
+                        type: "string"
+                        example: "dab52199-7310-4838-890b-986349561b1a"
+                      image_urls:
+                        type: "array"
+                        items:
+                          type: "undefined"
+                        example: []
+                      latency:
+                        type: "number"
+                        example: 6.990631791995838
+                      query:
+                        type: "string"
+                        example: "帮忙画一幅一个名瑶歌手弹吉他唱歌的图"
+                      total_token_count:
+                        type: "number"
+                        example: 0
+                paginator:
+                  required:
+                    - "current_page"
+                    - "page_size"
+                    - "total_page"
+                    - "total_record"
+                  properties:
+                    current_page:
+                      type: "number"
+                      example: 1
+                    page_size:
+                      type: "number"
+                      example: 20
+                    total_page:
+                      type: "number"
+                      example: 1
+                    total_record:
+                      type: "number"
+                      example: 1
+                  type: "object"
+              type: "object"
+            message:
+              type: "string"
+              example: ""
