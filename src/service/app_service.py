@@ -25,8 +25,11 @@ from pkg.response.http_code import HTTP_STATUS_OK
 from pkg.sqlalchemy import SQLAlchemy
 from src.core.agent.agents.agent_queue_manager import AgentQueueManager
 from src.core.agent.agents.function_call_agent import FunctionCallAgent
+from src.core.agent.agents.react_agent import ReACTAgent
 from src.core.agent.entities.agent_entity import AgentConfig
 from src.core.agent.entities.queue_entity import QueueEvent
+from src.core.llm_model.entities.model_entity import ModelFeature, ModelParameterType
+from src.core.llm_model.llm_model_manager import LLMModelManager
 from src.core.memory.token_buffer_memory import TokenBufferMemory
 from src.core.tools.builtin_tools.providers.builtin_provider_manager import (
     BuiltinProviderManager,
@@ -55,7 +58,7 @@ from src.exception.exception import (
     NotFoundException,
     ValidateErrorException,
 )
-from src.lib.helper import remove_fields
+from src.lib.helper import get_value_type, remove_fields
 from src.model import App
 from src.model.account import Account
 from src.model.api_tool import ApiTool
@@ -73,6 +76,7 @@ from src.service.app_config_service import AppConfigService
 from src.service.base_service import BaseService
 from src.service.conversation_service import AgentThoughtConfig, ConversationService
 from src.service.cos_service import CosService
+from src.service.llm_model_service import LLMModelService
 from src.service.retrieval_service import RetrievalConfig, RetrievalService
 
 
@@ -87,6 +91,8 @@ class AppService(BaseService):
     conversation_service: ConversationService
     app_config_service: AppConfigService
     cos_service: CosService
+    llm_model_service: LLMModelService
+    llm_model_manager: LLMModelManager
 
     def auto_create_app(self, name: str, description: str, account_id: UUID) -> None:
         """根据传递的应用名称、描述、账号id利用AI创建一个Agent智能体"""
@@ -456,11 +462,9 @@ class AppService(BaseService):
         # 获取应用的调试对话记录
         debug_conversation = app.debug_conversation
 
-        # TODO: 多 LLM 模型待开发
         # 初始化ChatOpenAI模型实例
-        llm = ChatOpenAI(
-            model=draft_app_config["model_config"]["model"],
-            **draft_app_config["model_config"]["parameters"],
+        llm = self.llm_model_service.load_language_model(
+            draft_app_config.get("model_config", {}),
         )
 
         # 创建一条消息记录
@@ -510,16 +514,21 @@ class AppService(BaseService):
             # 将知识库检索工具添加到工具列表
             tools.append(dataset_retrieval)
 
-        # TODO: 暂时使用 FunctionCallAgent
-
+        # 根据LLM模型特性选择合适的Agent类：
+        # - 如果模型支持工具调用功能，使用FunctionCallAgent
+        # - 否则使用ReACTAgent
+        agent_class = (
+            FunctionCallAgent if ModelFeature.TOOL_CALL in llm.features else ReACTAgent
+        )
         # 创建FunctionCallAgent实例
-        agent = FunctionCallAgent(
+        agent = agent_class(
             name="debug_agent",
             llm=llm,
             # 创建智能体配置
             agent_config=AgentConfig(
                 user_id=account.id,
                 invoke_from=InvokeFrom.DEBUGGER,
+                preset_prompt=draft_app_config["preset_prompt"],
                 enable_long_term_memory=draft_app_config["long_term_memory"]["enable"],
                 tools=tools,
                 review_config=draft_app_config["review_config"],
@@ -1150,21 +1159,118 @@ class AppService(BaseService):
         # 返回更新后的草稿配置记录
         return draft_app_config_record
 
-    def _validate_model_config(self, model_config: dict) -> dict:
-        """验证模型配置
+    def _validate_model_config(self, draft_model_config: dict) -> dict:  # noqa: PLR0912
+        """验证并规范化模型配置。
+
+        该方法对传入的模型配置进行全面的验证，包括：
+        - 验证配置格式是否正确
+        - 验证提供商和模型是否存在
+        - 验证并规范化模型参数
 
         Args:
-            model_config: 模型配置字典
+            draft_model_config (dict): 待验证的模型配置字典，应包含以下结构：
+                {
+                    "model_config": {
+                        "provider": str,  # 模型提供商名称
+                        "model": str,     # 模型名称
+                        "parameters": dict  # 模型参数
+                    }
+                }
 
         Returns:
-            dict: 验证后的模型配置
+            dict: 验证并规范化后的模型配置字典。如果参数值无效，
+                将使用默认值替换。
 
         Raises:
-            ValidateErrorException: 当模型配置格式错误时抛出
+            ValidateErrorException: 当配置格式错误、提供商不存在或模型不存在时抛出。
 
         """
-        # TODO: 实现模型配置验证逻辑
-        return model_config
+        # 检查是否存在模型配置
+        if "model_config" in draft_model_config:
+            model_config = draft_model_config["model_config"]
+            # 验证模型配置是否为字典类型
+            if not isinstance(model_config, dict):
+                error_msg = "模型配置格式错误"
+                raise ValidateErrorException(error_msg)
+            # 验证模型配置是否包含必需的字段：provider、model、parameters
+            if set(model_config.keys()) != {"provider", "model", "parameters"}:
+                error_msg = "模型配置格式错误"
+                raise ValidateErrorException(error_msg)
+            # 验证提供商类型是否为非空字符串
+            if not model_config["provider"] or not isinstance(
+                model_config["provider"],
+                str,
+            ):
+                error_msg = "模型提供商类型必须是字符串"
+                raise ValidateErrorException(error_msg)
+            # 获取并验证模型提供商是否存在
+            provider = self.llm_model_manager.get_provider(model_config["provider"])
+            if not provider:
+                error_msg = "模型提供商类型不存在"
+                raise ValidateErrorException(error_msg)
+            # 验证模型名称是否为非空字符串
+            if not model_config["model"] or not isinstance(model_config["model"], str):
+                error_msg = "模型名称必须是字符串"
+                raise ValidateErrorException(error_msg)
+            # 获取并验证模型是否存在
+            model_entity = provider.get_model_entity(model_config["model"])
+            if not model_entity:
+                error_msg = "模型名称不存在"
+                raise ValidateErrorException(error_msg)
+
+            # 初始化参数字典，用于存储验证后的参数
+            parameters = {}
+            # 遍历模型定义的所有参数
+            for parameter in model_entity.parameters:
+                # 从配置中获取参数值，如果不存在则使用默认值
+                parameter_value = model_config["parameters"].get(
+                    parameter.name,
+                    parameter.default,
+                )
+
+                # 处理必填参数
+                if parameter.required:
+                    # 如果参数为None或类型不匹配，则使用默认值
+                    if (
+                        parameter_value is None
+                        or get_value_type(parameter_value) != parameter.type.value
+                    ):
+                        parameter_value = parameter.default
+                # 处理非必填参数
+                elif (
+                    parameter_value is not None
+                    and get_value_type(parameter_value) != parameter.type.value
+                ):
+                    # 如果参数值不为None但类型不匹配，则使用默认值
+                    parameter_value = parameter.default
+
+                # 验证参数选项
+                # 如果参数定义了可选值列表，则确保参数值在可选值范围内
+                if parameter.options and parameter_value not in parameter.options:
+                    parameter_value = parameter.default
+
+                # 验证数值范围
+                # 对于数值类型参数，检查是否在定义的最小值和最大值范围内
+                if (
+                    parameter.type in [ModelParameterType.INT, ModelParameterType.FLOAT]
+                    and parameter_value is not None
+                    and (
+                        (parameter.min and parameter_value < parameter.min)
+                        or (parameter.max and parameter_value > parameter.max)
+                    )
+                ):
+                    parameter_value = parameter.default
+
+                # 将验证后的参数值存入参数字典
+                parameters[parameter.name] = parameter_value
+
+            # 更新模型配置中的参数
+            model_config["parameters"] = parameters
+            # 更新草稿配置中的模型配置
+            draft_model_config["model_config"] = model_config
+
+        # 返回验证后的模型配置
+        return draft_model_config
 
     def _validate_dialog_round(self, dialog_round: dict) -> dict:
         """验证对话轮数配置

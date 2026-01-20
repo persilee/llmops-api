@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from langchain_core.tools import BaseTool
+from pydantic import BaseModel
 
 
 class CurrentTimeTool(BaseTool):
@@ -13,6 +14,7 @@ class CurrentTimeTool(BaseTool):
 
     name: str = "current_time"  # 工具名称
     description: str = "获取当前时间的工具"
+    args_schema: type[BaseModel] = BaseModel
 
     def _run(self, *args: Any, **kwargs: Any) -> str:
         """执行获取当前时间的操作。

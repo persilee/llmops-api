@@ -12,8 +12,10 @@ from langchain_openai import ChatOpenAI
 from pkg.response.response import Response
 from pkg.sqlalchemy.sqlalchemy import SQLAlchemy
 from src.core.agent.agents.function_call_agent import FunctionCallAgent
+from src.core.agent.agents.react_agent import ReACTAgent
 from src.core.agent.entities.agent_entity import AgentConfig
 from src.core.agent.entities.queue_entity import AgentThought, QueueEvent
+from src.core.llm_model.entities.model_entity import BaseLanguageModel, ModelFeature
 from src.core.memory.token_buffer_memory import TokenBufferMemory
 from src.entity.app_entity import AppStatus
 from src.entity.conversation_entity import InvokeFrom, MessageStatus
@@ -28,6 +30,7 @@ from src.service.app_config_service import AppConfigService
 from src.service.app_service import AppService
 from src.service.base_service import BaseService
 from src.service.conversation_service import AgentThoughtConfig, ConversationService
+from src.service.llm_model_service import LLMModelService
 from src.service.retrieval_service import RetrievalConfig, RetrievalService
 
 
@@ -69,6 +72,7 @@ class OpenAPIService(BaseService):
     app_service: AppService
     retrieval_service: RetrievalService
     conversation_service: ConversationService
+    llm_model_service: LLMModelService
 
     def chat(self, req: OpenAPIChatReq, account: Account) -> Generator | Response:
         """处理聊天请求的主方法
@@ -296,7 +300,7 @@ class OpenAPIService(BaseService):
             status=MessageStatus.NORMAL,
         )
 
-    def _configure_llm(self, app_config: dict) -> ChatOpenAI:
+    def _configure_llm(self, app_config: dict) -> BaseLanguageModel:
         """配置并初始化ChatOpenAI模型实例
 
         根据应用配置中的模型参数创建并返回一个ChatOpenAI实例。
@@ -316,9 +320,8 @@ class OpenAPIService(BaseService):
             - 具体支持的参数请参考ChatOpenAI官方文档
 
         """
-        return ChatOpenAI(
-            model=app_config["model_config"]["model"],  # 指定使用的模型名称
-            **app_config["model_config"]["parameters"],  # 解包模型参数配置
+        return self.llm_model_service.load_language_model(
+            app_config.get("model_config", {}),
         )
 
     def _configure_tools(self, app_config: dict, account: Account) -> list[Tool]:
@@ -420,16 +423,20 @@ class OpenAPIService(BaseService):
             message_limit=app_config["dialog_round"],
         )
 
-        # 创建功能调用智能体实例
-        # name: 智能体名称，用于标识和调试
-        # llm: 语言模型实例
-        # agent_config: 智能体配置，包含用户ID、调用来源、记忆设置等
-        agent = FunctionCallAgent(
+        # 根据LLM模型特性选择合适的Agent类：
+        # - 如果模型支持工具调用功能，使用FunctionCallAgent
+        # - 否则使用ReACTAgent
+        agent_class = (
+            FunctionCallAgent if ModelFeature.TOOL_CALL in llm.features else ReACTAgent
+        )
+        # 创建FunctionCallAgent实例
+        agent = agent_class(
             name="debug_agent",
             llm=llm,
             agent_config=AgentConfig(
                 user_id=req.app_id.data,  # 用户ID，用于标识对话发起者
                 invoke_from=InvokeFrom.DEBUGGER,  # 调用来源，标识场景类型
+                preset_prompt=app_config["preset_prompt"],  # 预设提示，用于引导对话
                 enable_long_term_memory=app_config["long_term_memory"][
                     "enable"
                 ],  # 是否启用长期记忆

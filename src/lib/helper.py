@@ -184,3 +184,17 @@ def make_serializable(obj: Any) -> Any:
     if isinstance(obj, list):
         return [make_serializable(item) for item in obj]
     return obj
+
+
+def get_value_type(value: Any) -> Any:
+    """根据传递的值获取变量的类型，并将str和bool转换成string和boolean"""
+    # 1.计算变量的类型并转换成字符串
+    value_type = type(value).__name__
+
+    # 2.判断是否为str或者是bool
+    if value_type == "str":
+        return "string"
+    if value_type == "bool":
+        return "boolean"
+
+    return value_type

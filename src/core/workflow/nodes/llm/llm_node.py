@@ -3,7 +3,6 @@ from typing import Any
 
 from jinja2 import Template
 from langchain_core.runnables import RunnableConfig
-from langchain_openai import ChatOpenAI
 
 from src.core.workflow.entities.node_entity import NodeResult, NodeStatus
 from src.core.workflow.entities.workflow_entity import WorkflowState
@@ -73,9 +72,12 @@ class LLMNode(BaseNode):
         # 初始化OpenAI聊天模型
         # 使用配置中的模型名称，默认为gpt-4o-mini
         # 同时传入其他模型参数配置
-        llm = ChatOpenAI(
-            model=self.node_data.language_model_config.get("model", "gpt-4o-mini"),
-            **self.node_data.language_model_config.get("parameters", {}),
+        from app.http.module import injector
+        from src.service import LLMModelService
+
+        llm_model_service = injector.get(LLMModelService)
+        llm = llm_model_service.load_language_model(
+            self.node_data.language_model_config,
         )
 
         # 调用模型生成内容

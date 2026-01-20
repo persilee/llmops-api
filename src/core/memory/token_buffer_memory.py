@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 
 from langchain.messages import AIMessage, AnyMessage, HumanMessage, trim_messages
-from langchain_core.language_models import BaseLanguageModel
 from langchain_core.messages import get_buffer_string
 from sqlalchemy import desc
 
 from pkg.sqlalchemy.sqlalchemy import SQLAlchemy
+from src.core.llm_model.entities.model_entity import BaseLanguageModel
 from src.entity.conversation_entity import MessageStatus
 from src.model.conversation import Conversation, Message
 

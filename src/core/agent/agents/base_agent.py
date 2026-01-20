@@ -4,7 +4,6 @@ from collections.abc import Iterator
 from threading import Thread
 from typing import Any
 
-from langchain_core.language_models import BaseLanguageModel
 from langchain_core.load import Serializable
 from langchain_core.runnables import Runnable, RunnableConfig
 from langgraph.graph.state import CompiledStateGraph
@@ -13,6 +12,7 @@ from pydantic import PrivateAttr
 from src.core.agent.agents.agent_queue_manager import AgentQueueManager
 from src.core.agent.entities.agent_entity import AgentConfig, AgentState
 from src.core.agent.entities.queue_entity import AgentResult, AgentThought, QueueEvent
+from src.core.llm_model.entities.model_entity import BaseLanguageModel
 from src.exception.exception import FailException
 
 

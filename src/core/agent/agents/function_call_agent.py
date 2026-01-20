@@ -24,6 +24,7 @@ from src.core.agent.entities.agent_entity import (
     AgentState,
 )
 from src.core.agent.entities.queue_entity import AgentThought, QueueEvent
+from src.core.llm_model.entities.model_entity import ModelFeature
 from src.exception.exception import FailException
 
 logger = logging.getLogger(__name__)
@@ -319,7 +320,8 @@ class FunctionCallAgent(BaseAgent):
 
         # 检查LLM是否支持工具绑定，并且存在可用工具
         if (
-            hasattr(llm, "bind_tools")
+            ModelFeature.TOOL_CALL in llm.features
+            and hasattr(llm, "bind_tools")
             and callable(llm.bind_tools)
             and len(self.agent_config.tools) > 0
         ):
