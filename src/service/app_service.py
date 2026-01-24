@@ -316,6 +316,26 @@ class AppService(BaseService):
         # 返回查询结果和分页器信息
         return apps, paginator
 
+    def delete_message_by_id(self, message_id: UUID) -> Message:
+        """根据消息ID删除消息
+
+        Args:
+            message_id: 消息ID
+
+        Returns:
+            Message: 删除后的消息对象
+
+        """
+        # 根据消息ID查询消息
+        message = self.get(Message, message_id)
+        if message is None:
+            error_message = f"消息ID为{message_id}的消息不存在"
+            raise FailException(error_message)
+        # 如果消息存在，则删除
+        self.delete(message)
+
+        return message
+
     def delete_debug_conversations(self, app_id: UUID, account: Account) -> App:
         """删除应用的调试对话记录
 
@@ -559,8 +579,22 @@ class AppService(BaseService):
                             update={
                                 "thought": agent_thoughts[event_id].thought
                                 + agent_thought.thought,
+                                # 消息相关数据
+                                "message": agent_thought.message,
+                                "message_token_count": (
+                                    agent_thought.message_token_count
+                                ),
+                                "message_unit_price": agent_thought.message_unit_price,
+                                "message_price_unit": agent_thought.message_price_unit,
+                                # 答案相关数据
                                 "answer": agent_thoughts[event_id].answer
                                 + agent_thought.answer,
+                                "answer_token_count": agent_thought.answer_token_count,
+                                "answer_unit_price": agent_thought.answer_unit_price,
+                                "answer_price_unit": agent_thought.answer_price_unit,
+                                # Agent推理统计相关
+                                "total_token_count": agent_thought.total_token_count,
+                                "total_price": agent_thought.total_price,
                                 "latency": agent_thought.latency,
                             },
                         )
@@ -579,6 +613,8 @@ class AppService(BaseService):
                         "tool_input",
                         "answer",
                         "latency",
+                        "total_token_count",
+                        "total_price",
                     },
                 ),
                 "id": event_id,

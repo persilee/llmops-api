@@ -45,6 +45,16 @@ class AppHandler:
     app_service: AppService
     llm_model_manager: LLMModelManager
 
+    @route("/<uuid:app_id>/<uuid:message_id>/delete", methods=["POST"])
+    @swag_from(get_swagger_path("app_handler/delete_message_by_id.yaml"))
+    @login_required
+    def delete_message_by_id(self, app_id: UUID, message_id: UUID) -> Response:
+        self.get_app(app_id)
+
+        self.app_service.delete_message_by_id(message_id)
+
+        return success_message_json("删除对话消息成功")
+
     @route("/<uuid:app_id>/copy", methods=["POST"])
     @swag_from(get_swagger_path("app_handler/copy_app.yaml"))
     @login_required

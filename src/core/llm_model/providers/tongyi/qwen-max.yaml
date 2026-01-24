@@ -1,5 +1,6 @@
 model: qwen-max
-label: qwen-max
+label: 通义千问Max
+description: qwen-max 是阿里云通义千问（Qwen）系列的万亿参数旗舰闭源大模型（MoE 架构），核心优势为 262K 超长上下文窗口、顶级复杂推理与代码能力，支持 “思考 / 非思考” 双模式与上下文缓存，适配企业级复杂任务、智能体开发、超长文本处理与高精度推理场景，是 Qwen 系列能力天花板。
 model_type: chat
 features:
   - tool_call

@@ -38,7 +38,6 @@ class LLMModelHandler:
 
     @route("/<string:provider_name>/icon", methods=["GET"])
     @swag_from(get_swagger_path("llm_model_handler/get_llm_model_icon.yaml"))
-    @login_required
     def get_llm_model_icon(self, provider_name: str) -> Response:
         """根据传递的提供者名字获取指定提供商的icon图标"""
         icon, mimetype = self.llm_model_service.get_language_model_icon(

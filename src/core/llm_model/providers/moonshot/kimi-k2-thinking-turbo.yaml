@@ -1,0 +1,32 @@
+model: kimi-k2-thinking-turbo
+label: kimi-k2-thinking-turbo
+description: kimi-k2-thinking-turbo 是 Moonshot AI（月之暗面）推出的 Kimi K2 Thinking 高速版 大模型（MoE 架构），核心是在保留 256K 超长上下文 + 原生深度思考 / 多轮工具调用 能力的基础上，实现 60-100 tokens/s 极速输出，兼顾强推理 Agent 能力与低延迟高吞吐，兼容 Anthropic/OpenAI 风格 API，适合对速度敏感的复杂推理与智能体生产场景。
+model_type: chat
+features:
+  - tool_call
+  - agent_thought
+  - image_input
+context_window: 256000
+max_output_tokens: 262144
+attributes:
+  model: kimi-k2-thinking-turbo
+parameters:
+  - name: temperature
+    use_template: temperature
+    max: 1
+    default: 0.6
+  - name: top_p
+    use_template: top_p
+  - name: presence_penalty
+    use_template: presence_penalty
+  - name: frequency_penalty
+    use_template: frequency_penalty
+  - name: max_tokens
+    use_template: max_tokens
+    default: 64000
+metadata:
+  pricing:
+    input: 0.0010
+    output: 0.0600
+    unit: 0.001
+    currency: RMB

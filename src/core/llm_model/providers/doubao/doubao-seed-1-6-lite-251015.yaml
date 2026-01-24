@@ -1,0 +1,30 @@
+model: doubao-seed-1-6-lite-251015
+label: Doubao-Seed-1.6-lite
+description: Doubao-Seed-1-6-Lite-251015（豆包轻量版 1.6，2025-10-15 迭代）是字节跳动火山引擎推出的轻量通用大模型，主打低成本、低延迟、高吞吐，在保持核心对话与基础推理能力的同时，大幅优化推理效率，适合大规模生产级 API 与实时交互场景。
+model_type: chat
+features:
+  - tool_call
+  - agent_thought
+  - image_input
+context_window: 256000
+max_output_tokens: 32768
+attributes:
+  model: doubao-seed-1-6-lite-251015
+parameters:
+  - name: temperature
+    use_template: temperature
+  - name: top_p
+    use_template: top_p
+  - name: presence_penalty
+    use_template: presence_penalty
+  - name: frequency_penalty
+    use_template: frequency_penalty
+  - name: max_tokens
+    use_template: max_tokens
+    default: 4096
+metadata:
+  pricing:
+    input: 0.0030
+    output: 0.0600
+    unit: 0.001
+    currency: RMB

@@ -101,7 +101,9 @@ class ConversationInfo(BaseModel):
 
 
 # 建议问题提示词模板
-SUGGESTED_QUESTIONS_TEMPLATE = "请根据传递的历史信息预测人类最后可能会问的三个问题"
+SUGGESTED_QUESTIONS_TEMPLATE = (
+    "请根据传递的历史信息，预测一下接下来 Human 可能会问的 3 个问题"
+)
 
 
 class SuggestedQuestions(BaseModel):

@@ -1,5 +1,6 @@
 model: qwen-plus
-label: qwen-plus
+label: 通义千问Plus
+description: 通义千问Plus 是阿里云通义千问（Qwen）系列的高性能闭源大模型，定位介于 Qwen-Max 与 Qwen-Turbo 之间，核心优势是 32K 上下文窗口与均衡的推理 / 速度 / 成本，适配中等复杂度推理、多轮对话、代码辅助与长文本处理，兼顾效果与实时交互效率。
 model_type: chat
 features:
   - tool_call

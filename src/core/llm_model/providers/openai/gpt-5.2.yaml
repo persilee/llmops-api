@@ -1,0 +1,30 @@
+model: gpt-5.2
+label: GPT-5.2
+description: GPT-5.2 是 OpenAI 2025 年底推出的旗舰级专业知识工作大模型系列，主打深度推理 + 超长上下文 + 原生智能体 + 多模态视觉，分 Instant/Thinking/Pro 三档，在 GDPval（44 种职业）、SWE-Bench Pro、Frontier Math 等基准刷新行业纪录，专为复杂多步骤任务与持久化 Agent 打造，兼顾专业精度与生产效率
+model_type: chat
+features:
+  - tool_call
+  - agent_thought
+  - image_input
+context_window: 400000
+max_output_tokens: 128000
+attributes:
+  model: gpt-5.2
+parameters:
+  - name: temperature
+    use_template: temperature
+  - name: top_p
+    use_template: top_p
+  - name: presence_penalty
+    use_template: presence_penalty
+  - name: frequency_penalty
+    use_template: frequency_penalty
+  - name: max_tokens
+    use_template: max_tokens
+    default: 4096
+metadata:
+  pricing:
+    input: 0.0178
+    output: 0.140
+    unit: 0.001
+    currency: RMB

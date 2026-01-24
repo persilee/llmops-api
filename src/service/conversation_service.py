@@ -6,7 +6,9 @@ from uuid import UUID
 from flask import Flask
 from injector import inject
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import (
+    ChatPromptTemplate,
+)
 from langchain_openai import ChatOpenAI
 
 from pkg.sqlalchemy import SQLAlchemy
@@ -114,11 +116,8 @@ class ConversationService(BaseService):
 
         """
         # 创建一个聊天提示模板，包含系统消息和用户输入
-        prompt = ChatPromptTemplate.format_messages(
-            [
-                ("system", CONVERSATION_NAME_TEMPLATE),  # 系统消息模板
-                ("human", "{query}"),  # 用户输入模板
-            ],
+        prompt = ChatPromptTemplate.from_messages(
+            [("system", CONVERSATION_NAME_TEMPLATE), ("human", "{query}")],
         )
 
         # 初始化一个使用 gpt-4o-mini 模型的聊天 AI 实例，设置温度为 0（确定性输出）
@@ -293,7 +292,15 @@ class ConversationService(BaseService):
                         tool=agent_thought.tool,  # 使用的工具
                         tool_input=agent_thought.tool_input,  # 工具输入
                         message=agent_thought.message,  # 消息内容
+                        message_token_count=agent_thought.message_token_count,
+                        message_unit_price=agent_thought.message_unit_price,
+                        message_price_unit=agent_thought.message_price_unit,
                         answer=agent_thought.answer,  # 答案内容
+                        answer_token_count=agent_thought.answer_token_count,
+                        answer_unit_price=agent_thought.answer_unit_price,
+                        answer_price_unit=agent_thought.answer_price_unit,
+                        total_token_count=agent_thought.total_token_count,
+                        total_price=agent_thought.total_price,
                         latency=agent_thought.latency,  # 延迟时间
                     )
 
@@ -303,7 +310,15 @@ class ConversationService(BaseService):
                     self.update(
                         message,
                         message=agent_thought.message,  # 消息内容
+                        message_token_count=agent_thought.message_token_count,
+                        message_unit_price=agent_thought.message_unit_price,
+                        message_price_unit=agent_thought.message_price_unit,
                         answer=agent_thought.answer,  # 答案内容
+                        answer_token_count=agent_thought.answer_token_count,
+                        answer_unit_price=agent_thought.answer_unit_price,
+                        answer_price_unit=agent_thought.answer_price_unit,
+                        total_token_count=agent_thought.total_token_count,
+                        total_price=agent_thought.total_price,
                         latency=latency,  # 总延迟时间
                     )
                     # 如果启用了长期记忆功能

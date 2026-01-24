@@ -1,0 +1,32 @@
+model: kimi-k2-turbo-preview
+label: kimi-k2-turbo-preview
+description: kimi-k2-turbo-preview 是 Moonshot AI（月之暗面）推出的 Kimi K2 系列高速预览版大模型（MoE 架构），核心亮点是40 tokens/s 极速输出（较原版提升 4 倍），同时完整保留 128K 上下文窗口与强代码 / 智能体能力，兼容 Anthropic API 与上下文缓存，主打低延迟、高吞吐的实时交互与规模化生产场景。
+model_type: chat
+features:
+  - tool_call
+  - agent_thought
+  - image_input
+context_window: 128000
+max_output_tokens: 131072
+attributes:
+  model: kimi-k2-turbo-preview
+parameters:
+  - name: temperature
+    use_template: temperature
+    max: 1
+    default: 0.6
+  - name: top_p
+    use_template: top_p
+  - name: presence_penalty
+    use_template: presence_penalty
+  - name: frequency_penalty
+    use_template: frequency_penalty
+  - name: max_tokens
+    use_template: max_tokens
+    default: 64000
+metadata:
+  pricing:
+    input: 0.0010
+    output: 0.0600
+    unit: 0.001
+    currency: RMB

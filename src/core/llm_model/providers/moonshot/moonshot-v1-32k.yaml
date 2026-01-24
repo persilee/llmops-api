@@ -1,5 +1,6 @@
 model: moonshot-v1-32k
 label: moonshot-v1-32k
+description: moonshot-v1-32k 是 Moonshot AI（月之暗面）推出的千亿参数通用大模型，核心优势为 32K 上下文窗口（输入 + 输出总长度），引入稀疏注意力机制提升推理速度，在中等长度文本处理与多轮对话中平衡性能与成本，适配长文档分析、内容创作、知识问答等需要较大上下文的通用任务。
 model_type: chat
 features:
   - tool_call

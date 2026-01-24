@@ -1,8 +1,10 @@
 model: deepseek-reasoner
-label: deepseek-r1
+label: deepseek-R1
+description: deepseek-reasoner 是 DeepSeek 推出的聚焦复杂推理的大模型（V3.2 思维模式），通过内置思维链（CoT）机制输出可追溯的推理过程与最终答案，64K 上下文 / 最大 64K 输出 tokens，在数学、逻辑、代码调试、科学计算等高精度场景表现突出，适合需要严谨推导与可解释性的任务
 model_type: chat
 features:
   - agent_thought
+  - tool_call
 context_window: 64000
 max_output_tokens: 8000
 attributes:

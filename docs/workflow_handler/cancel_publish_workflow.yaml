@@ -13,11 +13,6 @@ parameters:
       type: string
       default: "a72fb5a8-e8b5-4141-9a56-2f8b17407371"
     format: uuid
-requestBody:
-  content:
-    application/json:
-      schema:
-        type: object
 responses:
   x-200:
     $ref: "#/components/responses/BaseResponse"
@@ -34,8 +29,8 @@ responses:
               type: "string"
               example: "success"
             data:
-              type: "string"
-              example: ""
+              type: "object"
+              example: {}
             message:
               type: "string"
               example: "取消工作流发布成功"

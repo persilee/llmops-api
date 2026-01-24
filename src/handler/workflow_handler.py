@@ -240,6 +240,6 @@ class WorkflowHandler:
     @swag_from(get_swagger_path("workflow_handler/cancel_publish_workflow.yaml"))
     @login_required
     def cancel_publish_workflow(self, workflow_id: UUID) -> Response:
-        self.workflow_service.cancel_publish_workflow(workflow_id, current_user)
+        self.workflow_service.cancel_workflow(workflow_id, current_user)
 
         return success_message_json("取消工作流发布成功")

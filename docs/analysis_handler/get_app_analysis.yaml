@@ -1,0 +1,220 @@
+获取应用统计分析信息
+---
+tags:
+  - 统计分析
+summary: 获取应用统计分析信息
+description: 获取应用统计分析信息
+operationId: get_app_analysis
+parameters:
+  - $ref: "#/components/parameters/appIdParam"
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              required:
+                - "active_accounts"
+                - "active_accounts_trend"
+                - "avg_of_conversation_messages"
+                - "avg_of_conversation_messages_trend"
+                - "cost_consumption"
+                - "cost_consumption_trend"
+                - "token_output_rate"
+                - "total_messages"
+                - "total_messages_trend"
+              properties:
+                active_accounts:
+                  required:
+                    - "data"
+                    - "pop"
+                  properties:
+                    data:
+                      type: "number"
+                      example: 1
+                    pop:
+                      type: "number"
+                      example: 0
+                  type: "object"
+                active_accounts_trend:
+                  required:
+                    - "x_axis"
+                    - "y_axis"
+                  properties:
+                    x_axis:
+                      type: "array"
+                      items:
+                        type: "number"
+                      example:
+                        - 1768492800
+                        - 1768579200
+                        - 1768665600
+                        - 1768752000
+                        - 1768838400
+                        - 1768924800
+                        - 1769011200
+                    y_axis:
+                      type: "array"
+                      items:
+                        type: "number"
+                      example:
+                        - 0
+                        - 0
+                        - 0
+                        - 0
+                        - 1
+                        - 1
+                        - 0
+                  type: "object"
+                avg_of_conversation_messages:
+                  required:
+                    - "data"
+                    - "pop"
+                  properties:
+                    data:
+                      type: "number"
+                      example: 8
+                    pop:
+                      type: "number"
+                      example: 0
+                  type: "object"
+                avg_of_conversation_messages_trend:
+                  required:
+                    - "x_axis"
+                    - "y_axis"
+                  properties:
+                    x_axis:
+                      type: "array"
+                      items:
+                        type: "number"
+                      example:
+                        - 1768492800
+                        - 1768579200
+                        - 1768665600
+                        - 1768752000
+                        - 1768838400
+                        - 1768924800
+                        - 1769011200
+                    y_axis:
+                      type: "array"
+                      items:
+                        type: "number"
+                      example:
+                        - 0
+                        - 0
+                        - 0
+                        - 0
+                        - 1
+                        - 7
+                        - 0
+                  type: "object"
+                cost_consumption:
+                  required:
+                    - "data"
+                    - "pop"
+                  properties:
+                    data:
+                      type: "number"
+                      example: 0
+                    pop:
+                      type: "number"
+                      example: 0
+                  type: "object"
+                cost_consumption_trend:
+                  required:
+                    - "x_axis"
+                    - "y_axis"
+                  properties:
+                    x_axis:
+                      type: "array"
+                      items:
+                        type: "number"
+                      example:
+                        - 1768492800
+                        - 1768579200
+                        - 1768665600
+                        - 1768752000
+                        - 1768838400
+                        - 1768924800
+                        - 1769011200
+                    y_axis:
+                      type: "array"
+                      items:
+                        type: "number"
+                      example:
+                        - 0
+                        - 0
+                        - 0
+                        - 0
+                        - 0
+                        - 0
+                        - 0
+                  type: "object"
+                token_output_rate:
+                  required:
+                    - "data"
+                    - "pop"
+                  properties:
+                    data:
+                      type: "number"
+                      example: 0
+                    pop:
+                      type: "number"
+                      example: 0
+                  type: "object"
+                total_messages:
+                  required:
+                    - "data"
+                    - "pop"
+                  properties:
+                    data:
+                      type: "number"
+                      example: 8
+                    pop:
+                      type: "number"
+                      example: 0
+                  type: "object"
+                total_messages_trend:
+                  required:
+                    - "x_axis"
+                    - "y_axis"
+                  properties:
+                    x_axis:
+                      type: "array"
+                      items:
+                        type: "number"
+                      example:
+                        - 1768492800
+                        - 1768579200
+                        - 1768665600
+                        - 1768752000
+                        - 1768838400
+                        - 1768924800
+                        - 1769011200
+                    y_axis:
+                      type: "array"
+                      items:
+                        type: "number"
+                      example:
+                        - 0
+                        - 0
+                        - 0
+                        - 0
+                        - 1
+                        - 7
+                        - 0
+                  type: "object"
+              type: "object"
+            message:
+              type: "string"
+              example: ""

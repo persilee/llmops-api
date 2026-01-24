@@ -1,0 +1,30 @@
+model: gpt-5
+label: GPT-5
+description: GPT-5 是 OpenAI 推出的第五代旗舰大模型，定位为通用超级智能体，核心突破在于400K 超长上下文、原生多模态、深度推理与自主 Agent 能力，在专业知识、数学、代码、科学推理等领域全面超越前代，是面向企业级复杂任务与规模化智能体开发的核心底座。
+model_type: chat
+features:
+  - tool_call
+  - agent_thought
+  - image_input
+context_window: 400000
+max_output_tokens: 128000
+attributes:
+  model: gpt-5
+parameters:
+  - name: temperature
+    use_template: temperature
+  - name: top_p
+    use_template: top_p
+  - name: presence_penalty
+    use_template: presence_penalty
+  - name: frequency_penalty
+    use_template: frequency_penalty
+  - name: max_tokens
+    use_template: max_tokens
+    default: 4096
+metadata:
+  pricing:
+    input: 0.0150
+    output: 0.0100
+    unit: 0.001
+    currency: RMB

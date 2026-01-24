@@ -1,0 +1,30 @@
+model: doubao-seed-1-8-251228
+label: Doubao-Seed-1.8
+description: Doubao-Seed-1-8-251228（豆包大模型 1.8，2025-12-28 版本）是字节跳动火山引擎推出的多模态通用 Agent 旗舰大模型，面向复杂任务自主规划与执行，在 Agent 能力、多模态理解、长视频处理上全面升级，跻身全球第一梯队字节跳动Seed
+model_type: chat
+features:
+  - tool_call
+  - agent_thought
+  - image_input
+context_window: 256000
+max_output_tokens: 32768
+attributes:
+  model: doubao-seed-1-8-251228
+parameters:
+  - name: temperature
+    use_template: temperature
+  - name: top_p
+    use_template: top_p
+  - name: presence_penalty
+    use_template: presence_penalty
+  - name: frequency_penalty
+    use_template: frequency_penalty
+  - name: max_tokens
+    use_template: max_tokens
+    default: 4096
+metadata:
+  pricing:
+    input: 0.0080
+    output: 0.0200
+    unit: 0.001
+    currency: RMB

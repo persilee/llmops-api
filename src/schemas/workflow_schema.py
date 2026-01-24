@@ -96,6 +96,8 @@ class GetWorkflowResp(Schema):
     tool_call_name = fields.String(dump_default="")
     icon = fields.String(dump_default="")
     description = fields.String(dump_default="")
+    graph = fields.Dict(dump_default={})
+    draft_graph = fields.Dict(dump_default={})
     status = fields.String(dump_default="")
     is_debug_passed = fields.Boolean(dump_default=False)
     node_count = fields.Integer(dump_default=0)
@@ -111,6 +113,8 @@ class GetWorkflowResp(Schema):
             "tool_call_name": data.tool_call_name,
             "icon": data.icon,
             "description": data.description,
+            "graph": data.graph,
+            "draft_graph": data.draft_graph,
             "status": data.status,
             "is_debug_passed": data.is_debug_passed,
             "node_count": len(data.draft_graph.get("nodes", [])),

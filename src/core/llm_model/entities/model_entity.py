@@ -71,6 +71,7 @@ class ModelEntity(BaseModel):
 
     model_name: str = Field(default="", alias="model")  # 模型名字，使用model作为别名
     label: str = ""  # 模型标签
+    description: str = ""  # 模型描述
     model_type: ModelType = ModelType.CHAT  # 模型类型
     features: list[ModelFeature] = Field(default_factory=list)  # 模型特征信息
     context_window: int = 0  # 上下文窗口长度(输入+输出的总长度)

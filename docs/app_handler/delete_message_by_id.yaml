@@ -1,0 +1,26 @@
+删除调试会话消息
+---
+tags:
+  - App管理
+summary: 删除调试会话消息
+description:
+operationId: delete_message_by_id
+parameters:
+  - $ref: "#/components/parameters/appIdParam"
+  - name: message_id
+    in: path
+    required: true
+    schema:
+      type: string
+      default: "6aa64a60-014b-473b-89d3-4005ac0a825c"
+    format: uuid
+responses:
+  "200":
+    content:
+      application/json:
+        schema:
+          $ref: "#/components/schemas/BaseRespBody"
+        example:
+          code: "success"
+          message: "删除对话消息成功"
+          data: {}

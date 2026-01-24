@@ -1,8 +1,10 @@
 model: deepseek-chat
-label: deepseek-v3
+label: deepseek-V3.2
+description: deepseek-chat 是 DeepSeek 推出的通用对话大模型（V3 系列），主打自然流畅的多轮交互与高效响应，128K 上下文窗口 / 默认 4K、最大 8K 输出 tokens，支持流式输出与 JSON 结构化响应，在日常对话、内容创作、轻量代码与知识问答等场景适配度高，适合需要快速交互与成本可控的通用任务。
 model_type: chat
 features:
   - agent_thought
+  - tool_call
 context_window: 64000
 max_output_tokens: 8000
 attributes:

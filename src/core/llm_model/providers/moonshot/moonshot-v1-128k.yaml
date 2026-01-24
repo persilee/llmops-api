@@ -1,5 +1,6 @@
 model: moonshot-v1-128k
 label: moonshot-v1-128k
+description: moonshot-v1-128k 是 Moonshot AI（月之暗面）推出的千亿参数通用大模型，核心优势是 128K 超长上下文窗口（输入 + 输出总长度），适配超长文本处理与多轮对话，在文献分析、法律合同审核、金融报告解读等场景表现突出，支持流式输出与结构化响应，兼顾自然交互与长文本理解能力。
 model_type: chat
 features:
   - tool_call

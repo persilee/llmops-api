@@ -654,6 +654,23 @@ class FunctionCallAgent(BaseAgent):
         - thought: 发布代理思考过程事件，包含工具调用信息
         - message: 发布代理结束事件
         """
+        # 计算输入消息的token数量
+        input_token_count = self.llm.get_num_tokens_from_messages(state["messages"])
+        # 计算输出消息的token数量
+        output_token_count = self.llm.get_num_tokens_from_messages([gathered])
+        # 获取模型的定价信息：输入价格、输出价格和计价单位
+        input_price, output_price, unit = self.llm.get_pricing()
+
+        # 计算总token数量（输入+输出）
+        total_token_count = input_token_count + output_token_count
+        # 计算总费用：
+        # 1. 输入token数量 × 输入单价
+        # 2. 输出token数量 × 输出单价
+        # 3. 将两者相加后乘以计价单位
+        total_price = (
+            input_token_count * input_price + output_token_count * output_price
+        ) * unit
+
         if generation_type == "thought":
             # 发布代理思考事件，包含工具调用的详细信息
             self.agent_queue_manager.publish(
@@ -668,10 +685,47 @@ class FunctionCallAgent(BaseAgent):
                     message=messages_to_dict(
                         state["messages"],
                     ),  # 将消息列表转为字典格式
+                    message_token_count=input_token_count,  # 输入消息的token数量
+                    message_unit_price=input_price,  # 输入token的单价
+                    message_price_unit=unit,  # 输入价格的计价单位
+                    answer="",  # AI的回答内容
+                    answer_token_count=output_token_count,  # 输出消息的token数量
+                    answer_unit_price=output_price,  # 输出token的单价
+                    answer_price_unit=unit,  # 输出价格的计价单位
+                    total_token_count=total_token_count,  # 总token数量（输入+输出）
+                    total_price=total_price,  # 总费用（输入费用+输出费用）
                     latency=(time.perf_counter() - start_at),  # 计算响应延迟时间
                 ),
             )
         elif generation_type == "message":
+            # 发布消息类型的AgentThought，包含完整的对话信息和统计数据
+            self.agent_queue_manager.publish(
+                state["task_id"],  # 任务ID，用于标识当前处理的任务
+                AgentThought(
+                    id=response_id,  # 响应的唯一标识符
+                    task_id=state["task_id"],  # 任务ID，与发布时使用的ID保持一致
+                    event=QueueEvent.AGENT_MESSAGE,  # 事件类型，Agent消息事件
+                    thought="",  # Agent的推理过程，此处为空
+                    # 消息相关字段
+                    message=messages_to_dict(
+                        state["messages"],
+                    ),  # 将消息列表转换为字典格式，包含完整的对话历史
+                    message_token_count=input_token_count,  # 输入消息的token数量
+                    message_unit_price=input_price,  # 输入token的单价
+                    message_price_unit=unit,  # 价格单位（如每千个token的价格）
+                    # 答案相关字段
+                    answer="",  # Agent的回答内容，此处为空
+                    answer_token_count=output_token_count,  # 输出答案的token数量
+                    answer_unit_price=output_price,  # 输出token的单价
+                    answer_price_unit=unit,  # 价格单位，与输入保持一致
+                    # Agent推理统计相关
+                    total_token_count=total_token_count,  # 总token数量（输入+输出）
+                    total_price=total_price,  # 总费用（输入费用+输出费用）
+                    latency=(
+                        time.perf_counter() - start_at
+                    ),  # 响应延迟，从开始到结束的总耗时
+                ),
+            )
             # 发布代理结束事件，表示对话完成
             self.agent_queue_manager.publish(
                 state["task_id"],  # 任务ID

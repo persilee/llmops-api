@@ -1,0 +1,32 @@
+model: kimi-k2-thinking
+label: kimi-k2-thinking
+description: kimi-k2-thinking 是 Moonshot AI（月之暗面）推出的开源旗舰思考型大模型（MoE 架构），核心定位为 “模型即 Agent”，主打深度链式推理 + 原生工具编排 + 256K 超长上下文，支持 200–300 步稳定工具调用，原生 INT4 量化兼顾推理精度与部署效率，是面向复杂推理与智能体开发的开源标杆
+model_type: chat
+features:
+  - tool_call
+  - agent_thought
+  - image_input
+context_window: 256000
+max_output_tokens: 262144
+attributes:
+  model: kimi-k2-thinking
+parameters:
+  - name: temperature
+    use_template: temperature
+    max: 1
+    default: 0.6
+  - name: top_p
+    use_template: top_p
+  - name: presence_penalty
+    use_template: presence_penalty
+  - name: frequency_penalty
+    use_template: frequency_penalty
+  - name: max_tokens
+    use_template: max_tokens
+    default: 64000
+metadata:
+  pricing:
+    input: 0.0010
+    output: 0.0600
+    unit: 0.001
+    currency: RMB

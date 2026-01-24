@@ -1,15 +1,15 @@
-model: gpt-4o
-label: GPT-4o
-description: GPT-4o（GPT-4 Omni）是 OpenAI 推出的多模态大模型，支持文本、图像、音频实时交互，具备强推理、多语言理解与生成能力，可用于对话、创作、分析、代码编写等场景，响应更快、感知更自然。
+model: gpt-5-mini
+label: GPT-5 mini
+description: GPT-5-mini 是 OpenAI 推出的 GPT-5 家族轻量化、成本与延迟优化版 大模型，主打高吞吐、低成本、强指令遵循 + 轻量推理 + 多模态输入，在保留核心能力的同时大幅提升性价比，专为大规模生产级 API 场景设计OpenAI。
 model_type: chat
 features:
   - tool_call
   - agent_thought
   - image_input
-context_window: 128000
-max_output_tokens: 16384
+context_window: 400000
+max_output_tokens: 128000
 attributes:
-  model: gpt-4o
+  model: gpt-5-mini
 parameters:
   - name: temperature
     use_template: temperature
@@ -24,7 +24,7 @@ parameters:
     default: 4096
 metadata:
   pricing:
-    input: 0.0183
-    output: 0.0733
+    input: 0.0250
+    output: 0.0200
     unit: 0.001
     currency: RMB

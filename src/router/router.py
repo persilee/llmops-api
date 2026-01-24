@@ -6,6 +6,7 @@ from injector import inject
 from src.handler import AppHandler, BuiltinToolHandler
 from src.handler.account_handler import AccountHandler
 from src.handler.ai_handler import AIHandler
+from src.handler.analysis_handler import AnalysisHandler
 from src.handler.api_key_handler import ApiKeyHandler
 from src.handler.api_tool_handler import ApiToolHandler
 from src.handler.assistant_agent_handler import AssistantAgentHandler
@@ -44,6 +45,7 @@ class Router:
     workflow_handler: WorkflowHandler
     llm_model_handler: LLMModelHandler
     assistant_agent_handler: AssistantAgentHandler
+    analysis_handler: AnalysisHandler
 
     def register_route(self, app: Flask) -> None:
         """注册路由"""
@@ -70,6 +72,7 @@ class Router:
             bp,
             url_prefix="assistant-agent",
         )
+        register_with_class(self.analysis_handler, bp, url_prefix="app-analysis")
         register_with_class(self.openapi_handler, bp_openapi, url_prefix="openapi")
 
         app.register_blueprint(bp)

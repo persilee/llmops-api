@@ -12,8 +12,6 @@ class LLMNodeData(BaseNodeData):
 
     prompt: str  # 提示词文本，用于指导语言模型生成内容
     language_model_config: dict[str, Any] = Field(
-        # 字段别名，用于序列化/反序列化
-        alias="model_config",
         # 默认配置工厂函数，使用默认应用配置中的模型配置
         default_factory=lambda: DEFAULT_APP_CONFIG["model_config"],
     )

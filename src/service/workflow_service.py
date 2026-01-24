@@ -78,10 +78,6 @@ class WorkflowService(BaseService):
         """
         # 获取指定ID的工作流，同时验证用户权限
         workflow = self.get_workflow(workflow_id, account)
-        # 检查工作流是否已通过调试，未通过则抛出异常
-        if workflow.is_debug_passed is False:
-            error_msg = "工作流未通过调试"
-            raise FailException(error_msg)
 
         try:
             # 尝试创建工作流配置对象，包含账户ID、名称、描述和图结构信息
@@ -105,6 +101,7 @@ class WorkflowService(BaseService):
             graph=workflow.draft_graph,
             status=WorkflowStatus.PUBLISHED,
             is_debug_passed=False,
+            published_at=datetime.now(UTC),
         )
 
         # 返回工作流对象
@@ -218,18 +215,14 @@ class WorkflowService(BaseService):
                     }
                     yield f"event: workflow\ndata: {json.dumps(data)}\n\n"
 
-                # 6.工作流执行成功，更新结果状态和调试状态
+                # 工作流执行成功，更新结果状态和调试状态
                 self.update(
                     workflow_result,
                     status=NodeStatus.SUCCEEDED,
                     state=node_results,
                     latency=(time.perf_counter() - start_at),
                 )
-                # 6.1 标记工作流调试通过
-                self.update(
-                    workflow,
-                    is_debug_passed=True,
-                )
+
             except (ValidateErrorException, ValueError, RuntimeError) as e:
                 # 7.处理执行过程中的异常，记录错误日志并更新失败状态
                 logger.exception(
@@ -245,7 +238,14 @@ class WorkflowService(BaseService):
                     latency=(time.perf_counter() - start_at),
                 )
 
-        return handle_stream()
+        result = handle_stream()
+        # 标记工作流调试通过
+        self.update(
+            workflow,
+            is_debug_passed=True,
+        )
+
+        return result
 
     def get_draft_graph(self, workflow_id: UUID, account: Account) -> dict:
         """获取工作流的草稿图数据。

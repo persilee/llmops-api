@@ -1,5 +1,6 @@
 model: gpt-4o-mini
-label: gpt-4o-mini
+label: GPT-4o mini
+description: GPT-4o mini是 OpenAI 推出的轻量多模态模型，主打高性价比与低延迟，支持文本和图像输入、文本输出，128K 上下文窗口，性能优于 GPT-3.5 Turbo，适合批量任务、实时交互与微调，成本显著更低。
 model_type: chat
 features:
   - tool_call

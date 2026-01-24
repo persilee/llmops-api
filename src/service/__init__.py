@@ -1,5 +1,6 @@
 from .account_service import AccountService
 from .ai_service import AIService
+from .analysis_service import AnalysisService
 from .api_key_service import ApiKeyService
 from .api_tool_service import ApiToolService
 from .app_config_service import AppConfigService
@@ -31,6 +32,7 @@ from .workflow_service import WorkflowService
 __all__ = [
     "AIService",
     "AccountService",
+    "AnalysisService",
     "ApiKeyService",
     "ApiToolService",
     "AppConfigService",

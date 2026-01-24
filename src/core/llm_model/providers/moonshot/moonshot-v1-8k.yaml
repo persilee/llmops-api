@@ -1,5 +1,6 @@
 model: moonshot-v1-8k
 label: moonshot-v1-8k
+description: moonshot-v1-8k 是 Moonshot AI（月之暗面）推出的千亿参数通用大模型基础款，8K 上下文窗口（输入 + 输出总长度），默认 4K、最大 8K 输出 tokens，主打极致响应速度与成本优化，在短文本交互、轻量创作、即时问答等场景性价比突出，适合对上下文需求不高但追求快速低成本的通用任务。
 model_type: chat
 features:
   - tool_call
