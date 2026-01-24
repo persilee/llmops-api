@@ -12,7 +12,11 @@ from pkg.response.response import (
 )
 from pkg.swagger.swagger import get_swagger_path
 from src.router.redprint import route
-from src.schemas.ai_schema import GenerateSuggestedQuestionsReq, OptimizePromptReq
+from src.schemas.ai_schema import (
+    GenerateConversationNameReq,
+    GenerateSuggestedQuestionsReq,
+    OptimizePromptReq,
+)
 from src.service.ai_service import AIService
 
 
@@ -20,6 +24,36 @@ from src.service.ai_service import AIService
 @dataclass
 class AIHandler:
     ai_service: AIService
+
+    @route("/generate-conversation-name", methods=["POST"])
+    @swag_from(
+        get_swagger_path("ai_handler/generate_conversation_name.yaml"),
+    )
+    @login_required
+    def generate_conversation_name(self) -> Response:
+        """生成对话名称的API端点处理函数
+
+        接收用户输入的对话内容，通过AI服务生成合适的对话名称
+
+        Args:
+            query (str): 用户输入的对话内容
+
+        Returns:
+            Response: 包含生成的对话名称的响应对象
+
+        """
+        # 创建请求对象并验证输入
+        req = GenerateConversationNameReq()
+
+        # 验证请求数据是否合法
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        # 调用AI服务生成对话名称
+        name = self.ai_service.generate_conversation_name(req.query.data)
+
+        # 返回包含生成名称的成功响应
+        return success_json({"name": name})
 
     @route("/optimize/prompt", methods=["POST"])
     @swag_from(

@@ -1,0 +1,38 @@
+AI 生成回话名称
+---
+tags:
+  - AI辅助
+summary: AI 生成回话名称
+description:
+operationId: generate_conversation_name
+requestBody:
+  content:
+    application/json:
+      schema:
+        $ref: "#/components/schemas/GenerateConversationNameReq"
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              required:
+                - "name"
+              properties:
+                name:
+                  type: "string"
+                  example: "AI技能的定义与应用"
+              type: "object"
+            message:
+              type: "string"
+              example: ""

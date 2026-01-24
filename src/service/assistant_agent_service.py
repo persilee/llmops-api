@@ -21,6 +21,7 @@ from src.core.llm_model.entities.model_entity import ModelFeature
 from src.core.llm_model.providers.openai.chat import Chat
 from src.core.memory import TokenBufferMemory
 from src.entity.conversation_entity import InvokeFrom, MessageStatus
+from src.exception.exception import FailException
 from src.model import Account, Message
 from src.schemas.assistant_agent_schema import (
     AssistantAgentChat,
@@ -226,6 +227,32 @@ class AssistantAgentService(BaseService):
     def delete_conversation(self, account: Account) -> None:
         """根据传递的账号，清空辅助Agent智能体会话消息列表"""
         self.update(account, assistant_agent_conversation_id=None)
+
+    def delete_assistant_message_by_id(self, assistant_message_id: UUID) -> Message:
+        """根据消息ID删除助手消息
+
+        Args:
+            assistant_message_id (UUID): 要删除的助手消息ID
+
+        Returns:
+            Message: 已删除的消息对象
+
+        Raises:
+            FailException: 当消息不存在时抛出异常
+
+        """
+        # 根据消息ID和助手Agent ID查询消息
+        assistant_message = self.get(Message, assistant_message_id)
+        # 检查消息是否存在
+        if assistant_message is None:
+            error_msg = "未找到该消息"
+            raise FailException(error_msg)
+
+        # 删除消息
+        self.delete(assistant_message)
+
+        # 返回已删除的消息对象
+        return assistant_message
 
     @classmethod
     def convert_create_app_to_tool(cls, account_id: UUID) -> BaseTool:

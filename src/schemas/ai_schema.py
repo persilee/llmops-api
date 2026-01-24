@@ -19,6 +19,14 @@ class GenerateSuggestedQuestionsReq(FlaskForm):
 
 
 @req_schema
+class GenerateConversationNameReq(FlaskForm):
+    query = StringField(
+        "query",
+        validators=[DataRequired("查询不能为空")],
+    )
+
+
+@req_schema
 class OptimizePromptReq(FlaskForm):
     """优化预设prompt请求结构体"""
 

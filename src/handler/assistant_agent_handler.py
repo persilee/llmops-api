@@ -100,3 +100,20 @@ class AssistantAgentHandler:
 
         # 2.清空成功后返回消息响应
         return success_message_json("清空辅助Agent会话成功")
+
+    @route("/<uuid:assistant_message_id>/delete", methods=["POST"])
+    @swag_from(
+        get_swagger_path(
+            "assistant_agent_handler/delete_assistant_message_by_id.yaml",
+        ),
+    )
+    @login_required
+    def delete_assistant_message_by_id(self, assistant_message_id: UUID) -> Response:
+        """删除指定ID的辅助Agent消息"""
+        # 1.调用服务删除指定ID的辅助Agent消息
+        self.assistant_agent_service.delete_assistant_message_by_id(
+            assistant_message_id,
+        )
+
+        # 2.删除成功后返回消息响应
+        return success_message_json("删除辅助Agent消息成功")

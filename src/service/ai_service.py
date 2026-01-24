@@ -23,6 +23,18 @@ class AIService(BaseService):
     db: SQLAlchemy
     conversation_service: ConversationService
 
+    def generate_conversation_name(self, query: str) -> str:
+        """根据查询生成对话名称。
+
+        Args:
+            query (str): 查询字符串
+
+        Returns:
+            str: 对话名称
+
+        """
+        return self.conversation_service.generate_conversation(query)
+
     def generate_suggested_questions_from_message_id(
         self,
         message_id: UUID,
