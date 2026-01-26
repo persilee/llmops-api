@@ -258,7 +258,9 @@ class Workflow(BaseTool):
             Any: 工作流的执行结果
 
         """
-        return self._workflow.invoke({"inputs": kwargs})
+        result = self._workflow.invoke({"inputs": kwargs})
+
+        return result.get("outputs", {})
 
     def stream(
         self,

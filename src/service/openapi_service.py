@@ -348,6 +348,15 @@ class OpenAPIService(BaseService):
             retrieval_tool = self._create_retrieval_tool(app_config, account)
             tools.append(retrieval_tool)
 
+        # 检测是否关联工作流，如果关联了工作流则将工作流构建成工具添加到tools中
+        if app_config["workflows"]:
+            workflow_tools = (
+                self.app_config_service.get_langchain_tools_by_workflow_ids(
+                    [workflow["id"] for workflow in app_config["workflows"]],
+                )
+            )
+            tools.extend(workflow_tools)
+
         # 返回配置完成的工具列表
         return tools
 

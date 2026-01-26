@@ -14,6 +14,8 @@ from src.core.tools.builtin_tools.providers.builtin_provider_manager import (
     BuiltinProviderManager,
 )
 from src.core.tools.providers.api_provider_manager import ApiProviderManager
+from src.core.workflow import Workflow as WorkflowTool
+from src.core.workflow.entities.workflow_entity import WorkflowConfig
 from src.entity.app_entity import DEFAULT_APP_CONFIG
 from src.entity.workflow_entity import WorkflowStatus
 from src.lib.helper import datetime_to_timestamp, get_value_type
@@ -100,8 +102,13 @@ class AppConfigService(BaseService):
         if set(validate_datasets) != set(draft_app_config.datasets):
             self.update(draft_app_config, datasets=validate_datasets)
 
-        # TODO: 校验工作流数据
-        workflows = []  # 初始化工作流列表
+        # 校验工作流列表对应的数据
+        workflows, validate_workflows = self._process_and_validate_workflows(
+            draft_app_config.workflows,
+        )
+        # 如果工作流配置发生变化，更新数据库中的配置
+        if set(validate_workflows) != set(draft_app_config.workflows):
+            self.update(draft_app_config, workflows=validate_workflows)
 
         # 返回完整的草稿配置信息
         # 将处理后的工具、工作流、知识库和原始配置整合并返回
@@ -173,8 +180,13 @@ class AppConfigService(BaseService):
                     AppDatasetJoin.dataset_id == dataset_id,
                 ).delete()
 
-        # TODO: 校验工作流数据
-        workflows = []
+        # 校验工作流列表对应的数据
+        workflows, validate_workflows = self._process_and_validate_workflows(
+            app_config.workflows,
+        )
+        # 如果工作流配置发生变化，更新数据库中的配置
+        if set(validate_workflows) != set(app_config.workflows):
+            self.update(app_config, workflows=validate_workflows)
 
         # 返回完整的配置信息
         # 将处理后的工具、工作流、知识库和原始配置整合并返回
@@ -238,6 +250,41 @@ class AppConfigService(BaseService):
                 )
 
         return tools  # 返回创建好的工具列表
+
+    def get_langchain_tools_by_workflow_ids(
+        self,
+        workflow_ids: list[UUID],
+    ) -> list[BaseTool]:
+        """根据传递的工作流配置列表获取langchain工具列表"""
+        # 根据传递的工作流id查询工作流记录信息
+        workflow_records = (
+            self.db.session.query(Workflow)
+            .filter(
+                Workflow.id.in_(workflow_ids),
+                Workflow.status == WorkflowStatus.PUBLISHED,
+            )
+            .all()
+        )
+
+        # 循环遍历所有工作流记录列表
+        workflows = []
+        for workflow_record in workflow_records:
+            try:
+                # 创建工作流工具
+                workflow_tool = WorkflowTool(
+                    workflow_config=WorkflowConfig(
+                        account_id=workflow_record.account_id,
+                        name=f"wf_{workflow_record.tool_call_name}",
+                        description=workflow_record.description,
+                        nodes=workflow_record.graph.get("nodes", []),
+                        edges=workflow_record.graph.get("edges", []),
+                    ),
+                )
+                workflows.append(workflow_tool)
+            except (ValueError, KeyError, AttributeError):
+                continue
+
+        return workflows
 
     @classmethod
     def _process_and_transformer_app_config(

@@ -47,11 +47,13 @@ from src.entity.app_entity import (
     MAX_RETRIEVAL_COUNT,
     MAX_REVIEW_KEYWORDS_COUNT,
     MAX_TOOL_COUNT,
+    MAX_WORKFLOW_COUNT,
     AppConfigType,
     AppStatus,
 )
 from src.entity.conversation_entity import InvokeFrom, MessageStatus
 from src.entity.dataset_entity import RetrievalSource
+from src.entity.workflow_entity import WorkflowStatus
 from src.exception.exception import (
     FailException,
     ForbiddenException,
@@ -65,6 +67,7 @@ from src.model.api_tool import ApiTool
 from src.model.app import AppConfig, AppConfigVersion, AppDatasetJoin
 from src.model.conversation import Conversation, Message
 from src.model.dataset import Dataset
+from src.model.workflow import Workflow
 from src.schemas.app_schema import (
     CreateAppReq,
     FallbackHistoryToDraftReq,
@@ -534,6 +537,15 @@ class AppService(BaseService):
             # 将知识库检索工具添加到工具列表
             tools.append(dataset_retrieval)
 
+        # 检测是否关联工作流，如果关联了工作流则将工作流构建成工具添加到tools中
+        if draft_app_config["workflows"]:
+            workflow_tools = (
+                self.app_config_service.get_langchain_tools_by_workflow_ids(
+                    [workflow["id"] for workflow in draft_app_config["workflows"]],
+                )
+            )
+            tools.extend(workflow_tools)
+
         # 根据LLM模型特性选择合适的Agent类：
         # - 如果模型支持工具调用功能，使用FunctionCallAgent
         # - 否则使用ReACTAgent
@@ -932,7 +944,7 @@ class AppService(BaseService):
                 for tool in draft_app_config["tools"]
             ],
             # 设置工作流配置
-            workflows=draft_app_config["workflows"],
+            workflows=[workflow["id"] for workflow in draft_app_config["workflows"]],
             # 设置检索配置
             retrieval_config=draft_app_config["retrieval_config"],
             # 设置长期记忆配置
@@ -1420,11 +1432,12 @@ class AppService(BaseService):
             raise ValidateErrorException(error_msg)
         return validate_tools
 
-    def _validate_workflows(self, workflows: list) -> list:
+    def _validate_workflows(self, workflows: list, account: Account) -> list:
         """验证工作流配置
 
         Args:
             workflows: 工作流配置列表
+            account: 用户账户
 
         Returns:
             list: 验证后的工作流配置列表
@@ -1433,8 +1446,42 @@ class AppService(BaseService):
             ValidateErrorException: 当工作流配置错误时抛出
 
         """
-        # TODO: 实现工作流验证逻辑
-        return []
+        # 判断workflows是否为列表
+        if not isinstance(workflows, list):
+            error_msg = "绑定工作流列表参数格式错误"
+            raise ValidateErrorException(error_msg)
+        #  判断关联的工作流列表是否超过5个
+        if len(workflows) > MAX_WORKFLOW_COUNT:
+            error_msg = f"Agent绑定的工作流数量不能超过{MAX_WORKFLOW_COUNT}个"
+            raise ValidateErrorException(error_msg)
+        # 循环校验工作流的每个参数，类型必须为UUID
+        for workflow_id in workflows:
+            try:
+                UUID(workflow_id)
+            except Exception as e:
+                error_msg = "工作流参数必须是UUID"
+                raise ValidateErrorException(error_msg) from e
+        # 判断是否重复关联了工作流
+        if len(set(workflows)) != len(workflows):
+            error_msg = "绑定工作流存在重复"
+            raise ValidateErrorException(error_msg)
+        # 校验关联工作流的权限，剔除不属于当前账号，亦或者未发布的工作流
+        workflow_records = (
+            self.db.session.query(Workflow)
+            .filter(
+                Workflow.id.in_(workflows),
+                Workflow.account_id == account.id,
+                Workflow.status == WorkflowStatus.PUBLISHED,
+            )
+            .all()
+        )
+        workflow_sets = {
+            str(workflow_record.id) for workflow_record in workflow_records
+        }
+
+        return [
+            workflow_id for workflow_id in workflows if workflow_id in workflow_sets
+        ]
 
     def _validate_datasets(self, datasets: list, account: Account) -> list:
         """验证知识库配置
@@ -1837,6 +1884,7 @@ class AppService(BaseService):
         if "workflows" in draft_app_config:
             draft_app_config["workflows"] = self._validate_workflows(
                 draft_app_config["workflows"],
+                account,
             )
 
         # 验证知识库配置
