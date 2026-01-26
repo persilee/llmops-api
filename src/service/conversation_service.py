@@ -1,5 +1,7 @@
+import json
 import logging
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -10,6 +12,8 @@ from langchain_core.prompts import (
     ChatPromptTemplate,
 )
 from langchain_openai import ChatOpenAI
+from redis import Redis, RedisError
+from sqlalchemy import desc
 
 from pkg.sqlalchemy import SQLAlchemy
 from src.core.agent.entities.queue_entity import QueueEvent
@@ -26,6 +30,10 @@ from src.entity.conversation_entity import (
     SuggestedQuestions,
 )
 from src.model.conversation import Conversation, Message, MessageAgentThought
+from src.schemas.app_schema import (
+    GenerateShareConversationReq,
+    GetDebugConversationMessagesWithPageResp,
+)
 from src.service.base_service import BaseService
 
 logger = logging.getLogger(__name__)
@@ -46,6 +54,108 @@ class AgentThoughtConfig:
 @dataclass
 class ConversationService(BaseService):
     db: SQLAlchemy
+    redis_client: Redis
+
+    def get_share_conversation(self, share_id: str) -> list[Message] | None:
+        """从Redis缓存中获取分享的对话内容
+
+        Args:
+            share_id: 分享对话的唯一标识符
+
+        Returns:
+            list[Message] | None: 如果找到则返回消息列表，否则返回None
+
+        """
+        try:
+            # 检查缓存中是否存在该分享ID
+            if self.redis_client.exists(share_id):
+                # 从Redis获取缓存的JSON格式消息数据
+                messages_json = self.redis_client.get(share_id)
+
+                # 将JSON数据反序列化为消息列表并返回
+                return json.loads(messages_json)
+        except (RedisError, json.JSONDecodeError):
+            # 如果发生Redis错误或JSON解析错误，静默处理并返回None
+            pass
+
+        # 如果缓存中不存在或发生错误，返回None
+        return None
+
+    def generate_share_conversation(
+        self,
+        req: GenerateShareConversationReq,
+    ) -> str:
+        """生成分享对话的缓存键并存储对话消息。
+
+        该方法会生成一个基于当前UTC时间的缓存键，用于标识分享的对话。
+        首先尝试从Redis缓存中获取已存在的对话消息，如果不存在则从数据库查询。
+        查询到的消息会被序列化并存储到Redis缓存中，缓存有效期为72小时。
+
+        Args:
+            req (GenerateShareConversationReq): 生成分享对话的请求对象，
+            包含对话ID和消息ID列表
+
+        Returns:
+            str: 返回生成的缓存键作为分享ID，格式为"年_月_日_时_分_秒:对话ID"
+
+        Raises:
+            RedisError: 当Redis操作失败时会被捕获并继续执行数据库查询
+            json.JSONDecodeError: 当JSON解析失败时会被捕获并继续执行数据库查询
+
+        """
+        # 生成基于当前UTC时间的缓存键，格式为：年_月_日_时_分_秒:对话ID
+        current_time = datetime.now(UTC).strftime("%Y_%m_%d_%H_%M_%S")
+        cache_key = f"{current_time}:{req.conversation_id.data!s}"
+
+        try:
+            # 尝试从Redis缓存中获取已存在的对话消息
+            if self.redis_client.exists(cache_key):
+                messages = self.redis_client.get(cache_key)
+                # 如果缓存存在，直接返回解析后的JSON数据
+                return json.loads(messages)
+        except (RedisError, json.JSONDecodeError):
+            # 如果Redis操作失败或JSON解析失败，继续执行数据库查询
+            pass
+
+        # 从数据库查询指定的对话消息
+        # 根据对话ID和消息ID列表进行过滤，并按创建时间倒序排列
+        messages = (
+            self.db.session.query(Message)
+            .filter(
+                Message.conversation_id == req.conversation_id.data,
+                Message.id.in_(req.message_ids.data),
+            )
+            .order_by(desc("created_at"))
+            .all()
+        )
+
+        # 创建响应对象，用于序列化消息数据
+        resp = GetDebugConversationMessagesWithPageResp(many=True)
+
+        # 将查询结果序列化并存储到Redis缓存中
+        # 设置缓存过期时间为72小时（72 * 60 * 60秒）
+        # 使用自定义的default函数处理UUID类型的序列化
+        self.redis_client.setex(
+            cache_key,
+            72 * 60 * 60,
+            json.dumps(
+                resp.dump(messages),
+                default=lambda o: str(o) if isinstance(o, UUID) else o,
+            ),
+        )
+
+        # 返回缓存键作为分享ID，用于后续访问分享的对话内容
+        return cache_key
+
+    @classmethod
+    def _serialize_message(cls, msg) -> dict:
+        """将消息对象转换为可序列化的字典"""
+        data = msg.__dict__.copy()
+        # 将所有UUID字段转换为字符串
+        for key, value in data.items():
+            if isinstance(value, UUID):
+                data[key] = str(value)
+        return data
 
     @classmethod
     def summary(

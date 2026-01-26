@@ -183,6 +183,36 @@ class FallbackHistoryToDraftReq(FlaskForm):
 
 
 @req_schema
+class GenerateShareConversationReq(FlaskForm):
+    """生成分享回话请求结构体"""
+
+    conversation_id = StringField(
+        "conversation_id",
+        validators=[DataRequired("回话id不能为空")],
+    )
+    message_ids = ListField("message_ids", default=[])
+
+    def validate_conversation_id(self, field: StringField) -> None:
+        """校验回话id"""
+        try:
+            UUID(field.data)
+        except Exception as e:
+            error_msg = "回话id必须为UUID"
+            raise ValidationError(error_msg) from e
+
+    def validate_message_ids(self, field: ListField) -> None:
+        if not isinstance(field.data, list):
+            return
+
+        for message_id in field.data:
+            try:
+                UUID(message_id)
+            except Exception as e:
+                error_msg = "消息id必须为UUID"
+                raise ValidationError(error_msg) from e
+
+
+@req_schema
 class UpdateDebugConversationSummaryReq(FlaskForm):
     """更新应用调试会话长期记忆请求体"""
 

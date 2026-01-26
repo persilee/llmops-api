@@ -1,0 +1,24 @@
+获取分享回话消息
+---
+tags:
+  - App管理
+summary: 获取分享回话消息
+description:
+operationId: get_share_conversation
+parameters:
+  - name: share_id
+    in: path
+    required: true
+    schema:
+      type: string
+      default: ""
+responses:
+  "200":
+    content:
+      application/json:
+        schema:
+          $ref: "#/components/schemas/BaseRespBody"
+        example:
+          code: "success"
+          message: ""
+          data: {}

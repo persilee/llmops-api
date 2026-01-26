@@ -12,6 +12,7 @@ from pkg.response import success_message_json
 from pkg.response.response import (
     Response,
     compact_generate_response,
+    not_found_message_json,
     success_json,
     validate_error_json,
 )
@@ -23,6 +24,7 @@ from src.schemas.app_schema import (
     CreateAppReq,
     DebugChatReq,
     FallbackHistoryToDraftReq,
+    GenerateShareConversationReq,
     GetAppResp,
     GetAppsWithPageReq,
     GetAppsWithPageResp,
@@ -34,6 +36,7 @@ from src.schemas.app_schema import (
     UpdateDebugConversationSummaryReq,
 )
 from src.service import AppService
+from src.service.conversation_service import ConversationService
 
 if TYPE_CHECKING:
     from src.model import App
@@ -44,6 +47,48 @@ if TYPE_CHECKING:
 class AppHandler:
     app_service: AppService
     llm_model_manager: LLMModelManager
+    conversation_service: ConversationService
+
+    @route("/share/<string:share_id>/messages", methods=["GET"])
+    @swag_from(get_swagger_path("app_handler/get_share_conversation.yaml"))
+    def get_share_conversation(self, share_id: str) -> Response:
+        """获取分享对话的消息列表。
+
+        Args:
+            share_id (str): 分享对话的唯一标识符
+
+        Returns:
+            Response: 包含消息列表的成功响应，或当消息不存在时返回404错误响应
+
+        """
+        # 通过conversation_service获取指定share_id的分享对话消息
+        messages = self.conversation_service.get_share_conversation(share_id)
+        # 如果消息不存在，返回404错误响应
+        if messages is None:
+            return not_found_message_json()
+
+        # 返回包含消息列表的成功响应
+        return success_json({"messages": messages})
+
+    @route("/generate_share_conversation", methods=["POST"])
+    @swag_from(get_swagger_path("app_handler/generate_share_conversation.yaml"))
+    @login_required
+    def generate_share_conversation(self) -> Response:
+        """生成分享对话
+
+        通过请求参数生成一个分享对话，返回分享ID
+
+        Returns:
+            Response: 包含share_id的成功响应，或验证失败的错误响应
+
+        """
+        req = GenerateShareConversationReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        share_id = self.conversation_service.generate_share_conversation(req)
+
+        return success_json({"share_id": share_id})
 
     @route("/<uuid:app_id>/<uuid:message_id>/delete", methods=["POST"])
     @swag_from(get_swagger_path("app_handler/delete_message_by_id.yaml"))

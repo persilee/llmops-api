@@ -1,0 +1,36 @@
+生成回话分享链接
+---
+tags:
+  - App管理
+summary: 生成回话分享链接
+description:
+operationId: generate_share_conversation
+requestBody:
+  content:
+    application/json:
+      schema:
+        $ref: "#/components/schemas/GenerateShareConversationReq"
+responses:
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              required:
+                - "share_id"
+              properties:
+                share_id:
+                  type: "string"
+                  example: "2026_01_25_14_21_30:229bc16b-67ed-4294-ae6c-0761c8109663"
+              type: "object"
+            message:
+              type: "string"
+              example: ""
