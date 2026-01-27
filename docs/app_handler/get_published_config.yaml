@@ -1,0 +1,42 @@
+获取应用的配置信息
+---
+tags:
+  - App管理
+summary: 获取应用的配置信息
+description:
+operationId: get_published_config
+parameters:
+  - $ref: "#/components/parameters/appIdParam"
+responses:
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              required:
+                - "web_app"
+              properties:
+                web_app:
+                  required:
+                    - "status"
+                    - "token"
+                  properties:
+                    status:
+                      type: "string"
+                      example: "published"
+                    token:
+                      type: "string"
+                      example: "93vVmFtOxt0feW8a"
+                  type: "object"
+              type: "object"
+            message:
+              type: "string"
+              example: ""

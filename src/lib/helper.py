@@ -1,4 +1,6 @@
 import importlib
+import secrets
+import string
 from collections.abc import Callable
 from datetime import datetime
 from enum import Enum
@@ -198,3 +200,12 @@ def get_value_type(value: Any) -> Any:
         return "boolean"
 
     return value_type
+
+
+def generate_random_string(length: int = 16) -> str:
+    """根据传递的位数，生成随机字符串"""
+    # 1.定义字符集，包含大小写字母和数字
+    chars = string.ascii_letters + string.digits
+
+    # 2.使用random.choices生成指定长度的随机字符串
+    return "".join(secrets.choice(chars) for _ in range(length))

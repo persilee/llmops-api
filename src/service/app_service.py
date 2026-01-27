@@ -60,7 +60,7 @@ from src.exception.exception import (
     NotFoundException,
     ValidateErrorException,
 )
-from src.lib.helper import get_value_type, remove_fields
+from src.lib.helper import generate_random_string, get_value_type, remove_fields
 from src.model import App
 from src.model.account import Account
 from src.model.api_tool import ApiTool
@@ -96,6 +96,35 @@ class AppService(BaseService):
     cos_service: CosService
     llm_model_service: LLMModelService
     llm_model_manager: LLMModelManager
+
+    def get_published_config(self, app_id: UUID, account: Account) -> dict[str, Any]:
+        """根据传递的应用id+账号，获取应用的发布配置"""
+        # 获取应用信息并校验权限
+        app = self.get_app(app_id, account)
+
+        # 构建发布配置并返回
+        return {
+            "web_app": {
+                "token": app.token_with_default,
+                "status": app.status,
+            },
+        }
+
+    def regenerate_web_app_token(self, app_id: UUID, account: Account) -> str:
+        """根据传递的应用id+账号，重新生成WebApp凭证标识"""
+        # 获取应用信息并校验权限
+        app = self.get_app(app_id, account)
+
+        # 判断应用是否已发布
+        if app.status != AppStatus.PUBLISHED:
+            error_msg = "应用未发布，无法生成WebApp凭证标识"
+            raise FailException(error_msg)
+
+        # 重新生成token并更新数据
+        token = generate_random_string(16)
+        self.update(app, token=token)
+
+        return token
 
     def auto_create_app(self, name: str, description: str, account_id: UUID) -> None:
         """根据传递的应用名称、描述、账号id利用AI创建一个Agent智能体"""

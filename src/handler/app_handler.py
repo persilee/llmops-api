@@ -49,6 +49,22 @@ class AppHandler:
     llm_model_manager: LLMModelManager
     conversation_service: ConversationService
 
+    @route("/<uuid:app_id>/published/config", methods=["GET"])
+    @swag_from(get_swagger_path("app_handler/get_published_config.yaml"))
+    @login_required
+    def get_published_config(self, app_id: UUID) -> Response:
+        """根据传递的应用id获取应用的发布配置信息"""
+        published_config = self.app_service.get_published_config(app_id, current_user)
+        return success_json(published_config)
+
+    @route("/<uuid:app_id>/regenerate/token", methods=["POST"])
+    @swag_from(get_swagger_path("app_handler/regenerate_web_app_token.yaml"))
+    @login_required
+    def regenerate_web_app_token(self, app_id: UUID) -> Response:
+        """根据传递的应用id重新生成WebApp凭证标识"""
+        token = self.app_service.regenerate_web_app_token(app_id, current_user)
+        return success_json({"token": token})
+
     @route("/share/<string:share_id>/messages", methods=["GET"])
     @swag_from(get_swagger_path("app_handler/get_share_conversation.yaml"))
     def get_share_conversation(self, share_id: str) -> Response:

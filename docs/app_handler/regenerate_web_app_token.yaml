@@ -1,0 +1,19 @@
+生成应用的token
+---
+tags:
+  - App管理
+summary: 生成应用的token
+description:
+operationId: regenerate_web_app_token
+parameters:
+  - $ref: "#/components/parameters/appIdParam"
+responses:
+  "200":
+    content:
+      application/json:
+        schema:
+          $ref: "#/components/schemas/BaseRespBody"
+        example:
+          code: "success"
+          message: ""
+          data: { "token": "7HgHgzKqu9VDBhch" }
