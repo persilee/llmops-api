@@ -1,0 +1,50 @@
+获取WebApp对话信息
+---
+tags:
+  - WebApp
+summary: 获取WebApp对话信息
+description:
+operationId: get_conversations
+parameters:
+  - name: token
+    in: path
+    required: true
+    schema:
+      type: string
+      default: ""
+responses:
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              type: "array"
+              items:
+                type: "object"
+                properties:
+                  created_at:
+                    type: "number"
+                    example: 1769524747
+                  id:
+                    type: "string"
+                    example: "942defa1-98b9-464c-b9d8-1a16835f050b"
+                  name:
+                    type: "string"
+                    example: "用户问候"
+                  summary:
+                    type: "string"
+                    example: "人类向AI问好，AI表示高兴并愿意提供宠物饲养方面的帮助，询问人类是否有具体问题。"
+                  is_pinned:
+                    type: "boolean"
+                    example: false
+            message:
+              type: "string"
+              example: ""

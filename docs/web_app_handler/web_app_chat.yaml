@@ -1,0 +1,29 @@
+与 WebApp 会话
+---
+tags:
+  - WebApp
+summary: 与 WebApp 会话
+description:
+operationId: web_app_chat
+parameters:
+  - name: token
+    in: path
+    required: true
+    schema:
+      type: string
+      default: ""
+requestBody:
+  content:
+    application/json:
+      schema:
+        $ref: "#/components/schemas/DebugChatReq"
+responses:
+  "200":
+    content:
+      application/json:
+        schema:
+          $ref: "#/components/schemas/BaseRespBody"
+        example:
+          code: "success"
+          message: ""
+          data: {}

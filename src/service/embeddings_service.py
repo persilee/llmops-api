@@ -1,12 +1,11 @@
 from dataclasses import dataclass
-from pathlib import Path
 
 import tiktoken
 from injector import inject
 from langchain.embeddings import Embeddings
 from langchain_classic.embeddings import CacheBackedEmbeddings
 from langchain_community.storage import RedisStore
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_openai import OpenAIEmbeddings
 from redis import Redis
 
 
@@ -36,17 +35,17 @@ class EmbeddingsService:
         # 初始化Redis存储，用于缓存嵌入向量
         self._store = RedisStore(client=redis)
         # # OpenAI嵌入模型（已注释）
-        # self._embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+        self._embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
         # 初始化HuggingFace嵌入模型，使用多语言基础模型
-        self._embeddings = HuggingFaceEmbeddings(
-            model_name=(
-                "Alibaba-NLP/gte-multilingual-base"
-            ),  # 使用阿里巴巴的多语言基础模型
-            cache_folder=str(
-                Path.cwd() / "src" / "core" / "embeddings",
-            ),  # 设置模型缓存目录
-            model_kwargs={"trust_remote_code": True},  # 允许执行远程代码
-        )
+        # self._embeddings = HuggingFaceEmbeddings(
+        #     model_name=(
+        #         "Alibaba-NLP/gte-multilingual-base"
+        #     ),  # 使用阿里巴巴的多语言基础模型
+        #     cache_folder=str(
+        #         Path.cwd() / "src" / "core" / "embeddings",
+        #     ),  # 设置模型缓存目录
+        #     model_kwargs={"trust_remote_code": True},  # 允许执行远程代码
+        # )
         # 创建缓存支持的嵌入，将嵌入向量存储到Redis中
         self._cache_backed_embeddings = CacheBackedEmbeddings.from_bytes_store(
             self._embeddings,  # 基础嵌入模型

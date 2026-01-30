@@ -1,0 +1,128 @@
+获取会话消息分页数据
+---
+tags:
+  - 会话模块
+summary: 获取会话消息分页数据
+description:
+operationId: get_conversation_messages_with_page
+parameters:
+  - name: conversation_id
+    in: path
+    required: true
+    schema:
+      type: string
+      default: "0014570c-7ad5-44e8-b5dc-bb57a21c2781"
+    format: uuid
+requestBody:
+  content:
+    application/json:
+      schema:
+        $ref: "#/components/schemas/GetConversationMessagesWithPageReq"
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              required:
+                - "list"
+                - "paginator"
+              properties:
+                list:
+                  type: "array"
+                  items:
+                    type: "object"
+                    properties:
+                      agent_thoughts:
+                        type: "array"
+                        items:
+                          type: "object"
+                          properties:
+                            created_at:
+                              type: "number"
+                              example: 1768794469
+                            event:
+                              type: "string"
+                              example: "long_term_memory_recall"
+                            id:
+                              type: "string"
+                              example: "81f4679c-00f7-4db7-aa58-144afd96b51a"
+                            latency:
+                              type: "number"
+                              example: 0
+                            observation:
+                              type: "string"
+                              example: ""
+                            position:
+                              type: "number"
+                              example: 1
+                            thought:
+                              type: "string"
+                              example: ""
+                            tool:
+                              type: "string"
+                              example: ""
+                            tool_input:
+                              required: []
+                              properties: {}
+                              type: "object"
+                      answer:
+                        type: "string"
+                        example: "我未能找到关于 LLMOps 项目与工作流相关功能的具体信息。一般来说，LLMOps 项目可能涉及以下与工作流相关的功能：\n\n1. **模型训练和部署管理**：提供自动化的模型训练和部署流程，集成数据预处理、训练、验证和推理步骤。\n2. **版本控制**：对模型和数据集进行版本管理，以便于回溯和复用。\n3. **监控和可视化**：实时监控模型性能，并提供可视化工具以便于分析和调整工作流。\n4. **协作功能**：支持团队成员之间的协作，允许多用户参与模型开发和测试。\n5. **自动化工作流**：集成 CI/CD 管道，实现代码和模型的自动化测试与部署。\n\n如果需要更详细的信息或特定的功能描述，可以进一步询问或提供具体的方面。"
+                      conversation_id:
+                        type: "string"
+                        example: "7ca603f2-8ef1-4f0e-8a8c-63324d4513ae"
+                      created_at:
+                        type: "number"
+                        example: 1768794462
+                      id:
+                        type: "string"
+                        example: "81ab9bcc-be93-4a48-b718-14e7b54bf014"
+                      image_urls:
+                        type: "array"
+                        items:
+                          type: "undefined"
+                        example: []
+                      latency:
+                        type: "number"
+                        example: 6.257546040993475
+                      query:
+                        type: "string"
+                        example: "LLMOps 项目有哪些功能是和工作流相关的？"
+                      total_token_count:
+                        type: "number"
+                        example: 0
+                paginator:
+                  required:
+                    - "current_page"
+                    - "page_size"
+                    - "total_page"
+                    - "total_record"
+                  properties:
+                    current_page:
+                      type: "number"
+                      example: 1
+                    page_size:
+                      type: "number"
+                      example: 20
+                    total_page:
+                      type: "number"
+                      example: 1
+                    total_record:
+                      type: "number"
+                      example: 1
+                  type: "object"
+              type: "object"
+            message:
+              type: "string"
+              example: ""

@@ -27,6 +27,7 @@ from .retrieval_service import RetrievalService
 from .segment_service import SegmentService
 from .upload_file_service import UploadFileService
 from .vector_database_service import VectorDatabaseService
+from .web_app_service import WebAppService
 from .workflow_service import WorkflowService
 
 __all__ = [
@@ -60,5 +61,6 @@ __all__ = [
     "SegmentService",
     "UploadFileService",
     "VectorDatabaseService",
+    "WebAppService",
     "WorkflowService",
 ]

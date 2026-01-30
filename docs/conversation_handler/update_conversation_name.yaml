@@ -1,0 +1,41 @@
+修改会话名称
+---
+tags:
+  - 会话模块
+summary: 修改会话名称
+description:
+operationId: update_conversation_name
+parameters:
+  - name: conversation_id
+    in: path
+    required: true
+    schema:
+      type: string
+      default: "0014570c-7ad5-44e8-b5dc-bb57a21c2781"
+    format: uuid
+requestBody:
+  content:
+    application/json:
+      schema:
+        $ref: "#/components/schemas/UpdateConversationNameReq"
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              type: "object"
+              example: {}
+            message:
+              type: "string"
+              example: "修改会话名称成功"

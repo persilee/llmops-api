@@ -112,7 +112,7 @@ class AppHandler:
     def delete_message_by_id(self, app_id: UUID, message_id: UUID) -> Response:
         self.get_app(app_id)
 
-        self.app_service.delete_message_by_id(message_id)
+        self.app_service.delete_message_by_id(message_id, current_user)
 
         return success_message_json("删除对话消息成功")
 
@@ -531,7 +531,7 @@ class AppHandler:
 
         # 获取分页消息数据和分页器
         messages, paginator = (
-            self.app_service.get_debut_conversation_messages_with_page(
+            self.app_service.get_debug_conversation_messages_with_page(
                 app_id,
                 req,
                 current_user,

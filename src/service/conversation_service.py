@@ -14,7 +14,9 @@ from langchain_core.prompts import (
 from langchain_openai import ChatOpenAI
 from redis import Redis, RedisError
 from sqlalchemy import desc
+from sqlalchemy.orm import joinedload
 
+from pkg.paginator.paginator import Paginator
 from pkg.sqlalchemy import SQLAlchemy
 from src.core.agent.entities.queue_entity import QueueEvent
 from src.entity.conversation_entity import (
@@ -27,13 +29,17 @@ from src.entity.conversation_entity import (
     TRUNCATE_PREFIX_LENGTH,
     ConversationInfo,
     InvokeFrom,
+    MessageStatus,
     SuggestedQuestions,
 )
+from src.exception.exception import NotFoundException
+from src.model.account import Account
 from src.model.conversation import Conversation, Message, MessageAgentThought
 from src.schemas.app_schema import (
     GenerateShareConversationReq,
     GetDebugConversationMessagesWithPageResp,
 )
+from src.schemas.conversation_schema import GetConversationMessagesWithPageReq
 from src.service.base_service import BaseService
 
 logger = logging.getLogger(__name__)
@@ -55,6 +61,121 @@ class AgentThoughtConfig:
 class ConversationService(BaseService):
     db: SQLAlchemy
     redis_client: Redis
+
+    def get_conversation_messages_with_page(
+        self,
+        conversation_id: UUID,
+        req: GetConversationMessagesWithPageReq,
+        account: Account,
+    ) -> tuple[list[Message], Paginator]:
+        """根据传递的会话id+请求数据，获取当前账号下该会话的消息分页列表数据"""
+        # 1.获取会话并校验权限
+        conversation = self.get_conversation(conversation_id, account)
+
+        # 2.构建分页器并设置游标条件
+        paginator = Paginator(db=self.db, req=req)
+        filters = []
+        if req.created_at.data:
+            # 3.将时间戳转换成DateTime
+            created_at_datetime = datetime.fromtimestamp(
+                req.created_at.data,
+                tz=UTC,
+            )
+            filters.append(Message.created_at <= created_at_datetime)
+
+        # 4.执行分页并查询数据
+        messages = paginator.paginate(
+            self.db.session.query(Message)
+            .options(joinedload(Message.agent_thoughts))
+            .filter(
+                Message.conversation_id == conversation.id,
+                Message.status.in_([MessageStatus.STOP, MessageStatus.NORMAL]),
+                Message.answer != "",
+                ~Message.is_deleted,
+                *filters,
+            )
+            .order_by(desc("created_at")),
+        )
+
+        return messages, paginator
+
+    def delete_conversation(
+        self,
+        conversation_id: UUID,
+        account: Account,
+    ) -> Conversation:
+        """根据传递的会话id+账号删除指定的会话记录"""
+        # 1.获取会话记录并校验权限
+        conversation = self.get_conversation(conversation_id, account)
+
+        # 2.更新会话的删除状态
+        self.update(conversation, is_deleted=True)
+
+        return conversation
+
+    def get_conversation(self, conversation_id: UUID, account: Account) -> Conversation:
+        """根据传递的会话id+account，获取指定的会话信息"""
+        # 1.根据conversation_id查询会话记录
+        conversation = self.get(Conversation, conversation_id)
+        if (
+            not conversation
+            or conversation.created_by != account.id
+            or conversation.is_deleted
+        ):
+            error_msg = "该会话不存在或被删除，请核实后重试"
+            raise NotFoundException(error_msg)
+
+        # 2.校验通过返回会话
+        return conversation
+
+    def delete_message(
+        self,
+        conversation_id: UUID,
+        message_id: UUID,
+        account: Account,
+    ) -> Message:
+        """根据传递的会话id+消息id删除指定的消息记录"""
+        # 1.获取会话记录并校验权限
+        conversation = self.get_conversation(conversation_id, account)
+
+        # 2.获取消息并校验权限
+        message = self.get_message(message_id, account)
+
+        # 3.判断消息和会话是否关联
+        if conversation.id != message.conversation_id:
+            error_msg = "该会话下不存在该消息，请核实后重试"
+            raise NotFoundException(error_msg)
+
+        # 4.校验通过修改消息is_deleted属性标记删除
+        self.update(message, is_deleted=True)
+
+        return message
+
+    def get_message(self, message_id: UUID, account: Account) -> Message:
+        """根据传递的消息id+账号，获取指定的消息"""
+        # 1.根据message_id查询消息记录
+        message = self.get(Message, message_id)
+        if not message or message.created_by != account.id or message.is_deleted:
+            error_msg = "该消息不存在或被删除，请核实后重试"
+            raise NotFoundException(error_msg)
+
+        # 2.校验通过返回消息
+        return message
+
+    def update_conversation(
+        self,
+        conversation_id: UUID,
+        account: Account,
+        **kwargs: dict,
+    ) -> Conversation:
+        """根据传递的会话id+账号+kwargs更新会话信息"""
+        # 1.获取会话记录并校验权限
+        conversation = self.get_conversation(conversation_id, account)
+
+        # 2.更新会话信息
+        self.update(conversation, **kwargs)
+
+        return conversation
 
     def get_share_conversation(self, share_id: str) -> list[Message] | None:
         """从Redis缓存中获取分享的对话内容

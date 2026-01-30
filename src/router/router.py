@@ -12,6 +12,7 @@ from src.handler.api_tool_handler import ApiToolHandler
 from src.handler.assistant_agent_handler import AssistantAgentHandler
 from src.handler.auth_handler import AuthHandler
 from src.handler.builtin_app_handler import BuiltinAppHandler
+from src.handler.conversation_handler import ConversationHandler
 from src.handler.dataset_handler import DatasetHandler
 from src.handler.document_handler import DocumentHandler
 from src.handler.llm_model_handler import LLMModelHandler
@@ -19,6 +20,7 @@ from src.handler.oauth_handler import OAuthHandler
 from src.handler.openapi_handler import OpenApiHandler
 from src.handler.segment_handler import SegmentHandler
 from src.handler.upload_file_handler import UploadFileHandler
+from src.handler.web_app_handler import WebAppHandler
 from src.handler.workflow_handler import WorkflowHandler
 from src.router import register_with_class
 
@@ -46,6 +48,8 @@ class Router:
     llm_model_handler: LLMModelHandler
     assistant_agent_handler: AssistantAgentHandler
     analysis_handler: AnalysisHandler
+    web_app_handler: WebAppHandler
+    conversation_handler: ConversationHandler
 
     def register_route(self, app: Flask) -> None:
         """注册路由"""
@@ -73,6 +77,8 @@ class Router:
             url_prefix="assistant-agent",
         )
         register_with_class(self.analysis_handler, bp, url_prefix="app-analysis")
+        register_with_class(self.web_app_handler, bp, url_prefix="web-apps")
+        register_with_class(self.conversation_handler, bp, url_prefix="conversations")
         register_with_class(self.openapi_handler, bp_openapi, url_prefix="openapi")
 
         app.register_blueprint(bp)

@@ -1,0 +1,41 @@
+修改置顶会话
+---
+tags:
+  - 会话模块
+summary: 修改置顶会话
+description:
+operationId: update_conversation_is_pinned
+parameters:
+  - name: conversation_id
+    in: path
+    required: true
+    schema:
+      type: string
+      default: "0014570c-7ad5-44e8-b5dc-bb57a21c2781"
+    format: uuid
+requestBody:
+  content:
+    application/json:
+      schema:
+        $ref: "#/components/schemas/UpdateConversationIsPinnedReq"
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              type: "object"
+              example: {}
+            message:
+              type: "string"
+              example: "修改会话置顶状态成功"

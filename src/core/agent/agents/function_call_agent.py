@@ -228,6 +228,8 @@ class FunctionCallAgent(BaseAgent):
         """
         # 初始化长期记忆字符串
         long_term_memory = ""
+        # 记录响应开始时间用于性能统计
+        start_at = time.perf_counter()
         # 检查是否启用长期记忆功能
         if self.agent_config.enable_long_term_memory:
             # 从状态中获取长期记忆内容
@@ -241,6 +243,7 @@ class FunctionCallAgent(BaseAgent):
                     task_id=state["task_id"],
                     event=QueueEvent.LONG_TERM_MEMORY_RECALL,
                     observation=long_term_memory,
+                    latency=(time.perf_counter() - start_at),
                 ),
             )
 

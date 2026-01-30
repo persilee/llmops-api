@@ -217,6 +217,7 @@ class AssistantAgentService(BaseService):
                 Message.conversation_id == conversation.id,
                 Message.status.in_([MessageStatus.STOP, MessageStatus.NORMAL]),
                 Message.answer != "",
+                ~Message.is_deleted,
                 *filters,
             )
             .order_by(desc("created_at")),

@@ -1,0 +1,112 @@
+获取 WebApp 信息
+---
+tags:
+  - WebApp
+summary: 获取 WebApp 信息
+description:
+operationId: get_web_app
+parameters:
+  - name: token
+    in: path
+    required: true
+    schema:
+      type: string
+      default: ""
+responses:
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              required:
+                - "app_config"
+                - "description"
+                - "icon"
+                - "id"
+                - "name"
+              properties:
+                app_config:
+                  required:
+                    - "features"
+                    - "opening_questions"
+                    - "opening_statement"
+                    - "speech_to_text"
+                    - "suggested_after_answer"
+                    - "text_to_speech"
+                  properties:
+                    features:
+                      type: "array"
+                      items:
+                        type: "string"
+                      example:
+                        - "tool_call"
+                        - "agent_thought"
+                        - "image_input"
+                    opening_questions:
+                      type: "array"
+                      items:
+                        type: "string"
+                      example:
+                        - "如何判断宠物是否处于健康状态？"
+                        - "为什么有些宠物会出现破坏性行为（如啃咬家具、随地大小便等）？"
+                        - "在选择宠物时，除了个人喜好外，还应该考虑哪些重要因素？"
+                    opening_statement:
+                      type: "string"
+                      example: "你好，我还拥有丰富经验的宠物饲养员，有什么和各种宠物饲养相关的问题都可以咨询我。"
+                    speech_to_text:
+                      required:
+                        - "enable"
+                      properties:
+                        enable:
+                          type: "boolean"
+                          example: true
+                      type: "object"
+                    suggested_after_answer:
+                      required:
+                        - "enable"
+                      properties:
+                        enable:
+                          type: "boolean"
+                          example: true
+                      type: "object"
+                    text_to_speech:
+                      required:
+                        - "auto_play"
+                        - "enable"
+                        - "voice"
+                      properties:
+                        auto_play:
+                          type: "boolean"
+                          example: false
+                        enable:
+                          type: "boolean"
+                          example: true
+                        voice:
+                          type: "string"
+                          example: "echo"
+                      type: "object"
+                  type: "object"
+                description:
+                  type: "string"
+                  example: "这是一个拥有 18 年的宠物饲养经验的宠物饲养员，能帮忙解决大多数宠物饲养问题。"
+                icon:
+                  type: "string"
+                  example: "https://llmops-dev-1253877543.cos.ap-guangzhou.myqcloud.com/2025/11/05/dd61aaff-a83f-463b-8564-736f379b870b.png"
+                id:
+                  type: "string"
+                  example: "ce991a57-97cc-42d9-8bbd-4426bd335ad5"
+                name:
+                  type: "string"
+                  example: "宠养世家"
+              type: "object"
+            message:
+              type: "string"
+              example: ""

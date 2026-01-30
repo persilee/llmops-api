@@ -246,7 +246,7 @@ class AnalysisService(BaseService):
                 },
             )
             active_accounts_trend["x_axis"].append(int(trend_start_at.timestamp()))
-            active_accounts_trend["y_axis"].append(active_accounts_trend_y_axis)
+            active_accounts_trend["y_axis"].append(float(active_accounts_trend_y_axis))
 
             # 7.计算平均会话互动趋势
             avg_of_conversation_messages_trend_y_axis = 0

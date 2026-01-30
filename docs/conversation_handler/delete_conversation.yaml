@@ -1,0 +1,36 @@
+删除回话
+---
+tags:
+  - 会话模块
+summary: 删除回话
+description:
+operationId: delete_conversation
+parameters:
+  - name: conversation_id
+    in: path
+    required: true
+    schema:
+      type: string
+      default: "0014570c-7ad5-44e8-b5dc-bb57a21c2781"
+    format: uuid
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              type: "object"
+              example: {}
+            message:
+              type: "string"
+              example: "删除会话成功"

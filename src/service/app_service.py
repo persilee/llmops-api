@@ -348,11 +348,12 @@ class AppService(BaseService):
         # 返回查询结果和分页器信息
         return apps, paginator
 
-    def delete_message_by_id(self, message_id: UUID) -> Message:
+    def delete_message_by_id(self, message_id: UUID, account: Account) -> Message:
         """根据消息ID删除消息
 
         Args:
             message_id: 消息ID
+            account: 当前用户账户信息，用于权限验证
 
         Returns:
             Message: 删除后的消息对象
@@ -364,7 +365,11 @@ class AppService(BaseService):
             error_message = f"消息ID为{message_id}的消息不存在"
             raise FailException(error_message)
         # 如果消息存在，则删除
-        self.delete(message)
+        self.conversation_service.delete_message(
+            message.conversation_id,
+            message_id,
+            account,
+        )
 
         return message
 
@@ -391,7 +396,7 @@ class AppService(BaseService):
 
         return app
 
-    def get_debut_conversation_messages_with_page(
+    def get_debug_conversation_messages_with_page(
         self,
         app_id: UUID,
         req: GetDebugConversationMessagesWithPageReq,
@@ -449,6 +454,7 @@ class AppService(BaseService):
                 Message.conversation_id == debug_conversation.id,
                 Message.status.in_([MessageStatus.NORMAL]),
                 Message.answer != "",
+                ~Message.is_deleted,
                 *filters,
             )
             .order_by(Message.created_at.desc()),
