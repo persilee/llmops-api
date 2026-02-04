@@ -115,7 +115,7 @@ class WebAppService(BaseService):
             conversation = self.create(
                 Conversation,
                 app_id=app.id,
-                name="New Conversation",
+                name="新对话",
                 invoke_from=InvokeFrom.WEB_APP,
                 created_by=account.id,
             )
@@ -266,7 +266,7 @@ class WebAppService(BaseService):
                 "message_id": str(message.id),
                 "task_id": str(agent_thought.task_id),
             }
-            yield f"event: {agent_thought.event}\ndata:{json.dumps(data)}\n\n"
+            yield f"event: {agent_thought.event.value}\ndata: {json.dumps(data)}\n\n"
 
         # 创建异步线程保存智能体思考记录，避免阻塞主流程
         agent_thought_config = AgentThoughtConfig(

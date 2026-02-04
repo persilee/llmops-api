@@ -34,6 +34,6 @@ class OptimizePromptReq(FlaskForm):
         "prompt",
         validators=[
             DataRequired("预设prompt不能为空"),
-            Length(max=2000, message="预设prompt的长度不能超过2000个字符"),
+            Length(max=5000, message="预设prompt的长度不能超过5000个字符"),
         ],
     )

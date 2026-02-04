@@ -258,7 +258,7 @@ class OpenAPIService(BaseService):
         return self.create(
             Conversation,
             app_id=app.id,  # 关联到当前应用
-            name="New Conversation",  # 默认会话名称
+            name="新对话",  # 默认会话名称
             invoke_from=InvokeFrom.SERVICE_API,  # 标记为服务API调用创建
             created_by=end_user.id,  # 设置创建者
         )

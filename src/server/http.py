@@ -1,15 +1,17 @@
 import logging
-import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import yaml
 from flasgger import Swagger
-from flask import Flask
+from flask import Flask, request
 from flask_cors import CORS
 from flask_login import LoginManager
 from flask_migrate import Migrate
+from werkzeug.exceptions import (
+    NotFound,
+)
 
 from config import Config, swagger_config, swagger_template
 from pkg.response import HttpCode, Response, json
@@ -76,7 +78,7 @@ class Http(Flask):
             self,
             resources={
                 r"/*": {
-                    "origins": "http://localhost:5173",
+                    "origins": "*",
                     "supports_credentials": True,
                     "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
                     "allow_headers": ["Content-Type", "Authorization"],
@@ -114,6 +116,15 @@ class Http(Flask):
         # 记录错误日志
         self.logger.error("Error: %s", error)
 
+        # 返回 404 错误响应
+        if isinstance(error, NotFound):
+            response = Response(
+                code=HttpCode.NOT_FOUND,
+                message="Not Found",
+                data={"path": request.path if request else None},
+            )
+            return json(response)
+
         # 根据异常类型返回相应的错误响应
         if isinstance(error, CustomException):
             response = Response(
@@ -124,8 +135,8 @@ class Http(Flask):
             return json(response)
 
         # 如果异常不是CustomException类型，则返回通用错误响应
-        if self.debug or os.getenv("FLASK_ENV") == "development":
-            raise error
+        # if self.debug or os.getenv("FLASK_ENV") == "development":
+        #     raise error
         response = Response(
             code=HttpCode.FAIL,
             message=str(error),

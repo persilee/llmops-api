@@ -16,7 +16,7 @@ requestBody:
   content:
     application/json:
       schema:
-        $ref: "#/components/schemas/DebugChatReq"
+        $ref: "#/components/schemas/WebAppChatReq"
 responses:
   "200":
     content:

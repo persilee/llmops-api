@@ -107,7 +107,7 @@ class Account(UserMixin, db.Model):
                 # 4.创建辅助Agent会话
                 conversation = Conversation(
                     app_id=assistant_agent_id,
-                    name="New Conversation",
+                    name="新对话",
                     invoke_from=InvokeFrom.ASSISTANT_AGENT,
                     created_by=self.id,
                 )

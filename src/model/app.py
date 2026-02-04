@@ -147,7 +147,7 @@ class App(db.Model):
             with db.auto_commit():
                 debug_conversation = Conversation(
                     app_id=self.id,
-                    name="New Conversation",
+                    name="新对话",
                     invoke_from=InvokeFrom.DEBUGGER,
                     created_by=self.account_id,
                 )
