@@ -9,6 +9,7 @@ from flask import Flask, request
 from flask_cors import CORS
 from flask_login import LoginManager
 from flask_migrate import Migrate
+from flask_weaviate import FlaskWeaviate
 from werkzeug.exceptions import (
     NotFound,
 )
@@ -27,6 +28,7 @@ from src.schemas import swag_schemas
 class HttpConfig:
     conf: Config
     db: SQLAlchemy
+    weaviate: FlaskWeaviate
     migrate: Migrate
     login_manager: LoginManager
     middleware: Middleware
@@ -59,6 +61,7 @@ class Http(Flask):
 
         # 初始化数据库
         http_config.db.init_app(self)
+        http_config.weaviate.init_app(self)
         http_config.migrate.init_app(self, http_config.db, directory="src/migration")
 
         # 初始化 Redis

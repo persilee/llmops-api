@@ -118,4 +118,7 @@ class AIService(BaseService):
             # event: 事件类型
             # data: JSON 格式的数据
             # \n\n: 表示消息结束
-            yield f"event: optimize_prompt\ndata: {json.dumps(data)}\n\n"
+            yield (
+                f"event: optimize_prompt\n"
+                f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+            )

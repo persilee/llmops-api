@@ -1,8 +1,8 @@
 import json
+import os
 from collections.abc import Generator
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from threading import Thread
 from uuid import UUID
 
 from flask import current_app
@@ -20,6 +20,9 @@ from src.core.agent.entities.queue_entity import QueueEvent
 from src.core.llm_model.entities.model_entity import ModelFeature
 from src.core.llm_model.providers.openai.chat import Chat
 from src.core.memory import TokenBufferMemory
+from src.core.tools.builtin_tools.providers.builtin_provider_manager import (
+    BuiltinProviderManager,
+)
 from src.entity.conversation_entity import InvokeFrom, MessageStatus
 from src.exception.exception import FailException
 from src.model import Account, Message
@@ -42,6 +45,7 @@ class AssistantAgentService(BaseService):
     db: SQLAlchemy
     faiss_service: FaissService
     conversation_service: ConversationService
+    builtin_provider_manager: BuiltinProviderManager
 
     def chat(self, req: AssistantAgentChat, account: Account) -> Generator:
         """传递query与账号实现与辅助Agent进行会话"""
@@ -65,7 +69,9 @@ class AssistantAgentService(BaseService):
 
         # 4.使用GPT模型作为辅助Agent的LLM大脑
         llm = Chat(
-            model="gpt-4o-mini",
+            model="doubao-seed-1-8-251228",
+            openai_api_key=os.getenv("ARK_API_KEY"),
+            openai_api_base=os.getenv("ARK_API_BASE"),
             temperature=0.8,
             features=[
                 ModelFeature.TOOL_CALL,
@@ -84,9 +90,15 @@ class AssistantAgentService(BaseService):
         history = token_buffer_memory.get_history_prompt_messages(message_limit=3)
 
         # 6.将草稿配置中的tools转换成LangChain工具
+        search_tool = self.builtin_provider_manager.get_tool(
+            "google",  # 提供者ID
+            "google_serper",  # 工具名称
+        )
         tools = [
             self.faiss_service.convert_faiss_to_tool(),
             self.convert_create_app_to_tool(account.id),
+            search_tool(),
+            # weather_tool(),
         ]
 
         # 7.构建Agent智能体，使用FunctionCallAgent
@@ -167,11 +179,13 @@ class AssistantAgentService(BaseService):
                 "message_id": str(message.id),
                 "task_id": str(agent_thought.task_id),
             }
-            yield f"event: {agent_thought.event.value}\ndata:{json.dumps(data)}\n\n"
+            yield (
+                f"event: {agent_thought.event.value}\n"
+                f"data:{json.dumps(data, ensure_ascii=False)}\n\n"
+            )
 
         # 创建异步线程保存智能体思考记录，避免阻塞主流程
         agent_thought_config = AgentThoughtConfig(
-            flask_app=current_app._get_current_object(),  # noqa: SLF001
             account_id=account.id,
             app_id=assistant_agent_id,
             app_config={"long_term_memory": {"enable": True}},
@@ -179,13 +193,7 @@ class AssistantAgentService(BaseService):
             message_id=message.id,
             agent_thoughts=list(agent_thoughts.values()),
         )
-        thread = Thread(
-            target=self.conversation_service.save_agent_thoughts,
-            kwargs={"config": agent_thought_config},
-        )
-
-        # 启动线程
-        thread.start()
+        self.conversation_service.save_agent_thoughts(config=agent_thought_config)
 
     @classmethod
     def stop_chat(cls, task_id: UUID, account: Account) -> None:

@@ -2,10 +2,11 @@ import json
 import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from threading import Thread
 from typing import Any
 from uuid import UUID
 
-from flask import Flask
+from flask import Flask, current_app
 from injector import inject
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import (
@@ -47,7 +48,6 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class AgentThoughtConfig:
-    flask_app: Flask
     account_id: UUID
     app_id: UUID
     app_config: dict[str, Any]
@@ -262,6 +262,7 @@ class ConversationService(BaseService):
             json.dumps(
                 resp.dump(messages),
                 default=lambda o: str(o) if isinstance(o, UUID) else o,
+                ensure_ascii=False,
             ),
         )
 
@@ -474,7 +475,6 @@ class ConversationService(BaseService):
 
         Args:
             config (AgentThoughtConfig): 包含以下配置信息：
-                - flask_app: Flask应用实例
                 - app_id: 应用ID
                 - conversation_id: 对话ID
                 - message_id: 消息ID
@@ -486,107 +486,145 @@ class ConversationService(BaseService):
             None
 
         """
-        # 在Flask应用上下文中执行，确保可以访问数据库等资源
-        with config.flask_app.app_context():
-            # 初始化延迟时间计数器
-            latency = 0
+        # 初始化延迟时间计数器
+        latency = 0
 
-            # 获取对话和消息对象
-            conversation = self.get(Conversation, config.conversation_id)
-            message = self.get(Message, config.message_id)
+        # 获取对话和消息对象
+        conversation = self.get(Conversation, config.conversation_id)
+        message = self.get(Message, config.message_id)
 
-            # 遍历智能体思考记录，position表示事件在序列中的位置
-            for position, agent_thought in enumerate(config.agent_thoughts, start=1):
-                # 检查事件类型是否为需要记录的类型
-                if agent_thought.event in [
-                    QueueEvent.LONG_TERM_MEMORY_RECALL,
-                    QueueEvent.AGENT_THOUGHT,
-                    QueueEvent.AGENT_MESSAGE,
-                    QueueEvent.AGENT_ACTION,
-                    QueueEvent.DATASET_RETRIEVAL,
-                ]:
-                    # 累加延迟时间
-                    latency += agent_thought.latency
+        # 遍历智能体思考记录，position表示事件在序列中的位置
+        for position, agent_thought in enumerate(config.agent_thoughts, start=1):
+            # 检查事件类型是否为需要记录的类型
+            if agent_thought.event in [
+                QueueEvent.LONG_TERM_MEMORY_RECALL,
+                QueueEvent.AGENT_THOUGHT,
+                QueueEvent.AGENT_MESSAGE,
+                QueueEvent.AGENT_ACTION,
+                QueueEvent.DATASET_RETRIEVAL,
+            ]:
+                # 累加延迟时间
+                latency += agent_thought.latency
 
-                    # 创建消息智能体思考记录
-                    self.create(
-                        MessageAgentThought,
-                        app_id=config.app_id,  # 应用ID
-                        conversation_id=conversation.id,  # 对话ID
-                        message_id=message.id,  # 消息ID
-                        invoke_from=InvokeFrom.DEBUGGER,  # 调用来源
-                        created_by=config.account_id,  # 创建者ID
-                        position=position,  # 事件位置
-                        event=agent_thought.event,  # 事件类型
-                        thought=agent_thought.thought,  # 思考内容
-                        observation=agent_thought.observation,  # 观察结果
-                        tool=agent_thought.tool,  # 使用的工具
-                        tool_input=agent_thought.tool_input,  # 工具输入
-                        message=agent_thought.message,  # 消息内容
-                        message_token_count=agent_thought.message_token_count,
-                        message_unit_price=agent_thought.message_unit_price,
-                        message_price_unit=agent_thought.message_price_unit,
-                        answer=agent_thought.answer,  # 答案内容
-                        answer_token_count=agent_thought.answer_token_count,
-                        answer_unit_price=agent_thought.answer_unit_price,
-                        answer_price_unit=agent_thought.answer_price_unit,
-                        total_token_count=agent_thought.total_token_count,
-                        total_price=agent_thought.total_price,
-                        latency=agent_thought.latency,  # 延迟时间
-                    )
+                # 创建消息智能体思考记录
+                self.create(
+                    MessageAgentThought,
+                    app_id=config.app_id,  # 应用ID
+                    conversation_id=conversation.id,  # 对话ID
+                    message_id=message.id,  # 消息ID
+                    invoke_from=InvokeFrom.DEBUGGER,  # 调用来源
+                    created_by=config.account_id,  # 创建者ID
+                    position=position,  # 事件位置
+                    event=agent_thought.event,  # 事件类型
+                    thought=agent_thought.thought,  # 思考内容
+                    observation=agent_thought.observation,  # 观察结果
+                    tool=agent_thought.tool,  # 使用的工具
+                    tool_input=agent_thought.tool_input,  # 工具输入
+                    message=agent_thought.message,  # 消息内容
+                    message_token_count=agent_thought.message_token_count,
+                    message_unit_price=agent_thought.message_unit_price,
+                    message_price_unit=agent_thought.message_price_unit,
+                    answer=agent_thought.answer,  # 答案内容
+                    answer_token_count=agent_thought.answer_token_count,
+                    answer_unit_price=agent_thought.answer_unit_price,
+                    answer_price_unit=agent_thought.answer_price_unit,
+                    total_token_count=agent_thought.total_token_count,
+                    total_price=agent_thought.total_price,
+                    latency=agent_thought.latency,  # 延迟时间
+                )
 
-                # 如果是智能体消息事件
-                if agent_thought.event == QueueEvent.AGENT_MESSAGE:
-                    # 更新消息内容和答案
-                    self.update(
-                        message,
-                        message=agent_thought.message,  # 消息内容
-                        message_token_count=agent_thought.message_token_count,
-                        message_unit_price=agent_thought.message_unit_price,
-                        message_price_unit=agent_thought.message_price_unit,
-                        answer=agent_thought.answer,  # 答案内容
-                        answer_token_count=agent_thought.answer_token_count,
-                        answer_unit_price=agent_thought.answer_unit_price,
-                        answer_price_unit=agent_thought.answer_price_unit,
-                        total_token_count=agent_thought.total_token_count,
-                        total_price=agent_thought.total_price,
-                        latency=latency,  # 总延迟时间
-                    )
-                    # 如果启用了长期记忆功能
-                    if config.app_config["long_term_memory"]["enable"]:
-                        # 生成新的对话摘要
-                        new_summary = self.summary(
-                            message.query,  # 查询内容
-                            agent_thought.answer,  # 答案内容
-                            conversation.summary,  # 当前摘要
-                        )
-                        self.update(
-                            conversation,
-                            summary=new_summary,
-                        )
+            # 如果是智能体消息事件
+            if agent_thought.event == QueueEvent.AGENT_MESSAGE:
+                # 更新消息内容和答案
+                self.update(
+                    message,
+                    message=agent_thought.message,  # 消息内容
+                    message_token_count=agent_thought.message_token_count,
+                    message_unit_price=agent_thought.message_unit_price,
+                    message_price_unit=agent_thought.message_price_unit,
+                    answer=agent_thought.answer,  # 答案内容
+                    answer_token_count=agent_thought.answer_token_count,
+                    answer_unit_price=agent_thought.answer_unit_price,
+                    answer_price_unit=agent_thought.answer_price_unit,
+                    total_token_count=agent_thought.total_token_count,
+                    total_price=agent_thought.total_price,
+                    latency=latency,  # 总延迟时间
+                )
+                # 如果启用了长期记忆功能
+                if config.app_config["long_term_memory"]["enable"]:
+                    # 生成新的对话摘要
+                    Thread(
+                        target=self._generate_summary_and_update,
+                        kwargs={
+                            "flask_app": current_app._get_current_object(),  # noqa: SLF001
+                            "conversation_id": conversation.id,
+                            "query": message.query,
+                            "answer": agent_thought.answer,
+                        },
+                    ).start()
 
-                    # 如果是新对话，生成新的对话名称
-                    if conversation.is_new:
-                        new_conversation_name = self.generate_conversation(
-                            message.query,  # 基于查询内容生成名称
-                        )
-                        # 更新对话的名称和摘要
-                        self.update(
-                            conversation,
-                            name=new_conversation_name,  # 新的对话名称
-                        )
+                # 如果是新对话，生成新的对话名称
+                if conversation.is_new:
+                    Thread(
+                        target=self._generate_conversation_name_and_update,
+                        kwargs={
+                            "flask_app": current_app._get_current_object(),  # noqa: SLF001
+                            "conversation_id": conversation.id,
+                            "query": message.query,
+                        },
+                    ).start()
 
-                # 检查代理思考的事件状态是否为终止状态（停止、错误或超时）
-                if agent_thought.event in [
-                    QueueEvent.STOP,  # 停止事件
-                    QueueEvent.ERROR,  # 错误事件
-                    QueueEvent.TIMEOUT,  # 超时事件
-                ]:
-                    # 更新消息状态，设置对应的事件状态和错误信息
-                    self.update(
-                        message,
-                        status=agent_thought.event,  # 设置事件状态
-                        error=agent_thought.observation,  # 设置错误信息
-                    )
-                    # 跳出循环，终止处理
-                    break
+            # 检查代理思考的事件状态是否为终止状态（停止、错误或超时）
+            if agent_thought.event in [
+                QueueEvent.STOP,  # 停止事件
+                QueueEvent.ERROR,  # 错误事件
+                QueueEvent.TIMEOUT,  # 超时事件
+            ]:
+                # 更新消息状态，设置对应的事件状态和错误信息
+                self.update(
+                    message,
+                    status=agent_thought.event,  # 设置事件状态
+                    error=agent_thought.observation,  # 设置错误信息
+                )
+                # 跳出循环，终止处理
+                break
+
+    def _generate_summary_and_update(
+        self,
+        flask_app: Flask,
+        conversation_id: UUID,
+        query: str,
+        answer: str,
+    ) -> None:
+        with flask_app.app_context():
+            # 1.根据id获取会话
+            conversation = self.get(Conversation, conversation_id)
+
+            # 2.计算会话新摘要信息
+            new_summary = self.summary(query, answer, conversation.summary)
+
+            # 3.更新会话的摘要信息
+            self.update(
+                conversation,
+                summary=new_summary,
+            )
+
+    def _generate_conversation_name_and_update(
+        self,
+        flask_app: Flask,
+        conversation_id: UUID,
+        query: str,
+    ) -> None:
+        """生成会话名字并更新"""
+        with flask_app.app_context():
+            # 1.根据会话id获取会话
+            conversation = self.get(Conversation, conversation_id)
+
+            # 2.计算获取新会话名字
+            new_conversation_name = self.generate_conversation(query)
+
+            # 3.调用更新服务更新会话名称
+            self.update(
+                conversation,
+                name=new_conversation_name,
+            )

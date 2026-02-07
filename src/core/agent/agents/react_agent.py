@@ -94,7 +94,10 @@ class ReACTAgent(FunctionCallAgent):
                     ),
                     {
                         "len_history": len(history),
-                        "history": json.dumps(messages_to_dict(history)),
+                        "history": json.dumps(
+                            messages_to_dict(history),
+                            ensure_ascii=False,
+                        ),
                     },
                 )
                 error_msg = "智能体历史消息列表格式错误"
@@ -312,7 +315,10 @@ class ReACTAgent(FunctionCallAgent):
                 id=thought_id,
                 task_id=state["task_id"],
                 event=QueueEvent.AGENT_THOUGHT,
-                thought=json.dumps(gathered.content),
+                thought=json.dumps(
+                    gathered.content,
+                    ensure_ascii=False,
+                ),
                 # 消息相关字段
                 message=messages_to_dict(state["messages"]),
                 message_token_count=stats["input_token_count"],
@@ -478,8 +484,10 @@ class ReACTAgent(FunctionCallAgent):
                 - unit: 价格单位
 
         """
-        input_token_count = self.llm.get_num_tokens_from_messages(state["messages"])
-        output_token_count = self.llm.get_num_tokens_from_messages([gathered])
+        input_token_count = self.llm.custom_get_num_tokens_from_messages(
+            state["messages"],
+        )
+        output_token_count = self.llm.custom_get_num_tokens_from_messages([gathered])
         input_price, output_price, unit = self.llm.get_pricing()
         total_token_count = input_token_count + output_token_count
         total_price = (
@@ -511,7 +519,9 @@ class ReACTAgent(FunctionCallAgent):
                 "args": tool_call_message.tool_calls[0].get("args", {}),
             },
         ]
-        ai_message = AIMessage(content=f"```json\n{json.dumps(tool_call_json)}\n```")
+        ai_message = AIMessage(
+            content=f"```json\n{json.dumps(tool_call_json, ensure_ascii=False)}\n```",
+        )
 
         # 4.将ToolMessage转换成HumanMessage，提升LLM的兼容性
         tool_messages = super_agent_state["messages"]

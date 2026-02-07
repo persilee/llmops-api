@@ -213,7 +213,10 @@ class WorkflowService(BaseService):
                         "id": str(uuid.uuid4()),
                         **node_result_dict,
                     }
-                    yield f"event: workflow\ndata: {json.dumps(data)}\n\n"
+                    yield (
+                        f"event: workflow\n"
+                        f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+                    )
 
                 # 工作流执行成功，更新结果状态和调试状态
                 self.update(

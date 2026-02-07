@@ -1,7 +1,6 @@
 import json
 from collections.abc import Generator
 from dataclasses import dataclass
-from threading import Thread
 
 from flask import current_app
 from injector import inject
@@ -654,7 +653,10 @@ class OpenAPIService(BaseService):
         }
 
         # 返回SSE格式的事件字符串，格式为：event: 事件类型\ndata: JSON数据\n\n
-        return f"event: {agent_thought.event.value}\ndata:{json.dumps(data)}\n\n"
+        return (
+            f"event: {agent_thought.event.value}\n"
+            f"data:{json.dumps(data, ensure_ascii=False)}\n\n"
+        )
 
     def _save_agent_thoughts_async(
         self,
@@ -686,7 +688,6 @@ class OpenAPIService(BaseService):
         """
         # 创建智能体思考配置对象，包含保存思考记录所需的所有配置信息
         agent_thought_config = AgentThoughtConfig(
-            flask_app=current_app._get_current_object(),  # noqa: SLF001
             account_id=account.id,
             app_id=conversation.app_id,
             app_config=app_config,
@@ -696,13 +697,7 @@ class OpenAPIService(BaseService):
             if isinstance(agent_thoughts, dict)
             else agent_thoughts,
         )
-
-        # 创建并启动新线程来执行保存操作
-        thread = Thread(
-            target=self.conversation_service.save_agent_thoughts,
-            kwargs={"config": agent_thought_config},
-        )
-        thread.start()
+        self.conversation_service.save_agent_thoughts(config=agent_thought_config)
 
     def _format_agent_thoughts(self, agent_thoughts: list[AgentThought]) -> list[dict]:
         """格式化智能体思考记录列表为字典列表

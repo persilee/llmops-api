@@ -252,7 +252,10 @@ class AccountService(BaseService):
         self.redis_client.setex(
             f"session:{session_id}",
             expire_seconds,
-            json.dumps(session_data),
+            json.dumps(
+                session_data,
+                ensure_ascii=False,
+            ),
         )
 
         # 将会话ID添加到用户的会话列表中

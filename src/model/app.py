@@ -4,6 +4,8 @@
 如ID、所属账户ID、名称、图标、描述以及时间戳等字段。
 """
 
+from datetime import datetime
+
 from sqlalchemy import (
     UUID,
     Column,
@@ -29,7 +31,11 @@ class App(db.Model):
     """应用模型"""
 
     __tablename__ = "app"
-    __table_args__ = (PrimaryKeyConstraint("id", name="pk_app_id"),)
+    __table_args__ = (
+        PrimaryKeyConstraint("id", name="pk_app_id"),
+        Index("idx_app_account_id", "account_id"),
+        Index("idx_app_token", "token"),
+    )
 
     id = Column(
         UUID,
@@ -91,7 +97,7 @@ class App(db.Model):
         DateTime,
         nullable=False,
         server_default=text("CURRENT_TIMESTAMP(0)"),
-        server_onupdate=text("CURRENT_TIMESTAMP(0)"),
+        onupdate=datetime.now,
         info={"description": "更新时间"},
     )
     created_at = Column(
@@ -222,7 +228,7 @@ class AppDatasetJoin(db.Model):
         DateTime,
         nullable=False,
         server_default=text("CURRENT_TIMESTAMP(0)"),
-        server_onupdate=text("CURRENT_TIMESTAMP(0)"),
+        onupdate=datetime.now,
         info={"description": "更新时间"},
     )
     created_at = Column(
@@ -335,7 +341,7 @@ class AppConfig(db.Model):
         DateTime,
         nullable=False,
         server_default=text("CURRENT_TIMESTAMP(0)"),
-        server_onupdate=text("CURRENT_TIMESTAMP(0)"),
+        onupdate=datetime.now,
         info={"description": "更新时间"},
     )
     created_at = Column(
@@ -482,7 +488,7 @@ class AppConfigVersion(db.Model):
         DateTime,
         nullable=False,
         server_default=text("CURRENT_TIMESTAMP(0)"),
-        server_onupdate=text("CURRENT_TIMESTAMP(0)"),
+        onupdate=datetime.now,
         info={"description": "更新时间"},
     )
     created_at = Column(

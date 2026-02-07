@@ -1,12 +1,14 @@
 from flasgger import Swagger
 from flask_login import LoginManager
 from flask_migrate import Migrate
+from flask_weaviate import FlaskWeaviate
 from injector import Binder, Injector, Module, singleton
 from redis import Redis
 
 from pkg.sqlalchemy import SQLAlchemy
 from src.extension import db, migrate, redis_client, swag
 from src.extension.login_extension import login_manager
+from src.extension.weaviate_extension import weaviate
 
 
 class ExtensionModule(Module):
@@ -23,6 +25,7 @@ class ExtensionModule(Module):
             4. 将Redis服务绑定到redis_client实例，并设置为单例模式
         """
         binder.bind(SQLAlchemy, to=db, scope=singleton)
+        binder.bind(FlaskWeaviate, to=weaviate)
         binder.bind(Migrate, to=migrate)
         binder.bind(Swagger, to=swag)
         binder.bind(Redis, to=redis_client, scope=singleton)

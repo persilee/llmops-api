@@ -1,10 +1,9 @@
-import os
+from dataclasses import dataclass
 
-import weaviate
+from flask_weaviate import FlaskWeaviate
 from injector import inject
 from langchain_core.vectorstores import VectorStoreRetriever
 from langchain_weaviate import WeaviateVectorStore
-from weaviate import WeaviateClient
 from weaviate.collections import Collection
 
 from src.service.embeddings_service import EmbeddingsService
@@ -13,6 +12,7 @@ COLLECTION_NAME = "Dataset"
 
 
 @inject
+@dataclass
 class VectorDatabaseService:
     """向量数据库服务类，负责管理与Weaviate向量数据库的连接和操作。
 
@@ -36,36 +36,16 @@ class VectorDatabaseService:
 
     """
 
-    client: WeaviateClient
-    vector_store: WeaviateVectorStore
+    weaviate: FlaskWeaviate
     embeddings_service: EmbeddingsService
 
-    def __init__(self, embeddings_service: EmbeddingsService) -> None:
-        """初始化向量数据库服务
-
-        Args:
-            embeddings_service (EmbeddingsService): 嵌入服务实例，用于生成文本向量
-
-        """
-        self.embeddings_service = embeddings_service
-        # 连接到本地Weaviate实例
-        self.client = weaviate.connect_to_local(
-            host=os.getenv("WEAVIATE_HOST"),  # 从环境变量获取Weaviate主机地址
-            port=int(os.getenv("WEAVIATE_PORT")),  # 从环境变量获取Weaviate端口
-        )
-
-        # 以下是连接到Weaviate云服务的配置（当前被注释）
-        # self.client = weaviate.connect_to_weaviate_cloud(
-        #     cluster_url=os.getenv("WEAVIATE_CLUSTER_URL"),
-        #     auth_credentials=Auth.api_key(os.getenv("WEAVIATE_API_KEY")),
-        # )
-
-        # 初始化Weaviate向量存储
-        self.vector_store = WeaviateVectorStore(
-            client=self.client,  # Weaviate客户端实例
-            index_name=COLLECTION_NAME,  # 索引名称
-            text_key="text",  # 文本内容的键名
-            embedding=self.embeddings_service.embeddings,  # 嵌入模型
+    @property
+    def vector_store(self) -> WeaviateVectorStore:
+        return WeaviateVectorStore(
+            client=self.weaviate.client,
+            index_name=COLLECTION_NAME,
+            text_key="text",
+            embedding=self.embeddings_service.cache_backed_embeddings,
         )
 
     def get_retriever(self) -> VectorStoreRetriever:
@@ -79,4 +59,4 @@ class VectorDatabaseService:
 
     @property
     def collection(self) -> Collection:
-        return self.client.collections.get(COLLECTION_NAME)
+        return self.weaviate.client.collections.get(COLLECTION_NAME)

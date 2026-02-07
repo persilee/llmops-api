@@ -3,7 +3,6 @@ import json
 from collections.abc import Generator
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from threading import Thread
 from typing import Any
 from uuid import UUID
 
@@ -18,6 +17,7 @@ from langchain_core.runnables import RunnableParallel
 from langchain_openai import ChatOpenAI
 from redis import Redis
 from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 from werkzeug.datastructures import FileStorage
 
 from pkg.paginator.paginator import Paginator
@@ -450,6 +450,7 @@ class AppService(BaseService):
         # 按创建时间倒序排列
         messages = paginator.paginate(
             self.db.session.query(Message)
+            .options(joinedload(Message.agent_thoughts))
             .filter(
                 Message.conversation_id == debug_conversation.id,
                 Message.status.in_([MessageStatus.NORMAL]),
@@ -675,7 +676,6 @@ class AppService(BaseService):
 
         # 创建异步线程保存智能体思考记录，避免阻塞主流程
         agent_thought_config = AgentThoughtConfig(
-            flask_app=current_app._get_current_object(),  # noqa: SLF001
             account_id=account.id,
             app_id=app_id,
             app_config=draft_app_config,
@@ -683,13 +683,7 @@ class AppService(BaseService):
             message_id=message.id,
             agent_thoughts=list(agent_thoughts.values()),
         )
-        thread = Thread(
-            target=self.conversation_service.save_agent_thoughts,
-            kwargs={"config": agent_thought_config},
-        )
-
-        # 启动线程
-        thread.start()
+        self.conversation_service.save_agent_thoughts(config=agent_thought_config)
 
     def get_debug_conversation_summary(self, app_id: UUID, account: Account) -> str:
         """获取应用的调试对话摘要

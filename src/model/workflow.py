@@ -1,9 +1,12 @@
+from datetime import datetime
+
 from sqlalchemy import (
     UUID,
     Boolean,
     Column,
     DateTime,
     Float,
+    Index,
     PrimaryKeyConstraint,
     String,
     Text,
@@ -18,7 +21,11 @@ class Workflow(db.Model):
     """Workflow 工作流模型"""
 
     __tablename__ = "workflow"
-    __table_args__ = (PrimaryKeyConstraint("id", name="pk_workflow_id"),)
+    __table_args__ = (
+        PrimaryKeyConstraint("id", name="pk_workflow_id"),
+        Index("idx_workflow_account_id", "account_id"),
+        Index("idx_workflow_tool_call_name", "tool_call_name"),
+    )
 
     id = Column(
         UUID,
@@ -88,7 +95,7 @@ class Workflow(db.Model):
         DateTime,
         nullable=False,
         server_default=text("CURRENT_TIMESTAMP(0)"),
-        server_onupdate=text("CURRENT_TIMESTAMP(0)"),
+        onupdate=datetime.now,
         info={"description": "更新时间"},
     )
     created_at = Column(
@@ -103,7 +110,12 @@ class WorkflowResult(db.Model):
     """WorkflowResult 工作流结果存储模型"""
 
     __tablename__ = "workflow_result"
-    __table_args__ = (PrimaryKeyConstraint("id", name="pk_workflow_result_id"),)
+    __table_args__ = (
+        PrimaryKeyConstraint("id", name="pk_workflow_result_id"),
+        Index("idx_workflow_result_app_id", "app_id"),
+        Index("idx_workflow_result_account_id", "account_id"),
+        Index("idx_workflow_result_workflow_id", "workflow_id"),
+    )
 
     id = Column(
         UUID,
@@ -153,7 +165,7 @@ class WorkflowResult(db.Model):
         DateTime,
         nullable=False,
         server_default=text("CURRENT_TIMESTAMP(0)"),
-        server_onupdate=text("CURRENT_TIMESTAMP(0)"),
+        onupdate=datetime.now,
         info={"description": "更新时间"},
     )
     created_at = Column(

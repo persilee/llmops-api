@@ -1,8 +1,8 @@
 import logging
 import os
-from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 
+from concurrent_log_handler import ConcurrentTimedRotatingFileHandler
 from flask import Flask
 
 
@@ -13,6 +13,11 @@ def init_app(app: Flask) -> None:
         app: Flask应用实例
 
     """
+    logging.getLogger().setLevel(
+        logging.DEBUG
+        if app.debug or os.getenv("FLASK_ENV") == "development"
+        else logging.WARNING,
+    )
     # 创建日志文件夹路径
     log_folder = Path.cwd() / "storage" / "logs"
     # 如果日志文件夹不存在，则创建它（包括所有必需的父目录）
@@ -27,7 +32,7 @@ def init_app(app: Flask) -> None:
     # interval=1: 轮转间隔为1天
     # backupCount=30: 保留30个历史日志文件
     # encoding="utf-8": 使用UTF-8编码写入日志
-    handler = TimedRotatingFileHandler(
+    handler = ConcurrentTimedRotatingFileHandler(
         log_file,
         when="midnight",
         interval=1,
@@ -43,7 +48,11 @@ def init_app(app: Flask) -> None:
     )
 
     # 设置文件处理器的日志级别为DEBUG
-    handler.setLevel(logging.DEBUG)
+    handler.setLevel(
+        logging.DEBUG
+        if app.debug or os.getenv("FLASK_ENV") == "development"
+        else logging.WARNING,
+    )
     # 为文件处理器设置日志格式
     handler.setFormatter(formatter)
     # 将文件处理器添加到根日志记录器

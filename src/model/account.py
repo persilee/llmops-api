@@ -1,9 +1,12 @@
+from datetime import datetime
+
 from flask import current_app
 from flask_login import UserMixin
 from sqlalchemy import (
     UUID,
     Column,
     DateTime,
+    Index,
     PrimaryKeyConstraint,
     String,
     UniqueConstraint,
@@ -19,7 +22,10 @@ class Account(UserMixin, db.Model):
     """用户账号模型"""
 
     __tablename__ = "account"
-    __table_args__ = (PrimaryKeyConstraint("id", name="pk_account_id"),)
+    __table_args__ = (
+        PrimaryKeyConstraint("id", name="pk_account_id"),
+        Index("idx_account_email", "email"),
+    )
 
     id = Column(
         UUID,
@@ -75,7 +81,7 @@ class Account(UserMixin, db.Model):
         DateTime,
         nullable=False,
         server_default=text("CURRENT_TIMESTAMP(0)"),
-        server_onupdate=text("CURRENT_TIMESTAMP(0)"),
+        onupdate=datetime.now,
         info={"description": "更新时间"},
     )
     created_at = Column(
@@ -132,6 +138,8 @@ class AccountOAuth(db.Model):
             name="uk_account_oauth_account_id_provider",
         ),
         UniqueConstraint("provider", "openid", name="uk_account_oauth_provider_openid"),
+        Index("idx_account_oauth_account_id", "account_id"),
+        Index("idx_account_oauth_openid_provider", "openid", "provider"),
     )
 
     id = Column(
@@ -167,7 +175,7 @@ class AccountOAuth(db.Model):
         DateTime,
         nullable=False,
         server_default=text("CURRENT_TIMESTAMP(0)"),
-        server_onupdate=text("CURRENT_TIMESTAMP(0)"),
+        onupdate=datetime.now,
         info={"description": "更新时间"},
     )
     created_at = Column(

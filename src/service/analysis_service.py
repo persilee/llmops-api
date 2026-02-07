@@ -100,7 +100,11 @@ class AnalysisService(BaseService):
         }
 
         # 13.将数据存储到redis缓存中，并设置过期时间为1天
-        self.redis_client.setex(cache_key, 24 * 60 * 60, json.dumps(app_analysis))
+        self.redis_client.setex(
+            cache_key,
+            24 * 60 * 60,
+            json.dumps(app_analysis, ensure_ascii=False),
+        )
 
         return app_analysis
 

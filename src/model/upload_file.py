@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import (
     UUID,
     Column,
@@ -75,7 +77,7 @@ class UploadFile(db.Model):
         DateTime,
         nullable=False,
         server_default=text("CURRENT_TIMESTAMP(0)"),
-        server_onupdate=text("CURRENT_TIMESTAMP(0)"),
+        onupdate=datetime.now,
         info={"description": "更新时间"},
     )
     created_at = Column(

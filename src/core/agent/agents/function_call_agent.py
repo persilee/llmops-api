@@ -394,7 +394,10 @@ class FunctionCallAgent(BaseAgent):
             messages.append(
                 ToolMessage(
                     tool_call_id=tool_call["id"],
-                    content=json.dumps(tool_result),
+                    content=json.dumps(
+                        tool_result,
+                        ensure_ascii=False,
+                    ),
                     name=tool_call["name"],
                 ),
             )
@@ -421,7 +424,10 @@ class FunctionCallAgent(BaseAgent):
                     id=id,
                     task_id=state["task_id"],
                     event=event,
-                    observation=json.dumps(tool_result),
+                    observation=json.dumps(
+                        tool_result,
+                        ensure_ascii=False,
+                    ),
                     tool=tool_call["name"],
                     tool_input=tool_call["args"],
                     latency=(time.perf_counter() - start_at),
@@ -658,9 +664,11 @@ class FunctionCallAgent(BaseAgent):
         - message: 发布代理结束事件
         """
         # 计算输入消息的token数量
-        input_token_count = self.llm.get_num_tokens_from_messages(state["messages"])
+        input_token_count = self.llm.custom_get_num_tokens_from_messages(
+            state["messages"],
+        )
         # 计算输出消息的token数量
-        output_token_count = self.llm.get_num_tokens_from_messages([gathered])
+        output_token_count = self.llm.custom_get_num_tokens_from_messages([gathered])
         # 获取模型的定价信息：输入价格、输出价格和计价单位
         input_price, output_price, unit = self.llm.get_pricing()
 
@@ -684,6 +692,7 @@ class FunctionCallAgent(BaseAgent):
                     event=QueueEvent.AGENT_THOUGHT,  # 事件类型为代理思考
                     thought=json.dumps(
                         gathered.tool_calls,
+                        ensure_ascii=False,
                     ),  # 将工具调用信息转为JSON字符串
                     message=messages_to_dict(
                         state["messages"],

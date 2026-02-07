@@ -1,8 +1,11 @@
+from datetime import datetime
+
 from sqlalchemy import (
     UUID,
     Boolean,
     Column,
     DateTime,
+    Index,
     PrimaryKeyConstraint,
     String,
     Text,
@@ -22,6 +25,8 @@ class ApiKey(db.Model):
         PrimaryKeyConstraint("id", name="pk_api_key_id"),
         UniqueConstraint("api_key", name="uk_api_key_api_key"),
         UniqueConstraint("account_id", "api_key", name="uk_api_key_account_id_api_key"),
+        Index("idx_api_key_account_id", "account_id"),
+        Index("idx_api_key_api_key", "api_key"),
     )
 
     id = Column(
@@ -57,7 +62,7 @@ class ApiKey(db.Model):
         DateTime,
         nullable=False,
         server_default=text("CURRENT_TIMESTAMP(0)"),
-        server_onupdate=text("CURRENT_TIMESTAMP(0)"),
+        onupdate=datetime.now,
         info={"description": "更新时间"},
     )
     created_at = Column(

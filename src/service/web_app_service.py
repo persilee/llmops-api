@@ -1,7 +1,6 @@
 import json
 from collections.abc import Generator
 from dataclasses import dataclass
-from threading import Thread
 from typing import Any
 from uuid import UUID
 
@@ -266,11 +265,13 @@ class WebAppService(BaseService):
                 "message_id": str(message.id),
                 "task_id": str(agent_thought.task_id),
             }
-            yield f"event: {agent_thought.event.value}\ndata: {json.dumps(data)}\n\n"
+            yield (
+                f"event: {agent_thought.event.value}\n"
+                f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+            )
 
         # 创建异步线程保存智能体思考记录，避免阻塞主流程
         agent_thought_config = AgentThoughtConfig(
-            flask_app=current_app._get_current_object(),  # noqa: SLF001
             account_id=account.id,
             app_id=app.id,
             app_config=app_config,
@@ -278,12 +279,7 @@ class WebAppService(BaseService):
             message_id=message.id,
             agent_thoughts=list(agent_thoughts.values()),
         )
-        thread = Thread(
-            target=self.conversation_service.save_agent_thoughts,
-            kwargs={"config": agent_thought_config},
-        )
-        # 启动线程
-        thread.start()
+        self.conversation_service.save_agent_thoughts(config=agent_thought_config)
 
     def stop_web_app_chat(self, token: str, task_id: UUID, account: Account) -> None:
         """根据传递的token+task_id停止与指定WebApp对话"""

@@ -54,7 +54,10 @@ class GaodeWeatherTool(BaseTool):
                 weather_data = weather_response.json()
                 if weather_data.get("info") == "OK":
                     # 5.返回最后的结果字符串
-                    return json.dumps(weather_data)
+                    return json.dumps(
+                        weather_data,
+                        ensure_ascii=False,
+                    )
             else:
                 return f"获取{city}天气预报信息失败"
 

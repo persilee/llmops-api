@@ -1,9 +1,11 @@
 from abc import ABC
+from collections.abc import Sequence
 from enum import Enum
 from typing import Any
 
+import tiktoken
 from langchain_core.language_models import BaseLanguageModel as LCBaseLanguageModel
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import BaseMessage, HumanMessage
 from pydantic import BaseModel, Field
 
 
@@ -100,6 +102,60 @@ class BaseLanguageModel(LCBaseLanguageModel, ABC):
 
         # 2.返回数据
         return input_price, output_price, unit
+
+    def custom_get_num_tokens_from_messages(
+        self,
+        messages: list[BaseMessage],
+        tools: Sequence | None = None,
+    ) -> int:  # 返回消息的总token数
+        """计算消息列表中的token数量
+
+        Args:
+            messages: 消息列表，包含对话内容
+            model: 模型名称，用于选择合适的tokenizer
+            tools: 工具列表，当前未使用
+
+        Returns:
+            int: 消息的总token数
+
+        """
+        try:
+            # 尝试获取模型特定的编码器
+            encoding = tiktoken.encoding_for_model("gpt-4o-mini")
+        except KeyError:
+            # 如果找不到特定模型的编码器，使用默认的cl100k_base编码器
+            encoding = tiktoken.get_encoding("cl100k_base")
+
+        # 每条消息的基础token数（包括role和结束标记）
+        tokens_per_message = 3
+        # 消息名称的额外token数
+        tokens_per_name = 1
+        # 总token数
+        total_tokens = 0
+
+        # 遍历每条消息计算token数
+        for message in messages:
+            # 添加每条消息的基础token数
+            total_tokens += tokens_per_message
+            # 处理消息内容
+            if isinstance(message.content, str):
+                # 如果是纯文本消息，直接计算文本的token数
+                total_tokens += len(encoding.encode(message.content))
+            elif isinstance(message.content, list):
+                # 处理多模态内容（如图片+文本）
+                for content_part in message.content:
+                    if content_part["type"] == "text":
+                        # 只计算文本部分的token数
+                        total_tokens += len(encoding.encode(content_part["text"]))
+
+            # 处理消息名称
+            if message.name:
+                # 添加名称的基础token数和名称本身的token数
+                total_tokens += tokens_per_name + len(encoding.encode(message.name))
+
+        # 加上对话结束标记的token数
+        total_tokens += 3
+        return total_tokens
 
     def convert_to_human_message(
         self,

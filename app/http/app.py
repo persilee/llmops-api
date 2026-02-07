@@ -1,7 +1,17 @@
+import os
+
+if os.environ.get("FLASK_DEBUG") == "0" or os.environ.get("FLASK_ENV") == "production":
+    from gevent import monkey
+
+    monkey.patch_all()
+    import grpc.experimental.gevent
+
+    grpc.experimental.gevent.init_gevent()
 import dotenv
 from flasgger import Swagger
 from flask_login import LoginManager
 from flask_migrate import Migrate
+from flask_weaviate import FlaskWeaviate
 
 from config import Config
 from pkg.sqlalchemy import SQLAlchemy
@@ -22,6 +32,7 @@ conf = Config()
 http_config = HttpConfig(
     conf=conf,
     db=injector.get(SQLAlchemy),
+    weaviate=injector.get(FlaskWeaviate),
     migrate=injector.get(Migrate),
     login_manager=injector.get(LoginManager),
     middleware=injector.get(Middleware),
