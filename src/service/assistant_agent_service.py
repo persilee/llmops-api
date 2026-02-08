@@ -67,7 +67,7 @@ class AssistantAgentService(BaseService):
             status=MessageStatus.NORMAL,
         )
 
-        # 4.使用GPT模型作为辅助Agent的LLM大脑
+        # 4.使用豆包模型作为辅助Agent的LLM大脑
         llm = Chat(
             model="doubao-seed-1-8-251228",
             openai_api_key=os.getenv("ARK_API_KEY"),
@@ -98,7 +98,6 @@ class AssistantAgentService(BaseService):
             self.faiss_service.convert_faiss_to_tool(),
             self.convert_create_app_to_tool(account.id),
             search_tool(),
-            # weather_tool(),
         ]
 
         # 7.构建Agent智能体，使用FunctionCallAgent
