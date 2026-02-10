@@ -231,11 +231,11 @@ class DebugChatReq(FlaskForm):
         ],
     )
 
-    def validate_image_urls(self, field: ListField) -> None:
+    def validate_image_urls(self, field: ListField) -> None | list:
         """校验传递的图片URL链接列表"""
         # 1.校验数据类型如果为None则设置默认值空列表
         if not isinstance(field.data, list):
-            return
+            return []
 
         # 2.校验数据的长度，最多不能超过5条URL记录
         if len(field.data) > MAX_IMAGE_COUNT:
@@ -248,6 +248,8 @@ class DebugChatReq(FlaskForm):
             if not all([result.scheme, result.netloc]):
                 error_msg = "上传的图片URL地址格式错误，请核实后重试"
                 raise ValidationError(error_msg)
+
+        return None
 
 
 @req_schema

@@ -10,6 +10,7 @@ from src.handler.analysis_handler import AnalysisHandler
 from src.handler.api_key_handler import ApiKeyHandler
 from src.handler.api_tool_handler import ApiToolHandler
 from src.handler.assistant_agent_handler import AssistantAgentHandler
+from src.handler.audio_handler import AudioHandler
 from src.handler.auth_handler import AuthHandler
 from src.handler.builtin_app_handler import BuiltinAppHandler
 from src.handler.conversation_handler import ConversationHandler
@@ -50,6 +51,7 @@ class Router:
     analysis_handler: AnalysisHandler
     web_app_handler: WebAppHandler
     conversation_handler: ConversationHandler
+    audio_handler: AudioHandler
 
     def register_route(self, app: Flask) -> None:
         """注册路由"""
@@ -79,6 +81,7 @@ class Router:
         register_with_class(self.analysis_handler, bp, url_prefix="app-analysis")
         register_with_class(self.web_app_handler, bp, url_prefix="web-apps")
         register_with_class(self.conversation_handler, bp, url_prefix="conversations")
+        register_with_class(self.audio_handler, bp, url_prefix="audio")
         register_with_class(self.openapi_handler, bp_openapi, url_prefix="openapi")
 
         app.register_blueprint(bp)

@@ -90,11 +90,17 @@ class BaseAgent(Serializable, Runnable):
         # 初始化智能体结果对象，使用输入消息的第一个消息内容作为查询
         content = agent_input["messages"][0].content
         query = ""
+        image_urls = []
         if isinstance(content, str):
             query = content
         elif isinstance(content, list):
             query = content[0]["text"]
-        agent_result = AgentResult(query=query)
+            image_urls = [
+                chunk["image_url"]["url"]
+                for chunk in content
+                if chunk.get("type") == "image_url"
+            ]
+        agent_result = AgentResult(query=query, image_urls=image_urls)
         # 初始化字典用于存储智能体的思考过程
         agent_thoughts = {}
         # 通过stream方法获取智能体的思考过程

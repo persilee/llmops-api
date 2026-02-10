@@ -9,7 +9,6 @@ from uuid import UUID
 import requests
 from flask import current_app
 from injector import inject
-from langchain.messages import HumanMessage
 from langchain_community.utilities.dalle_image_generator import DallEAPIWrapper
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
@@ -51,6 +50,7 @@ from src.entity.app_entity import (
     AppConfigType,
     AppStatus,
 )
+from src.entity.audio_entity import ALLOWED_AUDIO_VOICES
 from src.entity.conversation_entity import InvokeFrom, MessageStatus
 from src.entity.dataset_entity import RetrievalSource
 from src.entity.workflow_entity import WorkflowStatus
@@ -70,6 +70,7 @@ from src.model.dataset import Dataset
 from src.model.workflow import Workflow
 from src.schemas.app_schema import (
     CreateAppReq,
+    DebugChatReq,
     FallbackHistoryToDraftReq,
     GetAppsWithPageReq,
     GetDebugConversationMessagesWithPageReq,
@@ -482,7 +483,12 @@ class AppService(BaseService):
         # 设置停止标志，终止指定的调试对话任务
         AgentQueueManager.set_stop_flag(task_id, InvokeFrom.DEBUGGER, account.id)
 
-    def debug_chat(self, app_id: UUID, query: str, account: Account) -> Generator:
+    def debug_chat(
+        self,
+        app_id: UUID,
+        req: DebugChatReq,
+        account: Account,
+    ) -> Generator:
         """处理应用的调试对话功能。
 
         该方法实现了应用的调试对话功能，包括：
@@ -495,7 +501,7 @@ class AppService(BaseService):
 
         Args:
             app_id (UUID): 应用ID，用于标识具体的应用
-            query (str): 用户输入的查询内容
+            req (DebugChatReq): 用户输入的查询内容
             account (Account): 当前用户账户信息，用于权限验证
 
         Yields:
@@ -533,7 +539,8 @@ class AppService(BaseService):
             conversation_id=debug_conversation.id,
             invoke_from=InvokeFrom.DEBUGGER,
             created_by=account.id,
-            query=query,
+            query=req.query.data,
+            image_urls=req.image_urls.data,
             status=MessageStatus.NORMAL,
         )
 
@@ -609,7 +616,9 @@ class AppService(BaseService):
         # 运行智能体并处理事件流
         for agent_thought in agent.stream(
             {
-                "messages": [HumanMessage(query)],
+                "messages": [
+                    llm.convert_to_human_message(req.query.data, req.image_urls.data),
+                ],
                 "history": history,
                 "long_term_memory": debug_conversation.summary,
             },
@@ -1734,11 +1743,7 @@ class AppService(BaseService):
                 "auto_play",
             }
             or not isinstance(text_to_speech["enable"], bool)
-            # TODO: voice类型需要进一步确认
-            or not isinstance(
-                text_to_speech["voice"],
-                str,
-            )
+            or text_to_speech["voice"] not in ALLOWED_AUDIO_VOICES
             or not isinstance(text_to_speech["auto_play"], bool)
         ):
             error_msg = (

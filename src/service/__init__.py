@@ -6,6 +6,7 @@ from .api_tool_service import ApiToolService
 from .app_config_service import AppConfigService
 from .app_service import AppService
 from .assistant_agent_service import AssistantAgentService
+from .audio_service import AudioService
 from .base_service import BaseService
 from .builtin_app_service import BuiltinAppService
 from .builtin_tool_service import BuiltinToolService
@@ -39,6 +40,7 @@ __all__ = [
     "AppConfigService",
     "AppService",
     "AssistantAgentService",
+    "AudioService",
     "BaseService",
     "BuiltinAppService",
     "BuiltinToolService",

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from langchain.messages import AIMessage, AnyMessage, HumanMessage, trim_messages
+from langchain.messages import AIMessage, AnyMessage, trim_messages
 from langchain_core.messages import get_buffer_string
 from sqlalchemy import desc
 
@@ -58,7 +58,10 @@ class TokenBufferMemory:
         for message in messages:
             prompt_messages.extend(
                 [
-                    HumanMessage(content=message.query),
+                    self.model_instance.convert_to_human_message(
+                        message.query,
+                        message.image_urls,
+                    ),
                     AIMessage(content=message.answer),
                 ],
             )

@@ -4,9 +4,7 @@ from dataclasses import dataclass
 
 from flask import current_app
 from injector import inject
-from langchain.messages import HumanMessage
 from langchain_community.tools import Tool
-from langchain_openai import ChatOpenAI
 
 from pkg.response.response import Response
 from pkg.sqlalchemy.sqlalchemy import SQLAlchemy
@@ -296,6 +294,7 @@ class OpenAPIService(BaseService):
             invoke_from=InvokeFrom.SERVICE_API,
             created_by=end_user.id,
             query=req.query.data,
+            image_urls=req.image_urls.data,
             status=MessageStatus.NORMAL,
         )
 
@@ -398,7 +397,7 @@ class OpenAPIService(BaseService):
         self,
         req: OpenAPIChatReq,
         app_config: dict,
-        llm: ChatOpenAI,
+        llm: BaseLanguageModel,
         tools: list[Tool],
         conversation: Conversation,
     ) -> tuple[FunctionCallAgent, dict]:
@@ -459,7 +458,7 @@ class OpenAPIService(BaseService):
         # long_term_memory: 对话摘要，用于长期记忆存储
         agent_state = {
             "messages": [
-                HumanMessage(req.query.data),
+                llm.convert_to_human_message(req.query.data, req.image_urls.data),
             ],  # 将用户查询转换为HumanMessage对象
             "history": history,  # 获取的历史对话记录
             "long_term_memory": conversation.summary,  # 对话的长期记忆摘要
@@ -555,6 +554,7 @@ class OpenAPIService(BaseService):
                 "end_user_id": str(config.conversation.created_by),  # 发起对话的用户ID
                 "conversation_id": str(config.conversation.id),  # 对话ID
                 "query": config.message.query,  # 用户输入的查询内容
+                "image_urls": config.message.image_urls,  # 用户上传的图片URL列表
                 "answer": agent_result.answer,  # 智能体的回答内容
                 "total_token_count": 0,  # 总token计数（当前固定为0）
                 "latency": agent_result.latency,  # 响应延迟时间
