@@ -34,30 +34,9 @@ responses:
               example: "success"
             data:
               properties:
-                account_id:
+                text:
                   type: "string"
-                  example: "9495d2e2-2e7a-4484-8447-03f6b24627f7"
-                created_at:
-                  type: "number"
-                  example: 1762362886
-                extension:
-                  type: "string"
-                  example: "md"
-                id:
-                  type: "string"
-                  example: "0e0de749-f407-4640-89a1-197144928e35"
-                key:
-                  type: "string"
-                  example: "2025/11/05/68d3b65b-5495-47c9-97ea-41645d2d852a.md"
-                mime_type:
-                  type: "string"
-                  example: "text/markdown"
-                name:
-                  type: "string"
-                  example: "llmops_prd.md"
-                size:
-                  type: "number"
-                  example: 18389
+                  example: "你好，世界"
               type: "object"
             message:
               type: "string"

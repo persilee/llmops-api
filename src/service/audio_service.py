@@ -2,11 +2,13 @@ import base64
 import json
 import logging
 import os
+import urllib
 from collections.abc import Generator
 from dataclasses import dataclass
-from io import BytesIO
+from pathlib import Path
 from uuid import UUID
 
+import requests
 from injector import inject
 from openai import OpenAI
 from werkzeug.datastructures import FileStorage
@@ -30,22 +32,113 @@ class AudioService(BaseService):
     db: SQLAlchemy
     app_service: AppService
 
-    def audio_to_text(self, audio: FileStorage) -> str:
-        """将传递的语音转换成文本"""
-        # 1.提取音频文件，并将音频文件转换成FileContent类型
-        file_content = audio.stream.read()
-        audio_file = BytesIO(file_content)
-        audio_file.name = "recording.wav"
+    @classmethod
+    def get_access_token(cls) -> str | None:
+        """使用 AK，SK 生成鉴权签名（Access Token）
 
-        # 2.创建OpenAI客户端，并调用whisper服务将音频转换成文字
-        client = self._get_openai_client()
-        transcription = client.audio.transcriptions.create(
-            model="whisper-1",
-            file=audio_file,
+        :return: access_token，或是None(如果错误)
+        """
+        url = os.getenv("BAIDU_OAUTH_URL")
+        params = {
+            "grant_type": "client_credentials",
+            "client_id": os.getenv("BAIDU_CLIENT_ID"),
+            "client_secret": os.getenv("BAIDU_CLIENT_SECRET"),
+        }
+
+        return str(
+            requests.post(url, params=params, timeout=30).json().get("access_token"),
         )
 
-        # 3.返回识别的文字内容
-        return transcription.text
+    @classmethod
+    def get_file_content_as_base64(
+        cls,
+        file_obj: FileStorage | str,
+        *,
+        urlencoded: bool = False,
+    ) -> str:
+        """获取文件base64编码
+
+        :param file_obj: 文件对象或文件路径
+        :param urlencoded: 是否对结果进行urlencoded
+        :return: base64编码信息
+        """
+        if isinstance(file_obj, str):
+            # 如果是文件路径
+            with Path(file_obj).open("rb") as f:
+                content = base64.b64encode(f.read()).decode("utf8")
+        else:
+            # 如果是 FileStorage 对象
+            content = base64.b64encode(file_obj.read()).decode("utf8")
+
+        if urlencoded:
+            content = urllib.parse.quote_plus(content)
+        return content
+
+    def audio_to_text(self, audio: FileStorage, account: Account) -> str:
+        """将传递的语音转换成文本"""
+        # 获取文件内容和字节数
+        audio_content = audio.read()
+        audio_bytes = len(audio_content)
+
+        # 检查文件大小（可选）
+        if audio_bytes > 10 * 1024 * 1024:  # 10MB
+            error_msg = "文件大小超过限制"
+            raise FailException(error_msg)
+
+        # 重置文件指针
+        audio.stream.seek(0)
+
+        # 获取文件类型
+        file_type = audio.mimetype
+        if not file_type or not file_type.startswith("audio/"):
+            error_msg = "不支持的文件类型"
+            raise FailException(error_msg)
+
+        # 指定的音频格式
+        format_map = {
+            "audio/wav": "wav",
+            "audio/x-wav": "wav",  # WAV格式
+            "audio/amr": "amr",  # AMR格式
+            "audio/pcm": "pcm",  # PCM格式
+            "audio/mpeg": "mp3",
+            "audio/mp3": "mp3",
+            "audio/x-m4a": "m4a",  # M4A格式
+            "audio/mp4": "m4a",
+        }
+        format = format_map.get(file_type, "wav")
+
+        speech = self.get_file_content_as_base64(audio)
+        token = self.get_access_token()
+        payload = json.dumps(
+            {
+                "format": format,
+                "rate": 16000,
+                "channel": 1,
+                "cuid": str(account.id),
+                "dev_pid": 80001,
+                "speech": speech,
+                "len": audio_bytes,
+                "token": token,
+            },
+            ensure_ascii=False,
+        )
+
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+
+        response = requests.request(
+            "POST",
+            os.getenv("BAIDU_BASE_URL"),
+            headers=headers,
+            data=payload.encode("utf-8"),
+            timeout=30,
+        )
+
+        response.encoding = "utf-8"
+
+        return response.json()["result"][0]
 
     def message_to_audio(self, message_id: UUID, account: Account) -> Generator:
         """将消息转换成流式时间输出语音"""

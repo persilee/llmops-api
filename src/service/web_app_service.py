@@ -15,9 +15,6 @@ from src.core.agent.entities.agent_entity import AgentConfig
 from src.core.agent.entities.queue_entity import QueueEvent
 from src.core.llm_model.entities.model_entity import ModelFeature
 from src.core.memory import TokenBufferMemory
-from src.core.workflow.nodes.dataset_retrieval.dataset_retrieval_entity import (
-    RetrievalConfig,
-)
 from src.entity.app_entity import AppStatus
 from src.entity.conversation_entity import InvokeFrom, MessageStatus
 from src.entity.dataset_entity import RetrievalSource
@@ -29,7 +26,7 @@ from src.service.llm_model_service import LLMModelService
 from .app_config_service import AppConfigService
 from .base_service import BaseService
 from .conversation_service import AgentThoughtConfig, ConversationService
-from .retrieval_service import RetrievalService
+from .retrieval_service import RetrievalConfig, RetrievalService
 
 
 @inject

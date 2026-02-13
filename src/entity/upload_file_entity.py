@@ -1,5 +1,6 @@
 ALLOWED_IMAGE_EXTENSION = [
     "jpg",
+    "JPG",
     "jpeg",
     "png",
     "gif",

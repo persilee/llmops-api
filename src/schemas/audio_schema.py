@@ -15,7 +15,7 @@ class AudioToTextReq(FlaskForm):
         validators=[
             FileRequired(message="转换音频文件不能为空"),
             FileSize(max_size=25 * 1024 * 1024, message="音频文件不能超过25MB"),
-            FileAllowed(["webm", "wav"], message="请上传正确的音频文件"),
+            FileAllowed(["webm", "wav", "mp4"], message="请上传正确的音频文件"),
         ],
     )
 

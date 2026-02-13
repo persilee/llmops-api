@@ -32,7 +32,7 @@ class AudioHandler:
             return validate_error_json(req.errors)
 
         # 2.调用服务将音频文件转换成文本
-        text = self.audio_service.audio_to_text(req.file.data)
+        text = self.audio_service.audio_to_text(req.file.data, current_user)
 
         return success_json({"text": text})
 
