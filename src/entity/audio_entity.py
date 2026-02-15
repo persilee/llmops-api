@@ -1,11 +1,1 @@
-ALLOWED_AUDIO_VOICES = [
-    "alloy",
-    "ash",
-    "coral",
-    "echo",
-    "fable",
-    "onyx",
-    "nova",
-    "sage",
-    "shimmer",
-]
+ALLOWED_AUDIO_VOICES = [4179, 4146, 6567, 4189, 4194, 4193, 4195, 4196, 4197, 4156]

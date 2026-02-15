@@ -1,7 +1,8 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField, FileRequired, FileSize
+from wtforms import IntegerField
 from wtforms.fields import StringField
-from wtforms.validators import DataRequired
+from wtforms.validators import DataRequired, Optional
 
 from src.schemas.swag_schema import req_schema
 
@@ -28,5 +29,25 @@ class MessageToAudioReq(FlaskForm):
         "message_id",
         validators=[
             DataRequired(message="消息id不能为空"),
+        ],
+    )
+
+
+@req_schema
+class TextToAudioReq(FlaskForm):
+    """文本转语音请求结构"""
+
+    text = StringField(
+        "text",
+        validators=[
+            DataRequired(message="转换文本不能为空"),
+        ],
+    )
+
+    voice = IntegerField(
+        "voice",
+        default=4194,
+        validators=[
+            Optional(),
         ],
     )

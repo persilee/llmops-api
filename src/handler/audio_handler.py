@@ -12,7 +12,7 @@ from pkg.response.response import (
 )
 from pkg.swagger.swagger import get_swagger_path
 from src.router.redprint import route
-from src.schemas.audio_schema import AudioToTextReq, MessageToAudioReq
+from src.schemas.audio_schema import AudioToTextReq, MessageToAudioReq, TextToAudioReq
 from src.service.audio_service import AudioService
 
 
@@ -36,7 +36,7 @@ class AudioHandler:
 
         return success_json({"text": text})
 
-    @route("", methods=["POST"])
+    @route("/tts", methods=["POST"])
     @swag_from(get_swagger_path("audio_handler/message_to_audio.yaml"))
     @login_required
     def message_to_audio(self) -> Response:
@@ -49,6 +49,25 @@ class AudioHandler:
         # 2.调用服务获取流式事件输出
         resp = self.audio_service.message_to_audio(
             req.message_id.data,
+            current_user,
+        )
+
+        return success_json({"speech_url": resp})
+
+    @route("/tts/text", methods=["POST"])
+    @swag_from(get_swagger_path("audio_handler/text_to_audio.yaml"))
+    @login_required
+    def text_to_audio(self) -> Response:
+        """将文本转换成语音"""
+        # 1.提取请求并校验
+        req = TextToAudioReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        # 2.调用服务获取流式事件输出
+        resp = self.audio_service.text_to_audio(
+            req.text.data,
+            req.voice.data,
             current_user,
         )
 

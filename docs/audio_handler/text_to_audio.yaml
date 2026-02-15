@@ -1,0 +1,33 @@
+将文本转成音频
+---
+tags:
+  - 音频管理
+summary: 将文本转成音频
+description:
+operationId: text_to_audio
+requestBody:
+  content:
+    application/json:
+      schema:
+        $ref: "#/components/schemas/TextToAudioReq"
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              type: "object"
+              example: {}
+            message:
+              type: "string"
+              example: ""

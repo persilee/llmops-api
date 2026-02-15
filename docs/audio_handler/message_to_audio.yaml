@@ -1,4 +1,4 @@
-将消息转换成流式输出音频
+将消息转换音频
 ---
 tags:
   - 音频管理
@@ -26,8 +26,13 @@ responses:
               type: "string"
               example: "success"
             data:
+              required:
+                - "speech_url"
+              properties:
+                speech_url:
+                  type: "string"
+                  example: "http://aipe-speech.bj.bcebos.com/text_to_speech/2026-02-15/6991e05e05603b0001bcac7a/speech/0.mp3?authorization=bce-auth-v1%2FALTAKjI91nE52nvtDNRgFlUCVz%2F2026-02-15T15%3A04%3A15Z%2F259200%2F%2F1ec95a65737f5858416068dbe6bcde63c49c7e9efcd6d7cc1eec660f39e07998"
               type: "object"
-              example: {}
             message:
               type: "string"
               example: ""

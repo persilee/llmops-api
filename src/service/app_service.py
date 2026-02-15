@@ -1748,7 +1748,7 @@ class AppService(BaseService):
         ):
             error_msg = (
                 "文本转语音配置必须是包含enable、voice、auto_play键的字典，且enable的值必须是布尔类型，"
-                "voice的值必须是字符串，auto_play的值必须是布尔类型"
+                "voice的值必须是整数，auto_play的值必须是布尔类型"
             )
             raise ValidateErrorException(error_msg)
         return text_to_speech
