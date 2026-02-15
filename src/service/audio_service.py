@@ -3,7 +3,6 @@ import json
 import logging
 import os
 import urllib
-from collections.abc import Generator
 from dataclasses import dataclass
 from pathlib import Path
 from uuid import UUID
@@ -140,8 +139,8 @@ class AudioService(BaseService):
 
         return response.json()["result"][0]
 
-    def message_to_audio(self, message_id: UUID, account: Account) -> Generator:
-        """将消息转换成流式时间输出语音"""
+    def message_to_audio(self, message_id: UUID, account: Account) -> any:
+        """将消息转换成语音"""
         # 1.根据传递的消息id获取消息并校验权限
         message = self.get(Message, message_id)
         if (
@@ -193,7 +192,7 @@ class AudioService(BaseService):
             )
             text_to_speech = app_config.text_to_speech
             enable = text_to_speech.get("enable", False)
-            voice = text_to_speech.get("voice", "echo")
+            voice = text_to_speech.get("voice", "echo")  # TODO: 暂时使用默认值
         elif message.invoke_from == InvokeFrom.SERVICE_API:
             error_msg = "开放API消息不支持文本转语音服务"
             raise NotFoundException(error_msg)
@@ -205,12 +204,32 @@ class AudioService(BaseService):
 
         # 6.调用tts服务将消息answer转换成流式事件输出语音
         try:
-            client = self._get_openai_client()
-            response = client.audio.speech.with_streaming_response.create(
-                model="tts-1",
-                voice=voice,
-                response_format="mp3",
-                input=message.answer.strip(),
+            url = os.getenv("BAIDU_TEXT_TO_OAUTH_URL")
+            token = self.get_access_token()
+            params = {
+                "tex": message.answer.strip(),
+                "ctp": 1,
+                "lan": "zh",
+                "cuid": str(account.id),
+                "spd": 5,
+                "pit": 5,
+                "vol": 5,
+                "per": 1,
+                "aue": 3,
+                "tok": token,
+            }
+
+            headers = {
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Accept": "*/*",
+                "cuid": str(account.id),
+            }
+            response = requests.get(
+                url,
+                params=params,
+                stream=True,
+                timeout=(5, 30),
+                headers=headers,
             )
         except Exception as e:
             error_msg = "文字转语音失败，请稍后重试"
@@ -219,21 +238,7 @@ class AudioService(BaseService):
 
             raise FailException(error_msg) from e
 
-        # 6.定义内部函数实现流式事件输出
-        def tts() -> Generator:
-            """内部函数，从response中获取音频流式事件输出数据"""
-            common_data = {
-                "conversation_id": str(conversation.id),
-                "message_id": str(message.id),
-                "audio": "",
-            }
-            for chunk in response.__enter__().iter_bytes(1024):
-                data = {**common_data, "audio": base64.b64encode(chunk).decode("utf-8")}
-                yield f"event: tts_message\ndata: {json.dumps(data)}\n\n"
-            yield f"event: tts_end\ndata: {json.dumps(common_data)}\n\n"
-
-        # 7.调用tts函数流式事件输出语音数据
-        return tts()
+        return response
 
     @classmethod
     def _get_openai_client(cls) -> OpenAI:

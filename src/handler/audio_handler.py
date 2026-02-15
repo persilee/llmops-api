@@ -1,12 +1,12 @@
 from dataclasses import dataclass
 
 from flasgger import swag_from
+from flask import send_file
 from flask_login import current_user, login_required
 from injector import inject
 
 from pkg.response.response import (
     Response,
-    compact_generate_response,
     success_json,
     validate_error_json,
 )
@@ -40,16 +40,21 @@ class AudioHandler:
     @swag_from(get_swagger_path("audio_handler/message_to_audio.yaml"))
     @login_required
     def message_to_audio(self) -> Response:
-        """将消息转换成流式输出音频"""
+        """将消息转换成音频"""
         # 1.提取请求并校验
         req = MessageToAudioReq()
         if not req.validate():
             return validate_error_json(req.errors)
 
         # 2.调用服务获取流式事件输出
-        response = self.audio_service.message_to_audio(
+        resp = self.audio_service.message_to_audio(
             req.message_id.data,
             current_user,
         )
 
-        return compact_generate_response(response)
+        return send_file(
+            resp.raw,
+            mimetype="audio/mpeg",
+            as_attachment=False,
+            download_name="speech.mp3",
+        )
