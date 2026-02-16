@@ -5,12 +5,14 @@ import os
 import time
 import urllib
 from dataclasses import dataclass
+from datetime import timedelta
 from pathlib import Path
 from uuid import UUID
 
 import requests
 from injector import inject
 from openai import OpenAI
+from redis import Redis
 from werkzeug.datastructures import FileStorage
 
 from pkg.sqlalchemy import SQLAlchemy
@@ -31,13 +33,19 @@ class AudioService(BaseService):
 
     db: SQLAlchemy
     app_service: AppService
+    redis_client: Redis
 
-    @classmethod
-    def get_access_token(cls) -> str | None:
+    def get_access_token(self) -> str | None:
         """使用 AK，SK 生成鉴权签名（Access Token）
 
         :return: access_token，或是None(如果错误)
         """
+        # 尝试从 Redis 获取缓存的 token
+
+        token = self.redis_client.get("baidu_access_token")
+        if token:
+            return token
+        # 如果缓存中没有，请求新的 token
         url = os.getenv("BAIDU_OAUTH_URL")
         params = {
             "grant_type": "client_credentials",
@@ -45,9 +53,24 @@ class AudioService(BaseService):
             "client_secret": os.getenv("BAIDU_CLIENT_SECRET"),
         }
 
-        return str(
-            requests.post(url, params=params, timeout=30).json().get("access_token"),
-        )
+        try:
+            response = requests.post(url, params=params, timeout=30)
+            token = response.json().get("access_token")
+            if token:
+                # 缓存 token 30 天
+                self.redis_client.setex(
+                    "baidu_access_token",
+                    timedelta(days=30),
+                    token,
+                )
+            else:
+                return None
+        except Exception:
+            logger.exception(
+                "获取 access_token 失败",
+                extra={"url": url, "client_id": os.getenv("BAIDU_CLIENT_ID")},
+            )
+            return None
 
     @classmethod
     def get_file_content_as_base64(
