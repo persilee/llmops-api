@@ -159,8 +159,8 @@ requestBody:
                 type: "boolean"
                 example: false
               voice:
-                type: "string"
-                example: "echo"
+                type: "number"
+                example: 4194
               auto_play:
                 type: "boolean"
                 example: false

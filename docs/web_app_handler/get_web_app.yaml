@@ -90,8 +90,8 @@ responses:
                           type: "boolean"
                           example: true
                         voice:
-                          type: "string"
-                          example: "echo"
+                          type: "number"
+                          example: 4194
                       type: "object"
                   type: "object"
                 description:

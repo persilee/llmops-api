@@ -205,8 +205,8 @@ responses:
                       type: "boolean"
                       example: false
                     voice:
-                      type: "string"
-                      example: "echo"
+                      type: "number"
+                      example: 4194
                   type: "object"
                 tools:
                   type: "array"

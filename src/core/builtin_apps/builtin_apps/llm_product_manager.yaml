@@ -33,7 +33,7 @@ speech_to_text:
   enable: false
 text_to_speech:
   enable: false
-  voice: "echo"
+  voice: 4194
   auto_play: false
 suggested_after_answer:
   enable: true

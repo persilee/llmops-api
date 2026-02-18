@@ -22,5 +22,6 @@ class CodeNodeData(BaseNodeData):
     """
 
     code: str = DEFAULT_CODE
+    language: str = "python"
     inputs: list[VariableEntity] = Field(default_factory=list)
     outputs: list[VariableEntity] = Field(default_factory=list)
