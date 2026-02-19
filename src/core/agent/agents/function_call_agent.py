@@ -611,7 +611,7 @@ class FunctionCallAgent(BaseAgent):
             # 记录异常日志
             logger.exception(exception_msg)
             # 将异常消息发布到队列
-            self.agent_queue_manager.publish(state["task_id"], exception_msg)
+            self.agent_queue_manager.publish_error(state["task_id"], exception_msg)
             # 重新抛出异常
             raise e from e
 
