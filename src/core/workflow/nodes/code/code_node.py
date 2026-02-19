@@ -1,7 +1,9 @@
 import ast
+import json
 import time
 from typing import Any, ClassVar
 
+import requests
 from langchain_core.runnables import RunnableConfig
 
 from src.core.workflow.entities.node_entity import NodeResult, NodeStatus
@@ -160,7 +162,11 @@ class CodeNode(BaseNode):
         inputs_dict = extract_variables_from_state(self.node_data.inputs, state)
 
         # 执行Python代码，传入提取的输入参数
-        result = self._execute_function(self.node_data.code, params=inputs_dict)
+        result = self._execute_function(
+            self.node_data.code,
+            self.node_data.language,
+            params=inputs_dict,
+        )
 
         # 验证代码执行结果是否为字典类型
         if not isinstance(result, dict):
@@ -197,12 +203,19 @@ class CodeNode(BaseNode):
         raise FailException(error_msg)
 
     @classmethod
-    def _execute_function(cls, code: str, *args: Any, **kwargs: Any) -> Any:
+    def _execute_function(
+        cls,
+        code: str,
+        language: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any:
         """执行Python代码的类方法
 
         Args:
             cls: 类方法引用
             code (str): 要执行的Python代码字符串
+            language (str): 代码语言，目前仅支持Python
             *args: 代码执行时的位置参数
             **kwargs: 代码执行时的关键字参数
 
@@ -215,7 +228,29 @@ class CodeNode(BaseNode):
         """
         try:
             # 使用SafeCodeExecutor安全执行代码
-            return SafeCodeExecutor.execute(code, *args, **kwargs)
+            # return SafeCodeExecutor.execute(code, *args, **kwargs)
+            params = kwargs.get("params", {})
+            if not params:
+                error_msg = "main函数必须只有一个参数，且参数名为params"
+                cls._raise_error(error_msg)
+
+            if language == "python":
+                url = "https://1253877543-1e74adsd9z.ap-guangzhou.tencentscf.com"
+            else:
+                url = "https://1253877543-etyxv3jldj.ap-guangzhou.tencentscf.com"
+            headers = {"Content-Type": "application/json"}
+            payload = json.dumps(
+                {"code": code, "func_name": "main", "args": args, "kwargs": params},
+                ensure_ascii=False,
+            )
+            response = requests.request(
+                "POST",
+                url,
+                data=payload.encode("utf-8"),
+                timeout=30,
+                headers=headers,
+            )
+            return response.json().get("result", "")
         except (SyntaxError, ValueError) as e:
             # 捕获语法错误和值错误，构造错误信息并抛出异常
             error_msg = f"执行代码出错: {e}"
