@@ -4,6 +4,7 @@ from wtforms import StringField
 from wtforms.validators import DataRequired, Email, Length, regexp
 
 from pkg.password import AUTH_CREDENTIAL_FORMAT
+from pkg.password.password import PHONE_NUMBER_FORMAT
 from src.schemas.swag_schema import req_schema, resp_schema
 
 
@@ -31,11 +32,51 @@ class PasswordLoginReq(FlaskForm):
     )
 
 
+@req_schema
+class PhoneNumberLoginReq(FlaskForm):
+    """手机号登录请求结构"""
+
+    phone_number = StringField(
+        "phone_number",
+        validators=[
+            DataRequired("手机号不能为空"),
+            regexp(
+                regex=PHONE_NUMBER_FORMAT,
+                message="手机号格式错误",
+            ),
+        ],
+    )
+    code = StringField(
+        "code",
+        validators=[
+            DataRequired("验证码不能为空"),
+            Length(min=6, max=6, message="验证码长度为6个字符"),
+        ],
+    )
+
+
+@req_schema
+class SendSMSCodeReq(FlaskForm):
+    """发送短信验证码请求结构"""
+
+    phone_number = StringField(
+        "phone_number",
+        validators=[
+            DataRequired("手机号不能为空"),
+            regexp(
+                regex=PHONE_NUMBER_FORMAT,
+                message="手机号格式错误",
+            ),
+        ],
+    )
+
+
 @resp_schema()
-class PasswordLoginResp(Schema):
-    """账号密码授权认证响应结构"""
+class LoginResp(Schema):
+    """授权认证响应结构"""
 
     access_token = fields.String()
     expire_at = fields.Integer()
     user_id = fields.String()
     session_id = fields.String()
+    is_new_user = fields.Boolean()

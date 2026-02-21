@@ -94,3 +94,11 @@ class Config:
 
         # 辅助Agent应用id标识
         self.ASSISTANT_AGENT_ID = _get_env("ASSISTANT_AGENT_ID")
+
+        # 阿里云配置
+        self.ALIBABA_CLOUD_ACCESS_KEY_ID = _get_env("ALIBABA_CLOUD_ACCESS_KEY_ID")
+        self.ALIBABA_CLOUD_ACCESS_KEY_SECRET = _get_env(
+            "ALIBABA_CLOUD_ACCESS_KEY_SECRET",
+        )
+        self.ALIBABA_CLOUD_ENDPOINT = _get_env("ALIBABA_CLOUD_ENDPOINT")
+        self.ALIBABA_CLOUD_REGION_ID = _get_env("ALIBABA_CLOUD_REGION_ID")

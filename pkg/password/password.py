@@ -11,6 +11,8 @@ from typing import Any
 # 3. 长度必须在8到16个字符之间
 # 4. 可以包含其他任意字符
 AUTH_CREDENTIAL_FORMAT = r"^(?=.*[a-zA-Z])(?=.*\d).{8,16}$"
+# 手机号码格式验证的正则表达式
+PHONE_NUMBER_FORMAT = r"^1[3-9]\d{9}$"
 
 
 def validate_password(

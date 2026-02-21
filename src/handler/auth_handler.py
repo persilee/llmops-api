@@ -12,14 +12,21 @@ from pkg.response.response import (
 )
 from pkg.swagger.swagger import get_swagger_path
 from src.router.redprint import route
-from src.schemas.auth_schema import PasswordLoginReq, PasswordLoginResp
+from src.schemas.auth_schema import (
+    LoginResp,
+    PasswordLoginReq,
+    PhoneNumberLoginReq,
+    SendSMSCodeReq,
+)
 from src.service.account_service import AccountService
+from src.service.sms_service import SmsService
 
 
 @inject
 @dataclass
 class AuthHandler:
     account_service: AccountService
+    sms_service: SmsService
 
     @route("/password-login", methods=["POST"])
     @swag_from(get_swagger_path("oauth_handler/password_login.yaml"))
@@ -44,9 +51,36 @@ class AuthHandler:
         )
 
         # 创建响应对象并返回登录凭证
-        resp = PasswordLoginResp()
+        resp = LoginResp()
 
         return success_json(resp.dump(credential))
+
+    @route("/phone-number-login", methods=["POST"])
+    @swag_from(get_swagger_path("oauth_handler/phone_number_login.yaml"))
+    def phone_number_login(self) -> Response:
+        req = PhoneNumberLoginReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        credential = self.account_service.phone_number_login(
+            req.phone_number.data,
+            req.code.data,
+        )
+
+        resp = LoginResp()
+
+        return success_json(resp.dump(credential))
+
+    @route("/send-sms-code", methods=["POST"])
+    @swag_from(get_swagger_path("oauth_handler/send_sms_code.yaml"))
+    def send_sms_code(self) -> None:
+        req = SendSMSCodeReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        self.sms_service.send_sms_verify_code(req.phone_number.data)
+
+        return success_message_json("短信验证码发送成功")
 
     @route("/logout", methods=["POST"])
     @swag_from(get_swagger_path("oauth_handler/logout.yaml"))

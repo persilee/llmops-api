@@ -18,6 +18,7 @@ from src.exception.exception import FailException
 from src.model.account import Account, AccountOAuth
 from src.service.base_service import BaseService
 from src.service.jwt_service import JwtService
+from src.service.sms_service import SmsService
 
 
 @inject
@@ -26,6 +27,7 @@ class AccountService(BaseService):
     db: SQLAlchemy
     jwt_service: JwtService
     redis_client: Redis
+    sms_service: SmsService
 
     def get_account(self, account_id: UUID) -> Account:
         """通过账户ID获取账户信息
@@ -77,6 +79,25 @@ class AccountService(BaseService):
             self.db.session.query(Account)
             .filter(
                 Account.email == email,
+            )
+            .one_or_none()
+        )
+
+    def get_account_by_phone(self, phone: str, code: str) -> Account:
+        """通过手机号码获取账户信息
+
+        Args:
+            phone (str): 账户的手机号码
+            code (str): 验证码
+
+        Returns:
+            Account: 账户对象，如果不存在则返回None
+
+        """
+        return (
+            self.db.session.query(Account)
+            .filter(
+                Account.phone == phone,
             )
             .one_or_none()
         )
@@ -200,6 +221,57 @@ class AccountService(BaseService):
 
         # 返回访问令牌、过期时间和用户ID
         return {
+            "is_new_user": False,
+            "expire_at": expire_at,
+            "access_token": access_token,
+            "user_id": str(account.id),
+            "session_id": session_id,
+        }
+
+    def phone_number_login(self, phone: str, code: str) -> dict[str, Any]:
+        verify_result = self.sms_service.verify_sms_code(phone, code)
+        if not verify_result:
+            error_msg = "验证码错误"
+            raise FailException(error_msg)
+
+        account = self.get_account_by_phone(phone)
+        is_new_user = False
+        if not account:
+            is_new_user = True
+            account = self.create_account(
+                name="user_" + phone,
+                email="",
+                avatar="https://llmops-dev-1253877543.cos.ap-guangzhou.myqcloud.com/2026/02/20/efc213c0-3a5a-4ad1-8ca5-724ed1ee3ecd.png",
+            )
+
+        # 设置JWT令牌的过期时间为30天后
+        expire_at = int((datetime.now(UTC) + timedelta(days=30)).timestamp())
+        # 构建JWT载荷，包含用户ID、发行者和过期时间
+        payload = {
+            "sub": str(account.id),  # 主题：账户ID
+            "iss": "llmops",  # 发行者
+            "exp": expire_at,  # 过期时间
+        }
+        # 使用JWT服务生成访问令牌
+        access_token = self.jwt_service.generate_token(payload)
+
+        # 更新账户的最后登录时间和IP地址
+        self.update(
+            account,
+            last_login_at=datetime.now(UTC),
+            last_login_ip=request.remote_addr,
+        )
+
+        # 在Redis中存储会话信息
+        session_id = self._store_user_session(
+            str(account.id),
+            access_token,
+            expire_at,
+        )
+
+        # 返回访问令牌、过期时间和用户ID
+        return {
+            "is_new_user": is_new_user,
             "expire_at": expire_at,
             "access_token": access_token,
             "user_id": str(account.id),

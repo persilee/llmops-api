@@ -1,15 +1,15 @@
-账号密码登录
+发送验证码
 ---
 tags:
   - 授权认证
-summary: 账号密码登录
+summary: 发送验证码
 description:
-operationId: password_login
+operationId: send_sms_code
 requestBody:
   content:
     application/json:
       schema:
-        $ref: "#/components/schemas/PasswordLoginReq"
+        $ref: "#/components/schemas/SendSMSCodeReq"
 responses:
   x-200:
     $ref: "#/components/responses/BaseResponse"
@@ -26,7 +26,8 @@ responses:
               type: "string"
               example: "success"
             data:
-              $ref: "#/components/schemas/LoginResp"
+              type: "object"
+              example: {}
             message:
               type: "string"
-              example: ""
+              example: "短信验证码发送成功"

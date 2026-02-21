@@ -1,9 +1,10 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from flask import current_app
 from flask_login import UserMixin
 from sqlalchemy import (
     UUID,
+    Boolean,
     Column,
     DateTime,
     Index,
@@ -25,6 +26,7 @@ class Account(UserMixin, db.Model):
     __table_args__ = (
         PrimaryKeyConstraint("id", name="pk_account_id"),
         Index("idx_account_email", "email"),
+        Index("idx_account_phone", "phone_number"),
     )
 
     id = Column(
@@ -41,9 +43,13 @@ class Account(UserMixin, db.Model):
     )
     email = Column(
         String(255),
-        nullable=False,
-        server_default=text("''::character varying"),
+        nullable=True,
         info={"description": "邮箱"},
+    )
+    phone_number = Column(
+        String(20),
+        nullable=True,
+        info={"description": "手机号"},
     )
     avatar = Column(
         String(255),
@@ -76,6 +82,12 @@ class Account(UserMixin, db.Model):
         nullable=False,
         server_default=text("''::character varying"),
         info={"description": "最后登录 ip"},
+    )
+    is_active = Column(
+        Boolean,
+        nullable=False,
+        server_default=text("true"),
+        info={"description": "是否激活"},
     )
     updated_at = Column(
         DateTime,
@@ -184,3 +196,77 @@ class AccountOAuth(db.Model):
         server_default=text("CURRENT_TIMESTAMP(0)"),
         info={"description": "创建时间"},
     )
+
+
+class VerificationCode(db.Model):
+    """验证码记录表模型"""
+
+    __tablename__ = "verification_code"
+    __table_args__ = (PrimaryKeyConstraint("id", name="pk_verification_code_id"),)
+
+    id = Column(
+        UUID,
+        nullable=False,
+        server_default=text("uuid_generate_v4()"),
+        info={"description": "表 id"},
+    )
+    phone_number = Column(
+        String(20),
+        nullable=False,
+        server_default=text("''::character varying"),
+        info={"description": "手机号"},
+    )
+    code = Column(
+        String(10),
+        nullable=False,
+        server_default=text("''::character varying"),
+        info={"description": "验证码"},
+    )
+    used = Column(
+        Boolean,
+        nullable=False,
+        server_default=text("false"),
+        info={"description": "是否使用"},
+    )
+    expires_at = Column(
+        DateTime,
+        nullable=False,
+        server_default=text("CURRENT_TIMESTAMP(0)"),
+        info={"description": "过期时间"},
+    )
+    updated_at = Column(
+        DateTime,
+        nullable=False,
+        server_default=text("CURRENT_TIMESTAMP(0)"),
+        server_onupdate=text("CURRENT_TIMESTAMP(0)"),
+        info={"description": "更新时间"},
+    )
+    created_at = Column(
+        DateTime,
+        nullable=False,
+        server_default=text("CURRENT_TIMESTAMP(0)"),
+        info={"description": "创建时间"},
+    )
+
+    @property
+    def is_valid(self) -> bool:
+        """检查验证码是否有效
+
+        Returns:
+            bool: 如果验证码未被使用且未过期则返回True，否则返回False
+
+        """
+        # 获取当前UTC时间
+        now = datetime.now(UTC)
+        # 验证码有效的条件：未被使用且未超过过期时间
+        return not self.used and now < self.expires_at
+
+    @property
+    def mark_as_used(self) -> None:
+        """将验证码标记为已使用
+
+        设置used标志为True，并将更改提交到数据库。
+        这个方法用于在验证码被成功使用后更新其状态。
+        """
+        self.used = True
+        db.session.commit()

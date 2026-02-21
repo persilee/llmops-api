@@ -27,4 +27,9 @@ DEFAULT_CONFIG = {
     "CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP": "True",
     # 辅助Agent智能体应用id
     "ASSISTANT_AGENT_ID": "94ad01a7-3dff-4830-87ff-e87662fc4eda",
+    # 阿里云配置
+    "ALIBABA_CLOUD_ACCESS_KEY_ID": "",
+    "ALIBABA_CLOUD_ACCESS_KEY_SECRET": "",
+    "ALIBABA_CLOUD_ENDPOINT": "dypnsapi.aliyuncs.com",
+    "ALIBABA_CLOUD_REGION_ID": "cn-hangzhou",
 }

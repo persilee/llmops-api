@@ -1,15 +1,15 @@
-账号密码登录
+验证码登录
 ---
 tags:
   - 授权认证
-summary: 账号密码登录
+summary: 验证码登录
 description:
-operationId: password_login
+operationId: phone_number_login
 requestBody:
   content:
     application/json:
       schema:
-        $ref: "#/components/schemas/PasswordLoginReq"
+        $ref: "#/components/schemas/PhoneNumberLoginReq"
 responses:
   x-200:
     $ref: "#/components/responses/BaseResponse"
