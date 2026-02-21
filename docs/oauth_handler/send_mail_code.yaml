@@ -1,0 +1,33 @@
+发送邮箱验证码
+---
+tags:
+  - 授权认证
+summary: 发送邮箱验证码
+description:
+operationId: send_mail_code
+requestBody:
+  content:
+    application/json:
+      schema:
+        $ref: "#/components/schemas/SendMailCodeReq"
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              type: "object"
+              example: {}
+            message:
+              type: "string"
+              example: "邮箱验证码发送成功"

@@ -18,6 +18,7 @@ from src.exception.exception import FailException
 from src.model.account import Account, AccountOAuth
 from src.service.base_service import BaseService
 from src.service.jwt_service import JwtService
+from src.service.mail_service import MailService
 from src.service.sms_service import SmsService
 
 
@@ -28,6 +29,7 @@ class AccountService(BaseService):
     jwt_service: JwtService
     redis_client: Redis
     sms_service: SmsService
+    mail_service: MailService
 
     def get_account(self, account_id: UUID) -> Account:
         """通过账户ID获取账户信息
@@ -379,3 +381,104 @@ class AccountService(BaseService):
 
         # 清除用户会话信息，执行登出操作
         logout_user()
+
+    def is_phone_number_bound(self, phone_number: str) -> bool:
+        """检查手机号是否已被绑定
+
+        Args:
+            phone_number (str): 要检查的手机号码
+
+        Returns:
+            bool: 如果手机号已绑定返回True，否则返回False
+
+        """
+        account = self.get_account_by_phone(phone_number)
+        return account is not None
+
+    def is_email_bound(self, email: str) -> bool:
+        """检查邮箱是否已被绑定到账户
+
+        Args:
+            email: 要检查的邮箱地址
+
+        Returns:
+            bool: 如果邮箱已被绑定返回True，否则返回False
+
+        """
+        account = self.get_account_by_email(email)
+        return account is not None
+
+    def bind_phone_number(self, phone_number: str, code: str) -> Account:
+        """绑定手机号到账号
+
+        Args:
+            phone_number (str): 要绑定的手机号
+            code (str): 短信验证码
+
+        Returns:
+            Account: 更新后的账号信息
+
+        Raises:
+            FailException: 当手机号已被其他账号绑定或验证码错误时抛出
+
+        """
+        # 检查手机号是否已被其他账号绑定
+        account = self.get_account_by_phone(phone_number)
+        if account:
+            error_msg = "该手机号已绑定其他账号"
+            raise FailException(error_msg)
+
+        # 验证短信验证码是否正确
+        verify_result = self.sms_service.verify_sms_code(phone_number, code)
+        if not verify_result:
+            error_msg = "验证码错误"
+            raise FailException(error_msg)
+
+        # 更新账号的手机号信息
+        self.update_account(
+            account,
+            phone_number=phone_number,
+        )
+        return account
+
+    def bind_email(self, email: str, code: str) -> Account:
+        """绑定邮箱到当前账户。
+
+        Args:
+            email (str): 要绑定的邮箱地址
+            code (str): 邮箱验证码
+
+        Returns:
+            Account: 更新后的账户对象
+
+        Raises:
+            FailException: 当邮箱已被其他账号绑定或验证码错误时抛出
+
+        该方法会执行以下操作：
+        1. 检查邮箱是否已被其他账号绑定
+        2. 验证邮箱验证码是否正确
+        3. 更新账户的邮箱信息
+        4. 返回更新后的账户信息
+
+        """
+        # 根据邮箱获取账户信息，检查该邮箱是否已被其他账号绑定
+        account = self.get_account_by_email(email)
+        if account:
+            # 如果邮箱已被绑定，抛出异常提示用户
+            error_msg = "该邮箱已绑定其他账号"
+            raise FailException(error_msg)
+
+        # 验证用户输入的邮箱验证码是否正确
+        verify_result = self.mail_service.verify_mail_code(email, code)
+        if not verify_result:
+            # 如果验证码错误，抛出异常提示用户
+            error_msg = "验证码错误"
+            raise FailException(error_msg)
+
+        # 验证通过后，更新账户的邮箱信息
+        self.update_account(
+            account,
+            email=email,
+        )
+        # 返回更新后的账户信息
+        return account

@@ -1,0 +1,33 @@
+验证邮箱是否已绑定
+---
+tags:
+  - 账号管理
+summary: 验证邮箱是否已绑定
+description:
+operationId: is_email_bound
+requestBody:
+  content:
+    application/json:
+      schema:
+        $ref: "#/components/schemas/SendMailCodeReq"
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              type: "object"
+              example: { "is_bound": result }
+            message:
+              type: "string"
+              example: ""

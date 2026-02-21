@@ -25,6 +25,7 @@
     "flasgger",
     "formdata",
     "gaode",
+    "gevent",
     "goade",
     "hexlify",
     "htmlcov",

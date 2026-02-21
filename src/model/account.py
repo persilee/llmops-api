@@ -210,11 +210,11 @@ class VerificationCode(db.Model):
         server_default=text("uuid_generate_v4()"),
         info={"description": "表 id"},
     )
-    phone_number = Column(
-        String(20),
+    account = Column(
+        String(255),
         nullable=False,
         server_default=text("''::character varying"),
-        info={"description": "手机号"},
+        info={"description": "手机号或邮箱地址"},
     )
     code = Column(
         String(10),

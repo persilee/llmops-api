@@ -6,6 +6,7 @@ from wtforms.validators import URL, DataRequired, Length, regexp
 from pkg.password import AUTH_CREDENTIAL_FORMAT
 from src.lib.helper import datetime_to_timestamp
 from src.model import Account
+from src.schemas.auth_schema import EMAIL_FORMAT, PHONE_NUMBER_FORMAT
 from src.schemas.swag_schema import req_schema, resp_schema
 
 
@@ -72,5 +73,52 @@ class UpdateAvatarReq(FlaskForm):
         validators=[
             DataRequired("账号头像不能为空"),
             URL("账号头像必须是URL图片地址"),
+        ],
+    )
+
+
+@req_schema
+class BindPhoneNumberReq(FlaskForm):
+    """绑定手机号请求"""
+
+    phone_number = StringField(
+        "phone_number",
+        validators=[
+            DataRequired("手机号不能为空"),
+            regexp(
+                regex=PHONE_NUMBER_FORMAT,
+                message="手机号格式错误",
+            ),
+        ],
+    )
+    code = StringField(
+        "code",
+        validators=[
+            DataRequired("验证码不能为空"),
+            Length(min=6, max=6, message="验证码长度为6位"),
+        ],
+    )
+
+
+@req_schema
+class BindEmailReq(FlaskForm):
+    """绑定邮箱请求"""
+
+    email = StringField(
+        "email",
+        validators=[
+            DataRequired("邮箱不能为空"),
+            regexp(
+                regex=EMAIL_FORMAT,
+                message="邮箱格式错误",
+            ),
+        ],
+    )
+
+    code = StringField(
+        "code",
+        validators=[
+            DataRequired("验证码不能为空"),
+            Length(min=6, max=6, message="验证码长度为6位"),
         ],
     )

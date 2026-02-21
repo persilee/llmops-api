@@ -48,6 +48,7 @@ dependencies = [
     "flask-weaviate>=1.1.0",
     "gevent>=25.9.1",
     "alibabacloud-dypnsapi20170525==2.0.0",
+    "alibabacloud-dm20151123==1.8.3",
 ]
 
 [tool.rye.scripts]

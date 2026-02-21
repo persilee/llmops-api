@@ -2,13 +2,11 @@ import json
 import os
 import secrets
 import string
-from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
 from alibabacloud_dypnsapi20170525 import models as dypnsapi_20170525_models
 from alibabacloud_dypnsapi20170525.client import Client as Dypnsapi20170525Client
 from alibabacloud_tea_openapi import models as open_api_models
-from alibabacloud_tea_util import models as util_models
 from injector import inject
 from redis import Redis
 from sqlalchemy import desc
@@ -20,12 +18,13 @@ from src.service.base_service import BaseService
 
 
 @inject
-@dataclass
 class SmsService(BaseService):
     redis_client: Redis
     db: SQLAlchemy
 
-    def __init__(self) -> None:
+    def __init__(self, redis_client: Redis, db: SQLAlchemy) -> None:
+        self.redis_client = redis_client
+        self.db = db
         sms_config = open_api_models.Config(
             access_key_id=os.getenv("ALIBABA_CLOUD_ACCESS_KEY_ID"),
             access_key_secret=os.getenv("ALIBABA_CLOUD_ACCESS_KEY_SECRET"),
@@ -55,14 +54,14 @@ class SmsService(BaseService):
                 template_param=json.dumps({"code": verify_code, "min": "5"}),
             )
         )
-        runtime = util_models.RuntimeOptions()
+
         try:
             # 发送短信验证码
-            self.client.send_sms_verify_code(send_sms_verify_code_request, runtime)
+            self.client.send_sms_verify_code(send_sms_verify_code_request)
 
             self.create(
                 VerificationCode,
-                phone_number=phone_number,
+                account=phone_number,
                 code=verify_code,
                 expires_at=datetime.now(UTC) + timedelta(minutes=5),
             )
@@ -80,7 +79,7 @@ class SmsService(BaseService):
         code_record = (
             self.db.session.query(VerificationCode)
             .filter_by(
-                phone_number=phone_number,
+                account=phone_number,
                 code=verify_code,
                 used=False,
             )

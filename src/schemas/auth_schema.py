@@ -4,8 +4,12 @@ from wtforms import StringField
 from wtforms.validators import DataRequired, Email, Length, regexp
 
 from pkg.password import AUTH_CREDENTIAL_FORMAT
-from pkg.password.password import PHONE_NUMBER_FORMAT
 from src.schemas.swag_schema import req_schema, resp_schema
+
+# 手机号码格式验证的正则表达式
+PHONE_NUMBER_FORMAT = r"^1[3-9]\d{9}$"
+# 邮箱格式验证的正则表达式
+EMAIL_FORMAT = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
 
 
 @req_schema
@@ -66,6 +70,22 @@ class SendSMSCodeReq(FlaskForm):
             regexp(
                 regex=PHONE_NUMBER_FORMAT,
                 message="手机号格式错误",
+            ),
+        ],
+    )
+
+
+@req_schema
+class SendMailCodeReq(FlaskForm):
+    """发送邮件验证码请求结构"""
+
+    email = StringField(
+        "email",
+        validators=[
+            DataRequired("邮箱不能为空"),
+            regexp(
+                regex=EMAIL_FORMAT,
+                message="邮箱格式错误",
             ),
         ],
     )

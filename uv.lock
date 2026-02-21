@@ -176,6 +176,20 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/a0/87/1d7019d23891897cb076b2f7e3c81ab3c2ba91de3bb067196f675d60d34c/alibabacloud-credentials-api-1.0.0.tar.gz", hash = "sha256:8c340038d904f0218d7214a8f4088c31912bfcf279af2cbc7d9be4897a97dd2f", size = 2330, upload-time = "2025-01-13T05:53:04.931Z" }
 
 [[package]]
+name = "alibabacloud-dm20151123"
+version = "1.8.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "alibabacloud-credentials" },
+    { name = "alibabacloud-tea-openapi" },
+    { name = "darabonba-core" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/47/f5/5692d13ccad2fa79494e311b4ca3fe83561f41dacfd8bddc32b7f7a6262d/alibabacloud_dm20151123-1.8.3.tar.gz", hash = "sha256:85fe0809f7829da50b6a0ab2ec2cbc0fe0736a65eaea108807df29e9b9fa8bf4", size = 67648, upload-time = "2026-01-27T06:11:56.488Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b8/6f/f5ef8947f8c0ba58740ba3ac958dce8b7d04e73610909a6afe12afef2a40/alibabacloud_dm20151123-1.8.3-py3-none-any.whl", hash = "sha256:b9256ae4d3cae69a4cab149d1e10288e9731d1eb6c0ca1bce327d4308f0ffa43", size = 210651, upload-time = "2026-01-27T06:11:54.882Z" },
+]
+
+[[package]]
 name = "alibabacloud-dypnsapi20170525"
 version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1861,6 +1875,7 @@ name = "llmops-api"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "alibabacloud-dm20151123" },
     { name = "alibabacloud-dypnsapi20170525" },
     { name = "celery" },
     { name = "concurrent-log-handler" },
@@ -1908,6 +1923,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "alibabacloud-dm20151123", specifier = "==1.8.3" },
     { name = "alibabacloud-dypnsapi20170525", specifier = "==2.0.0" },
     { name = "celery", specifier = ">=5.5.3" },
     { name = "concurrent-log-handler", specifier = ">=0.9.28" },

@@ -16,9 +16,11 @@ from src.schemas.auth_schema import (
     LoginResp,
     PasswordLoginReq,
     PhoneNumberLoginReq,
+    SendMailCodeReq,
     SendSMSCodeReq,
 )
 from src.service.account_service import AccountService
+from src.service.mail_service import MailService
 from src.service.sms_service import SmsService
 
 
@@ -27,6 +29,7 @@ from src.service.sms_service import SmsService
 class AuthHandler:
     account_service: AccountService
     sms_service: SmsService
+    mail_service: MailService
 
     @route("/password-login", methods=["POST"])
     @swag_from(get_swagger_path("oauth_handler/password_login.yaml"))
@@ -81,6 +84,17 @@ class AuthHandler:
         self.sms_service.send_sms_verify_code(req.phone_number.data)
 
         return success_message_json("短信验证码发送成功")
+
+    @route("/send-mail-code", methods=["POST"])
+    @swag_from(get_swagger_path("oauth_handler/send_mail_code.yaml"))
+    def send_mail_code(self) -> None:
+        req = SendMailCodeReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        self.mail_service.send_mail_verify_code(req.email.data)
+
+        return success_message_json("邮箱验证码发送成功")
 
     @route("/logout", methods=["POST"])
     @swag_from(get_swagger_path("oauth_handler/logout.yaml"))
