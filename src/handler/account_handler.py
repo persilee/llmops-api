@@ -108,6 +108,7 @@ class AccountHandler:
         self.account_service.bind_phone_number(
             req.phone_number.data,
             req.code.data,
+            current_user,
         )
 
         return success_message_json("绑定手机号成功")
@@ -123,6 +124,7 @@ class AccountHandler:
         self.account_service.bind_email(
             req.email.data,
             req.code.data,
+            current_user,
         )
 
         return success_message_json("绑定邮箱成功")

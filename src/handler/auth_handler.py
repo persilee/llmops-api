@@ -23,6 +23,9 @@ from src.service.account_service import AccountService
 from src.service.mail_service import MailService
 from src.service.sms_service import SmsService
 
+# 手机号长度常量
+PHONE_NUMBER_LENGTH = 11
+
 
 @inject
 @dataclass
@@ -47,10 +50,14 @@ class AuthHandler:
         if not req.validate():
             return validate_error_json(req.errors)
 
+        account = req.account.data
+        is_phone = account.isdigit() and len(account) == PHONE_NUMBER_LENGTH
+
         # 调用账户服务进行密码登录验证
         credential = self.account_service.password_login(
-            req.email.data,
+            account,
             req.password.data,
+            is_phone=is_phone,
         )
 
         # 创建响应对象并返回登录凭证

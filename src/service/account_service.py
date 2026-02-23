@@ -85,7 +85,7 @@ class AccountService(BaseService):
             .one_or_none()
         )
 
-    def get_account_by_phone(self, phone: str, code: str) -> Account:
+    def get_account_by_phone(self, phone: str) -> Account:
         """通过手机号码获取账户信息
 
         Args:
@@ -99,7 +99,7 @@ class AccountService(BaseService):
         return (
             self.db.session.query(Account)
             .filter(
-                Account.phone == phone,
+                Account.phone_number == phone,
             )
             .one_or_none()
         )
@@ -162,12 +162,19 @@ class AccountService(BaseService):
         """
         return self.update(account, **kwargs)
 
-    def password_login(self, email: str, password: str) -> dict[str, Any]:
+    def password_login(
+        self,
+        account: str,
+        password: str,
+        *,
+        is_phone: bool = False,
+    ) -> dict[str, Any]:
         """处理用户密码登录。
 
         Args:
-            email (str): 用户邮箱地址
+            account (str): 用户账号
             password (str): 用户密码
+            is_phone (bool, optional): 是否使用手机号登录
 
         Returns:
             dict[str, Any]: 包含访问令牌和过期时间的字典，格式为：
@@ -180,18 +187,21 @@ class AccountService(BaseService):
             UnauthorizedException: 当用户不存在或密码错误时抛出
 
         """
-        # 根据邮箱获取账户信息
-        account = self.get_account_by_email(email)
+        if is_phone:
+            user = self.get_account_by_phone(account)
+        else:
+            # 根据邮箱获取账户信息
+            user = self.get_account_by_email(account)
         # 检查账户是否存在
-        if not account:
+        if not user:
             error_msg = "用户不存在或密码错误"
             raise FailException(error_msg)
 
         # 验证密码是否已设置且密码是否正确
-        if not account.is_password_set or not compare_password(
+        if not user.is_password_set or not compare_password(
             password,
-            account.password,
-            account.password_salt,
+            user.password,
+            user.password_salt,
         ):
             error_msg = "用户不存在或密码错误"
             raise FailException(error_msg)
@@ -200,7 +210,7 @@ class AccountService(BaseService):
         expire_at = int((datetime.now(UTC) + timedelta(days=30)).timestamp())
         # 构建JWT载荷，包含用户ID、发行者和过期时间
         payload = {
-            "sub": str(account.id),  # 主题：账户ID
+            "sub": str(user.id),  # 主题：账户ID
             "iss": "llmops",  # 发行者
             "exp": expire_at,  # 过期时间
         }
@@ -209,14 +219,14 @@ class AccountService(BaseService):
 
         # 更新账户的最后登录时间和IP地址
         self.update(
-            account,
+            user,
             last_login_at=datetime.now(UTC),
             last_login_ip=request.remote_addr,
         )
 
         # 在Redis中存储会话信息
         session_id = self._store_user_session(
-            str(account.id),
+            str(user.id),
             access_token,
             expire_at,
         )
@@ -226,7 +236,7 @@ class AccountService(BaseService):
             "is_new_user": False,
             "expire_at": expire_at,
             "access_token": access_token,
-            "user_id": str(account.id),
+            "user_id": str(user.id),
             "session_id": session_id,
         }
 
@@ -408,12 +418,18 @@ class AccountService(BaseService):
         account = self.get_account_by_email(email)
         return account is not None
 
-    def bind_phone_number(self, phone_number: str, code: str) -> Account:
+    def bind_phone_number(
+        self,
+        phone_number: str,
+        code: str,
+        account: Account,
+    ) -> Account:
         """绑定手机号到账号
 
         Args:
             phone_number (str): 要绑定的手机号
             code (str): 短信验证码
+            account (Account): 要绑定的账号
 
         Returns:
             Account: 更新后的账号信息
@@ -423,8 +439,8 @@ class AccountService(BaseService):
 
         """
         # 检查手机号是否已被其他账号绑定
-        account = self.get_account_by_phone(phone_number)
-        if account:
+        result = self.get_account_by_phone(phone_number)
+        if result:
             error_msg = "该手机号已绑定其他账号"
             raise FailException(error_msg)
 
@@ -441,12 +457,13 @@ class AccountService(BaseService):
         )
         return account
 
-    def bind_email(self, email: str, code: str) -> Account:
+    def bind_email(self, email: str, code: str, account: Account) -> Account:
         """绑定邮箱到当前账户。
 
         Args:
             email (str): 要绑定的邮箱地址
             code (str): 邮箱验证码
+            account (Account): 当前账户对象
 
         Returns:
             Account: 更新后的账户对象
@@ -462,8 +479,8 @@ class AccountService(BaseService):
 
         """
         # 根据邮箱获取账户信息，检查该邮箱是否已被其他账号绑定
-        account = self.get_account_by_email(email)
-        if account:
+        result = self.get_account_by_email(email)
+        if result:
             # 如果邮箱已被绑定，抛出异常提示用户
             error_msg = "该邮箱已绑定其他账号"
             raise FailException(error_msg)

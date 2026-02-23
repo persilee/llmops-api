@@ -258,11 +258,15 @@ class VerificationCode(db.Model):
         """
         # 获取当前UTC时间
         now = datetime.now(UTC)
+        # 确保 self.expires_at 也是aware datetime
+        if self.expires_at.tzinfo is None:
+            # 如果expires_at是naive，将其转换为aware
+            self.expires_at = self.expires_at.replace(tzinfo=UTC)
         # 验证码有效的条件：未被使用且未超过过期时间
         return not self.used and now < self.expires_at
 
-    @property
-    def mark_as_used(self) -> None:
+
+    def mark_as_used(self) -> bool:
         """将验证码标记为已使用
 
         设置used标志为True，并将更改提交到数据库。
@@ -270,3 +274,4 @@ class VerificationCode(db.Model):
         """
         self.used = True
         db.session.commit()
+        return True

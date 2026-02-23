@@ -91,13 +91,14 @@ class SmsService(BaseService):
             error_msg = "验证码错误或不存在"
             raise FailException(error_msg)
 
-        if not code_record.is_valid():
+        if not code_record.is_valid:
             error_msg = "验证码已过期"
             raise FailException(error_msg)
 
-        code_record.mark_as_used()
-
-        # 验证成功后删除验证码
-        self.redis_client.delete(f"sms_limit:{phone_number}")
-
-        return True
+        # 标记验证码为已使用
+        if code_record.mark_as_used():  # 确保方法正确执行并检查返回值
+            # 验证成功后删除Redis中的邮件发送限制记录
+            self.redis_client.delete(f"sms_limit:{phone_number}")
+            return True
+        error_msg = "验证码标记失败"
+        raise FailException(error_msg)
