@@ -22,6 +22,7 @@ from src.core.workflow.entities.edge_entity import BaseEdgeData
 from src.core.workflow.entities.node_entity import BaseNodeData, NodeStatus, NodeType
 from src.core.workflow.entities.variable_entity import VariableEntity
 from src.core.workflow.entities.workflow_entity import WorkflowConfig
+from src.core.workflow.node_executor import NodeExecutor
 from src.core.workflow.nodes.code.code_entity import CodeNodeData
 from src.core.workflow.nodes.dataset_retrieval.dataset_retrieval_entity import (
     DatasetRetrievalNodeData,
@@ -143,6 +144,7 @@ class WorkflowService(BaseService):
         workflow_id: UUID,
         inputs: dict[str, Any],
         account: Account,
+        node_id: str | None = None,
     ) -> Generator:
         """调试工作流执行
 
@@ -150,6 +152,7 @@ class WorkflowService(BaseService):
             workflow_id: 工作流ID
             inputs: 输入参数字典
             account: 账户信息
+            node_id: 节点ID，用于指定调试的起始节点
 
         Returns:
             Generator: 流式返回工作流执行结果
@@ -194,38 +197,70 @@ class WorkflowService(BaseService):
             # 5.开始执行工作流并记录执行时间
             start_at = time.perf_counter()
             try:
-                # 5.1 流式获取工作流执行结果
-                for chunk in workflow_tool.stream(inputs):
-                    # 5.2 chunk格式为:{"node_name": WorkflowState}，取出第一个节点名称
-                    first_key = next(iter(chunk))
-
-                    # 5.3 处理节点运行结果
-                    # 5.3.1 跳过虚拟节点（无实际执行结果的节点）
-                    if len(chunk[first_key]["node_results"]) == 0:
-                        continue
-                    # 5.3.2 获取并转换节点结果为字典格式
-                    node_result = chunk[first_key]["node_results"][0]
-                    node_result_dict = convert_model_to_dict(node_result)
-                    node_results.append(node_result_dict)
-
-                    # 5.4 组装响应数据并流式输出
-                    data = {
-                        "id": str(uuid.uuid4()),
-                        **node_result_dict,
-                    }
-                    yield (
-                        f"event: workflow\n"
-                        f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+                if node_id:
+                    # 获取指定节点的配置
+                    node_config = next(
+                        (
+                            node
+                            for node in workflow.draft_graph.get("nodes", [])
+                            if node["id"] == node_id
+                        ),
+                        None,
                     )
+                    # 创建单个节点的执行器
+                    node_executor = NodeExecutor(
+                        node_config=node_config,
+                        account_id=account.id,
+                    )
+                    # 执行单个节点
+                    for chunk in node_executor.stream(inputs):
+                        if len(chunk[node_id]["node_results"]) == 0:
+                            continue
+                        node_result = chunk[node_id]["node_results"][0]
+                        node_result_dict = convert_model_to_dict(node_result)
+                        node_results.append(node_result_dict)
 
-                # 工作流执行成功，更新结果状态和调试状态
-                self.update(
-                    workflow_result,
-                    status=NodeStatus.SUCCEEDED,
-                    state=node_results,
-                    latency=(time.perf_counter() - start_at),
-                )
+                        data = {
+                            "id": str(uuid.uuid4()),
+                            **node_result_dict,
+                        }
+                        yield (
+                            f"event: workflow\n"
+                            f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+                        )
+                else:
+                    # 5.1 流式获取工作流执行结果
+                    for chunk in workflow_tool.stream(inputs):
+                        # 5.2 chunk格式为:{"node_name": WorkflowState}，
+                        # 取出第一个节点名称
+                        first_key = next(iter(chunk))
 
+                        # 5.3 处理节点运行结果
+                        # 5.3.1 跳过虚拟节点（无实际执行结果的节点）
+                        if len(chunk[first_key]["node_results"]) == 0:
+                            continue
+                        # 5.3.2 获取并转换节点结果为字典格式
+                        node_result = chunk[first_key]["node_results"][0]
+                        node_result_dict = convert_model_to_dict(node_result)
+                        node_results.append(node_result_dict)
+
+                        # 5.4 组装响应数据并流式输出
+                        data = {
+                            "id": str(uuid.uuid4()),
+                            **node_result_dict,
+                        }
+                        yield (
+                            f"event: workflow\n"
+                            f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+                        )
+
+                    # 工作流执行成功，更新结果状态和调试状态
+                    self.update(
+                        workflow_result,
+                        status=NodeStatus.SUCCEEDED,
+                        state=node_results,
+                        latency=(time.perf_counter() - start_at),
+                    )
             except (ValidateErrorException, ValueError, RuntimeError) as e:
                 # 7.处理执行过程中的异常，记录错误日志并更新失败状态
                 logger.exception(

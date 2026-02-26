@@ -216,13 +216,16 @@ class WorkflowHandler:
 
         """
         # 从请求体中获取输入参数，如果没有则使用空字典
-        inputs = request.get_json(force=True, silent=True) or {}
+        request_data = request.get_json(force=True, silent=True) or {}
+        inputs = request_data.get("inputs", {})
+        node_id = request_data.get("node_id")
 
         # 调用服务层执行工作流调试
         response = self.workflow_service.debug_workflow(
             workflow_id,
             inputs,
             current_user,
+            node_id,
         )
 
         # 返回调试结果的响应

@@ -110,8 +110,8 @@ class SendMailCodeReq(FlaskForm):
 class LoginResp(Schema):
     """授权认证响应结构"""
 
-    access_token = fields.String()
-    expire_at = fields.Integer()
-    user_id = fields.String()
-    session_id = fields.String()
-    is_new_user = fields.Boolean()
+    access_token = fields.String(dump_default="")
+    expire_at = fields.Integer(dump_default="")
+    user_id = fields.String(dump_default="")
+    session_id = fields.String(dump_default="")
+    is_new_user = fields.Boolean(dump_default=False)
