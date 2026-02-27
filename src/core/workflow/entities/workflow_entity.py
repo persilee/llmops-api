@@ -422,3 +422,4 @@ class WorkflowState(TypedDict):
     inputs: Annotated[dict[str, Any], _process_dict]
     outputs: Annotated[dict[str, Any], _process_dict]
     node_results: Annotated[list[NodeResult], _process_node_results]
+    is_node: Annotated[bool, "是否是单个节点执行"]

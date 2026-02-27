@@ -23,6 +23,9 @@ def extract_variables_from_state(
         dict[str, Any]: 变量名到变量值的映射字典
 
     """
+    if state.get("is_node"):
+        return state.get("inputs", {})
+
     # 1.初始化变量字典，用于存储最终提取的变量值
     variables_dict = {}
 

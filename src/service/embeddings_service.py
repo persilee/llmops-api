@@ -34,7 +34,7 @@ class EmbeddingsService:
     def __init__(self, redis: Redis) -> None:
         # 初始化Redis存储，用于缓存嵌入向量
         self._store = RedisStore(client=redis)
-        # # OpenAI嵌入模型（已注释）
+        # OpenAI嵌入模型（已注释）
         self._embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
         # 初始化HuggingFace嵌入模型，使用多语言基础模型
         # self._embeddings = HuggingFaceEmbeddings(

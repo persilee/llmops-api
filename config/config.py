@@ -71,7 +71,6 @@ class Config:
         self.WEAVIATE_HTTP_PORT = _get_env("WEAVIATE_HTTP_PORT")
         self.WEAVIATE_GRPC_HOST = _get_env("WEAVIATE_GRPC_HOST")
         self.WEAVIATE_GRPC_PORT = _get_env("WEAVIATE_GRPC_PORT")
-        self.WEAVIATE_API_KEY = _get_env("WEAVIATE_API_KEY")
 
         # Redis配置
         self.REDIS_HOST = _get_env("REDIS_HOST")

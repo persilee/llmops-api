@@ -6,7 +6,7 @@ from langchain_weaviate import WeaviateVectorStore
 dotenv.load_dotenv()
 
 # 1.连接weaviate向量数据库
-client = weaviate.connect_to_local("127.0.0.1", 8080)
+client = weaviate.connect_to_local("localhost", 8080)
 
 # client = weaviate.connect_to_weaviate_cloud(
 #     cluster_url="egqmx48kr5a2srw1uvjhxw.c0.asia-southeast1.gcp.weaviate.cloud",

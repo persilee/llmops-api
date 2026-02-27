@@ -120,6 +120,7 @@ class NodeExecutor:
         state = WorkflowState(
             inputs=input_data,
             node_results=[],
+            is_node=True,
         )
 
         try:
