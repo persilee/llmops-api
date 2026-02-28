@@ -18,7 +18,14 @@ from src.core.workflow.nodes.dataset_retrieval.dataset_retrieval_node import (
 )
 from src.core.workflow.nodes.end.end_node import EndNode
 from src.core.workflow.nodes.http_request.http_request_node import HttpRequestNode
+from src.core.workflow.nodes.iteration.iteration_node import IterationNode
 from src.core.workflow.nodes.llm.llm_node import LLMNode
+from src.core.workflow.nodes.question_classifier.question_classifier_entity import (
+    QuestionClassifierNodeData,
+)
+from src.core.workflow.nodes.question_classifier.question_classifier_node import (
+    QuestionClassifierNode,
+)
 from src.core.workflow.nodes.start.start_node import StartNode
 from src.core.workflow.nodes.template_transform.template_transform_node import (
     TemplateTransformNode,
@@ -37,6 +44,10 @@ NodeClasses = {
     NodeType.CODE: CodeNode,  # 代码执行节点，用于执行自定义代码逻辑
     NodeType.TOOL: ToolNode,  # 工具节点，用于调用外部工具
     NodeType.HTTP_REQUEST: HttpRequestNode,  # HTTP请求节点，用于发送HTTP请求
+    NodeType.ITERATION: IterationNode,  # 迭代节点，用于循环执行子工作流
+    NodeType.QUESTION_CLASSIFIER: (
+        QuestionClassifierNode  # 问题分类节点，用于分类问题类型
+    ),
 }
 
 
@@ -175,6 +186,14 @@ class Workflow(BaseTool):
             NodeType.HTTP_REQUEST: lambda: NodeClasses[NodeType.HTTP_REQUEST](
                 node_data=node,
             ),
+            NodeType.ITERATION: lambda: NodeClasses[NodeType.ITERATION](
+                node_data=node,
+            ),
+            NodeType.QUESTION_CLASSIFIER: lambda: NodeClasses[
+                NodeType.QUESTION_CLASSIFIER
+            ](
+                node_data=node,
+            ),
             # 结束节点创建器
             NodeType.END: lambda: NodeClasses[NodeType.END](
                 node_data=node,
@@ -215,6 +234,13 @@ class Workflow(BaseTool):
         for node in self._workflow_config.nodes:
             node_flag, node_instance = self._create_node(node)
             graph.add_node(node_flag, node_instance)
+            if node.node_type == NodeType.QUESTION_CLASSIFIER:
+                assert isinstance(node, QuestionClassifierNodeData)
+                for item in node.classes:
+                    graph.add_node(
+                        f"qc_source_handle_{item.source_handle_id!s}",
+                        lambda _: {"node_results": []},
+                    )
 
         # 初始化并行边集合和起始/结束节点标识
         parallel_edges = {}

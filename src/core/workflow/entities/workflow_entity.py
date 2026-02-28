@@ -147,7 +147,9 @@ class WorkflowConfig(BaseModel):
             DatasetRetrievalNodeData,
             EndNodeData,
             HttpRequestNodeData,
+            IterationNodeData,
             LLMNodeData,
+            QuestionnaireNodeData,
             StartNodeData,
             TemplateTransformNodeData,
             ToolNodeData,
@@ -163,6 +165,8 @@ class WorkflowConfig(BaseModel):
             NodeType.CODE: CodeNodeData,
             NodeType.TOOL: ToolNodeData,
             NodeType.HTTP_REQUEST: HttpRequestNodeData,
+            NodeType.ITERATION: IterationNodeData,
+            NodeType.QUESTION_CLASSIFIER: QuestionnaireNodeData,
         }
 
         # 初始化节点数据字典和计数器

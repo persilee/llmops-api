@@ -29,7 +29,11 @@ from src.core.workflow.nodes.dataset_retrieval.dataset_retrieval_entity import (
 )
 from src.core.workflow.nodes.end.end_entity import EndNodeData
 from src.core.workflow.nodes.http_request.http_request_entity import HttpRequestNodeData
+from src.core.workflow.nodes.iteration.iteration_entity import IterationNodeData
 from src.core.workflow.nodes.llm.llm_entity import LLMNodeData
+from src.core.workflow.nodes.question_classifier.question_classifier_entity import (
+    QuestionClassifierNodeData,
+)
 from src.core.workflow.nodes.start.start_entity import StartNodeData
 from src.core.workflow.nodes.template_transform.template_transform_entity import (
     TemplateTransformNodeData,
@@ -734,6 +738,8 @@ class WorkflowService(BaseService):
             NodeType.CODE: CodeNodeData,
             NodeType.TOOL: ToolNodeData,
             NodeType.HTTP_REQUEST: HttpRequestNodeData,
+            NodeType.ITERATION: IterationNodeData,
+            NodeType.QUESTION_CLASSIFIER: QuestionClassifierNodeData,
         }
 
         # 初始化节点数据字典和特殊节点计数器
