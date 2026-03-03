@@ -234,7 +234,7 @@ class Workflow(BaseTool):
         for node in self._workflow_config.nodes:
             node_flag, node_instance = self._create_node(node)
             graph.add_node(node_flag, node_instance)
-            if node.node_type == NodeType.QUESTION_CLASSIFIER:
+            if node.get("node_type") == NodeType.QUESTION_CLASSIFIER:
                 assert isinstance(node, QuestionClassifierNodeData)
                 for item in node.classes:
                     graph.add_node(

@@ -218,6 +218,13 @@ class WorkflowService(BaseService):
                     )
                     # 执行单个节点
                     for chunk in node_executor.stream(inputs):
+                        # 打印 chunk 的完整内容
+                        print("=== Chunk Debug Info ===")
+                        print(f"Type: {type(chunk)}")
+                        print(f"Keys: {chunk.keys()}")
+                        print(f"Content: {chunk}")
+                        print("========================")
+
                         if len(chunk[node_id]["node_results"]) == 0:
                             continue
                         node_result = chunk[node_id]["node_results"][0]

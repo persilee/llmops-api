@@ -79,11 +79,18 @@ class LLMNode(BaseNode):
         llm = llm_model_service.load_language_model(
             self.node_data.language_model_config,
         )
+        # 计算输入 token 数
+        input_tokens = llm.custom_get_num_tokens(prompt_value)
+        total_tokens = input_tokens  # 初始化总 token 数
 
         # 调用模型生成内容
         content = ""
         for chunk in llm.stream(prompt_value):
             content += chunk.content
+
+        # 计算输出 token 数
+        output_tokens = llm.custom_get_num_tokens(content)
+        total_tokens += output_tokens
 
         # 准备输出结果
         outputs = {}
@@ -103,6 +110,7 @@ class LLMNode(BaseNode):
                     inputs=inputs_dict,  # 输入数据
                     outputs=outputs,  # 输出数据
                     latency=(time.perf_counter() - start_at),  # 执行耗时
+                    tokens=total_tokens,  # 总 token 数
                 ),
             ],
         }

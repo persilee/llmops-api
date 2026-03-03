@@ -103,6 +103,26 @@ class BaseLanguageModel(LCBaseLanguageModel, ABC):
         # 2.返回数据
         return input_price, output_price, unit
 
+    def custom_get_num_tokens(self, text: str) -> int:
+        """计算单个字符串的token数量
+
+        Args:
+            text: 要计算token数量的字符串
+
+        Returns:
+            int: 字符串的token数量
+
+        """
+        try:
+            # 尝试获取模型特定的编码器
+            encoding = tiktoken.encoding_for_model("gpt-4o-mini")
+        except KeyError:
+            # 如果找不到特定模型的编码器，使用默认的cl100k_base编码器
+            encoding = tiktoken.get_encoding("cl100k_base")
+
+        # 计算并返回文本的token数量
+        return len(encoding.encode(text))
+
     def custom_get_num_tokens_from_messages(
         self,
         messages: list[BaseMessage],

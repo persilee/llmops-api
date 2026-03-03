@@ -64,3 +64,4 @@ class NodeResult(BaseModel):
     outputs: dict[str, Any] = Field(default_factory=dict)  # 节点输出数据字典
     latency: float = 0.0  # 节点执行延迟时间（秒）
     error: str = ""  # 节点执行错误信息，若无错误则为空字符串
+    tokens: int = 0  # 节点执行消耗的token数量
