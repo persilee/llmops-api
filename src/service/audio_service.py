@@ -42,7 +42,7 @@ class AudioService(BaseService):
         """
         # 尝试从 Redis 获取缓存的 token
 
-        token = self.redis_client.get("baidu_access_token")
+        token = self.redis_client.get("baidu_access_token").decode("utf-8")
         if token:
             return token
         # 如果缓存中没有，请求新的 token
@@ -262,7 +262,11 @@ class AudioService(BaseService):
 
     def _create_tts_task(self, text: str, voice: int, token: str) -> any:
         """创建文本转语音任务"""
-        url = os.getenv("BAIDU_LONG_TEXT_TO_OAUTH_URL") + token
+        # 确保 token 是字符串类型
+
+        base_url = os.getenv("BAIDU_LONG_TEXT_TO_OAUTH_URL")
+        url = f"{base_url}{token}"
+
         payload = json.dumps(
             {
                 "text": text,
@@ -320,7 +324,11 @@ class AudioService(BaseService):
         account: Account,
     ) -> tuple[bool, int]:
         """验证应用配置并返回启用状态和音色"""
-        if message.invoke_from in [InvokeFrom.WEB_APP, InvokeFrom.DEBUGGER]:
+        if message.invoke_from in [
+            InvokeFrom.WEB_APP,
+            InvokeFrom.DEBUGGER,
+            InvokeFrom.ASSISTANT_AGENT,
+        ]:
             app = self.get(App, message.conversation.app_id)
             if not app:
                 self._handle_error("该消息会话归属应用不存在或校验失败，请核实后重试")
@@ -340,9 +348,13 @@ class AudioService(BaseService):
                 if message.invoke_from == InvokeFrom.DEBUGGER
                 else app.app_config
             )
-            text_to_speech = app_config.text_to_speech
-            enable = text_to_speech.get("enable", False)
-            voice = text_to_speech.get("voice", 4194)
+            if not app_config:
+                enable = True
+                voice = 4194
+            else:
+                text_to_speech = app_config.text_to_speech
+                enable = text_to_speech.get("enable", False)
+                voice = text_to_speech.get("voice", 4194)
 
         if message.invoke_from == InvokeFrom.SERVICE_API:
             self._handle_error("开放API消息不支持文本转语音服务")

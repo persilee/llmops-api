@@ -182,7 +182,7 @@ class AnalysisService(BaseService):
     ) -> dict[str, Any]:
         """根据传递的当前数据+相邻时期的数据计算环比增长"""
         # 1.初始化环比字典
-        pop = {}
+        mom_growth = {}
 
         # 2.定义需要计算环比的字段
         fields = [
@@ -193,19 +193,25 @@ class AnalysisService(BaseService):
             "cost_consumption",
         ]
 
-        # 3.循环遍历字段计算环比增长
         for field in fields:
             current_value = current_data.get(field)
             previous_value = previous_data.get(field)
 
-            # 4.确保上一时期的数据不为0，避免/0错误
-            if previous_value != 0:
-                pop[field] = float((current_value - previous_value) / previous_value)
-            else:
-                # 5.如果前一期数据为0，则直接设置环比为0
-                pop[field] = 0
+            # 跳过无效数据
+            if current_value is None or previous_value is None:
+                continue
 
-        return pop
+            # 处理特殊情况
+            if previous_value == 0:
+                # 如果两个时期都为0，增长率为0
+                # 如果仅前一期为0，无法计算有效增长率，设为0
+                mom_growth[field] = 0.0
+                continue
+
+            # 计算环比增长率
+            mom_growth[field] = (current_value - previous_value) / previous_value
+
+        return mom_growth
 
     @classmethod
     def calculate_trend_by_messages(
