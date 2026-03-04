@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from flask import current_app
 from flask_login import UserMixin
 from sqlalchemy import (
+    SMALLINT,
     UUID,
     Boolean,
     Column,
@@ -150,8 +151,14 @@ class AccountOAuth(db.Model):
             name="uk_account_oauth_account_id_provider",
         ),
         UniqueConstraint("provider", "openid", name="uk_account_oauth_provider_openid"),
+        UniqueConstraint(
+            "provider",
+            "unionid",
+            name="uk_account_oauth_provider_unionid",
+        ),
         Index("idx_account_oauth_account_id", "account_id"),
         Index("idx_account_oauth_openid_provider", "openid", "provider"),
+        Index("idx_account_oauth_unionid_provider", "unionid", "provider"),
     )
 
     id = Column(
@@ -183,6 +190,46 @@ class AccountOAuth(db.Model):
         server_default=text("''::character varying"),
         info={"description": "密钥信息"},
     )
+    unionid = Column(
+        String(255),
+        server_default=text("''::character varying"),
+        info={"description": "微信unionid"},
+    )
+    wechat_nickname = Column(
+        String(255),
+        server_default=text("''::character varying"),
+        info={"description": "微信昵称"},
+    )
+    wechat_avatar = Column(
+        String(255),
+        server_default=text("''::character varying"),
+        info={"description": "微信头像URL"},
+    )
+    wechat_gender = Column(
+        SMALLINT,
+        server_default=text("0"),
+        info={"description": "微信性别（0-未知，1-男，2-女）"},
+    )
+    wechat_country = Column(
+        String(50),
+        server_default=text("''::character varying"),
+        info={"description": "微信用户所在国家"},
+    )
+    wechat_province = Column(
+        String(50),
+        server_default=text("''::character varying"),
+        info={"description": "微信用户所在省份"},
+    )
+    wechat_city = Column(
+        String(50),
+        server_default=text("''::character varying"),
+        info={"description": "微信用户所在城市"},
+    )
+    token_expires_at = Column(
+        DateTime,
+        server_default=text("CURRENT_TIMESTAMP(0)"),
+        info={"description": "微信token过期时间"},
+    )
     updated_at = Column(
         DateTime,
         nullable=False,
@@ -196,6 +243,20 @@ class AccountOAuth(db.Model):
         server_default=text("CURRENT_TIMESTAMP(0)"),
         info={"description": "创建时间"},
     )
+    # 关联Account模型
+    account = db.relationship(
+        "Account",
+        backref=db.backref("oauths", lazy="dynamic"),
+        foreign_keys=[account_id],
+    )
+
+    # 检查微信token是否过期
+    @property
+    def is_wechat_token_expired(self) -> bool:
+        now = datetime.now(UTC)
+        if self.token_expires_at.tzinfo is None:
+            self.token_expires_at = self.token_expires_at.replace(tzinfo=UTC)
+        return now >= self.token_expires_at
 
 
 class VerificationCode(db.Model):
@@ -264,7 +325,6 @@ class VerificationCode(db.Model):
             self.expires_at = self.expires_at.replace(tzinfo=UTC)
         # 验证码有效的条件：未被使用且未超过过期时间
         return not self.used and now < self.expires_at
-
 
     def mark_as_used(self) -> bool:
         """将验证码标记为已使用
