@@ -81,6 +81,22 @@ class AuthHandler:
 
         return success_json(resp.dump(credential))
 
+    @route("/wx-login", methods=["POST"])
+    @swag_from(get_swagger_path("oauth_handler/wx_login.yaml"))
+    def wx_login(self) -> Response:
+        credential = self.account_service.wx_login()
+
+        resp = LoginResp()
+
+        return success_json(resp.dump(credential))
+
+    @route("/get-wx-qrcode-url", methods=["POST"])
+    @swag_from(get_swagger_path("oauth_handler/get_wx_qrcode_url.yaml"))
+    def get_wx_qrcode_url(self) -> Response:
+        qrcode_url = self.account_service.get_wx_qrcode_url()
+
+        return success_json({"qrcode_url": qrcode_url})
+
     @route("/send-sms-code", methods=["POST"])
     @swag_from(get_swagger_path("oauth_handler/send_sms_code.yaml"))
     def send_sms_code(self) -> None:

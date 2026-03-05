@@ -1,0 +1,28 @@
+获取微信扫码登录URL
+---
+tags:
+  - 授权认证
+summary: 获取微信扫码登录URL
+description:
+operationId: get_wx_qrcode_url
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              type: "object"
+              example: {}
+            message:
+              type: "string"
+              example: ""

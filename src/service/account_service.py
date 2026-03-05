@@ -1,5 +1,6 @@
 import base64
 import json
+import os
 import secrets
 import uuid
 from dataclasses import dataclass
@@ -7,6 +8,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
+import requests
 from flask import request
 from flask_login import logout_user
 from injector import inject
@@ -15,6 +17,7 @@ from redis import Redis
 from pkg.password.password import compare_password, hash_password
 from pkg.sqlalchemy.sqlalchemy import SQLAlchemy
 from src.exception.exception import FailException
+from src.lib.helper import get_sign
 from src.model.account import Account, AccountOAuth
 from src.service.base_service import BaseService
 from src.service.jwt_service import JwtService
@@ -239,6 +242,79 @@ class AccountService(BaseService):
             "user_id": str(user.id),
             "session_id": session_id,
         }
+
+    def wx_login(self) -> dict[str, Any]:
+        pass
+
+    def get_wx_qrcode_url(self) -> str:
+        """获取微信扫码登录二维码URL。
+
+        通过调用OAuth服务获取微信授权所需的参数，并构造微信扫码登录的二维码URL。
+        该方法会：
+        1. 从环境变量获取微信OAuth相关配置信息
+        2. 构造请求参数并生成签名
+        3. 向OAuth服务发送POST请求获取授权参数
+        4. 构建并返回微信扫码登录的二维码URL
+
+        Returns:
+            str: 微信扫码登录的二维码URL，包含appid、redirect_uri等必要参数
+
+        Raises:
+            requests.HTTPError: 当OAuth服务请求失败时抛出
+            KeyError: 当响应数据中缺少必要字段时抛出
+
+        """
+        # 获取配置
+        # 从环境变量中获取微信OAuth相关配置信息
+        oauth_url = os.getenv("WX_WEB_LOGIN_URL")  # 服务地址
+        mch_id = os.getenv("YUNGOUOS_MCH_ID")  # 商户ID
+        callback_url = os.getenv("WX_CALLBACK_URL")  # 回调地址
+        key = os.getenv("YUNGOUOS_KEY")  # API密钥
+        wx_qrconnect_url = os.getenv("WX_QRCONNECT_URL")  # 微信二维码连接地址
+        wx_href_url = os.getenv("WX_HREF_URL")
+
+        # 准备请求参数
+        # 构造请求OAuth服务所需的参数
+        params = {
+            "mch_id": mch_id,  # 商户ID，用于标识请求方
+            "callback_url": callback_url,  # 授权完成后的回调地址
+        }
+
+        # 生成签名并添加到参数中
+        # 使用API密钥对请求参数进行签名，确保请求的安全性
+        params["sign"] = get_sign(params, key)
+
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "*/*",
+        }
+
+        # 发送请求
+        # 向OAuth服务发送POST请求，获取微信授权所需的参数
+        response = requests.post(
+            oauth_url,  # OAuth服务地址
+            params=params,  # 包含签名的请求参数
+            headers=headers,  # 请求头
+            timeout=30,  # 设置连接和读取超时时间
+        )
+        response.raise_for_status()  # 检查请求是否成功，失败则抛出异常
+
+        # 构建二维码URL
+        # 解析响应数据，构造微信扫码登录的二维码URL
+        resp = response.json()  # 解析JSON响应数据
+        data = resp["data"]
+        return (
+            f"{wx_qrconnect_url}"  # 微信二维码连接基础地址
+            f"?appid={data['appId']}"  # 微信开放平台应用ID
+            f"&redirect_uri={data['redirect_uri']}"  # 授权重定向地址
+            f"&response_type=code"  # 固定值，表示返回授权码
+            f"&scope=snsapi_login"  # 授权作用域，snsapi_login用于网站登录
+            f"&state={data['state']}"  # 状态参数，用于防止CSRF攻击
+            f"&href={wx_href_url}"
+            f"&self_redirect=false"
+            f"&login_type=jssdk"
+            f"#wechat_redirect"
+        )
 
     def phone_number_login(self, phone: str, code: str) -> dict[str, Any]:
         verify_result = self.sms_service.verify_sms_code(phone, code)

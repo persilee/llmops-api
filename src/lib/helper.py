@@ -1,3 +1,4 @@
+import hashlib
 import importlib
 import secrets
 import string
@@ -209,3 +210,60 @@ def generate_random_string(length: int = 16) -> str:
 
     # 2.使用random.choices生成指定长度的随机字符串
     return "".join(secrets.choice(chars) for _ in range(length))
+
+
+def remove_empty(params_dict: dict) -> dict:
+    """移除字典中的空值
+
+    Args:
+        params_dict (dict): 要处理的字典
+
+    Returns:
+        dict: 移除空值后的字典
+
+    """
+    return {k: v for k, v in params_dict.items() if v is not None}
+
+
+def key_sort(params_dict: dict) -> dict:
+    """对字典的键进行排序
+
+    Args:
+        params_dict (dict): 要排序的字典
+
+    Returns:
+        dict: 按键名排序后的字典
+
+    """
+    return dict(sorted(params_dict.items()))
+
+
+def get_sign(params_dict, key) -> str:
+    """生成参数签名
+
+    Args:
+        params_dict: 需要签名的参数字典
+        key: 签名密钥（当前未使用）
+
+    Returns:
+        str: 返回大写的SHA256签名值
+
+    """
+    # 1. 去除参数中的空值
+    params_dict = remove_empty(params_dict)
+    # 2. 移除sign字段（如果存在），避免循环签名
+    if params_dict.get("sign"):
+        params_dict.pop("sign")
+    # 3. 按字典键名排序，确保签名一致性
+    params_dict = key_sort(params_dict)
+    # 4. 将参数拼接成key=value&key=value格式的字符串
+    params_str = (
+        "&".join(f"{key}={params_dict[key]}" for key in params_dict) + "&key=" + key
+    )
+
+    # 5. 使用md5算法加密
+    md5 = hashlib.md5()  # noqa: S324
+    md5.update(params_str.encode("utf-8"))
+
+    # 6. 返回大写的十六进制签名值
+    return md5.hexdigest().upper()

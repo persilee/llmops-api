@@ -33,6 +33,7 @@
     "ilike",
     "jieba",
     "joinedload",
+    "jssdk",
     "kimi",
     "levelname",
     "llmops",
@@ -51,6 +52,7 @@
     "pytesseract",
     "qcloud",
     "Qianfan",
+    "qrconnect",
     "qwen",
     "Redprint",
     "sadd",
@@ -60,9 +62,11 @@
     "sessionmaker",
     "setex",
     "smembers",
+    "snsapi",
     "sqla",
     "srem",
     "STOPWORD",
+    "stylelite",
     "testpaths",
     "tfidf",
     "tongyi",
@@ -76,7 +80,8 @@
     "webassets",
     "wenxin",
     "wtform",
-    "XVCJ"
+    "XVCJ",
+    "YUNGOUOS"
   ],
   "files.exclude": {
     "**/__pycache__": true,
