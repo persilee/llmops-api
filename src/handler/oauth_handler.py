@@ -6,6 +6,7 @@ from injector import inject
 from pkg.response.response import Response, success_json, validate_error_json
 from pkg.swagger.swagger import get_swagger_path
 from src.router.redprint import route
+from src.schemas.auth_schema import AuthLoginCreateReq
 from src.schemas.oauth_schema import AuthorizeReq, AuthorizeResp
 from src.service.oauth_service import OAuthService
 
@@ -59,6 +60,20 @@ class OAuthHandler:
         if not req.validate():
             return validate_error_json(req.errors)
 
-        credential = self.oauth_service.oauth_login(provider_name, req.code.data)
+        result = self.oauth_service.oauth_login(
+            provider_name,
+            req.code.data,
+        )
 
-        return success_json(AuthorizeResp().dump(credential))
+        return success_json(AuthorizeResp().dump(result))
+
+    @route("/authorize/create", methods=["POST"])
+    @swag_from(get_swagger_path("oauth_handler/auth_login_create.yaml"))
+    def auth_login_create(self) -> Response:
+        req = AuthLoginCreateReq()
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        result = self.oauth_service.auth_login_create(req.oauth_info.data)
+
+        return success_json(AuthorizeResp().dump(result))

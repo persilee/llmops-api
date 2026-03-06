@@ -1,22 +1,15 @@
-登录授权
+第三方登录授权且创建新用户
 ---
 tags:
   - 授权认证
-summary: 登录授权
+summary: 第三方登录授权且创建新用户
 description:
-operationId: authorize
-parameters:
-  - name: provider_name
-    in: path
-    required: true
-    schema:
-      type: string
-      default: "github"
+operationId: auth_login_create
 requestBody:
   content:
     application/json:
       schema:
-        $ref: "#/components/schemas/AuthorizeReq"
+        $ref: "#/components/schemas/AuthLoginCreateReq"
 responses:
   x-200:
     $ref: "#/components/responses/BaseResponse"

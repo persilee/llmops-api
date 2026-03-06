@@ -17,7 +17,10 @@ class GetCurrentUserResp(Schema):
     id = fields.UUID(dump_default="")
     name = fields.String(dump_default="")
     email = fields.String(dump_default="")
+    phone_number = fields.String(dump_default="")
     avatar = fields.String(dump_default="")
+    wechat = fields.String(dump_default="")
+    github = fields.String(dump_default="")
     last_login_at = fields.Integer(dump_default=0)
     last_login_ip = fields.String(dump_default="")
     created_at = fields.Integer(dump_default=0)
@@ -28,7 +31,10 @@ class GetCurrentUserResp(Schema):
             "id": data.id,
             "name": data.name,
             "email": data.email,
+            "phone_number": data.phone_number,
             "avatar": data.avatar,
+            "wechat": data.wechat,
+            "github": data.github,
             "last_login_at": datetime_to_timestamp(data.last_login_at),
             "last_login_ip": data.last_login_ip,
             "created_at": datetime_to_timestamp(data.created_at),

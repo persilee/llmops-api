@@ -1,0 +1,32 @@
+验证码绑定用户登录
+---
+tags:
+  - 授权认证
+summary: 验证码绑定用户登录
+description:
+operationId: phone_number_bind_account
+requestBody:
+  content:
+    application/json:
+      schema:
+        $ref: "#/components/schemas/PhoneNumberBindAccountReq"
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              $ref: "#/components/schemas/LoginResp"
+            message:
+              type: "string"
+              example: ""

@@ -20,7 +20,11 @@ from src.schemas.account_schema import (
     UpdateNameReq,
     UpdatePasswordReq,
 )
-from src.schemas.auth_schema import SendMailCodeReq, SendSMSCodeReq
+from src.schemas.auth_schema import (
+    SendMailCodeReq,
+    SendSMSCodeReq,
+    UnbindOAuthProviderReq,
+)
 from src.service.account_service import AccountService
 
 
@@ -154,3 +158,16 @@ class AccountHandler:
         result = self.account_service.is_email_bound(req.email.data)
 
         return success_json({"is_bound": result})
+
+    @route("/unbind-oauth-provider", methods=["POST"])
+    @swag_from(get_swagger_path("account_handler/unbind_oauth_provider.yaml"))
+    @login_required
+    def unbind_oauth_provider(self) -> Response:
+        req = UnbindOAuthProviderReq()
+
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        self.account_service.unbind_oauth_provider(req.provider_name.data, current_user)
+
+        return success_message_json("解绑成功")

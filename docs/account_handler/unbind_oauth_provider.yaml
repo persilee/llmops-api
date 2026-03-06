@@ -1,10 +1,15 @@
-获取微信扫码登录URL
+绑定第三方登录
 ---
 tags:
-  - 授权认证
-summary: 获取微信扫码登录URL
+  - 账号管理
+summary: 绑定第三方登录
 description:
-operationId: get_wx_qrcode_url
+operationId: unbind_oauth_provider
+requestBody:
+  content:
+    application/json:
+      schema:
+        $ref: "#/components/schemas/UnbindOAuthProviderReq"
 responses:
   x-200:
     $ref: "#/components/responses/BaseResponse"
@@ -25,4 +30,4 @@ responses:
               example: {}
             message:
               type: "string"
-              example: ""
+              example: "绑定成功"

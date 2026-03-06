@@ -19,3 +19,7 @@ class AuthorizeResp(Schema):
 
     access_token = fields.String()
     expire_at = fields.Integer()
+    provider_info = fields.Dict()
+    is_new_user = fields.Boolean()
+    session_id = fields.String()
+    user_id = fields.String()
