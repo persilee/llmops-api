@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField
-from wtforms.validators import UUID, DataRequired, Length
+from wtforms.validators import UUID, DataRequired, Length, Optional
 
 from src.schemas.swag_schema import req_schema
 
@@ -24,6 +24,11 @@ class GenerateConversationNameReq(FlaskForm):
         "query",
         validators=[DataRequired("查询不能为空")],
     )
+    app_id = StringField(
+        "app_id",
+        validators=[Optional()],
+        description="应用ID，可选参数",
+    )
 
 
 @req_schema
@@ -36,4 +41,9 @@ class OptimizePromptReq(FlaskForm):
             DataRequired("预设prompt不能为空"),
             Length(max=5000, message="预设prompt的长度不能超过5000个字符"),
         ],
+    )
+    app_id = StringField(
+        "app_id",
+        validators=[Optional()],
+        description="应用ID，可选参数",
     )

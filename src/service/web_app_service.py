@@ -22,6 +22,7 @@ from src.exception import ForbiddenException, NotFoundException
 from src.model import Account, App, Conversation, Message
 from src.schemas.web_app_schema import WebAppChatReq
 from src.service.llm_model_service import LLMModelService
+from src.service.points_service import PointsService
 
 from .app_config_service import AppConfigService
 from .base_service import BaseService
@@ -39,6 +40,7 @@ class WebAppService(BaseService):
     retrieval_service: RetrievalService
     conversation_service: ConversationService
     llm_model_service: LLMModelService
+    points_service: PointsService
 
     def get_web_app(self, token: str) -> App:
         """根据传递的token获取WebApp实例"""
@@ -196,6 +198,8 @@ class WebAppService(BaseService):
 
         # 13.定义字典存储推理过程，并调用智能体获取消息
         agent_thoughts = {}
+        total_token_count = 0  # 记录总token消耗
+
         for agent_thought in agent.stream(
             {
                 "messages": [
@@ -207,6 +211,7 @@ class WebAppService(BaseService):
         ):
             # 14.提取thought以及answer
             event_id = str(agent_thought.id)
+            total_token_count += agent_thought.total_token_count or 0  # 累计token消耗
 
             # 15.将数据填充到agent_thought，便于存储到数据库服务中
             if agent_thought.event != QueueEvent.PING:
@@ -265,6 +270,15 @@ class WebAppService(BaseService):
             yield (
                 f"event: {agent_thought.event.value}\n"
                 f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+            )
+
+        # 扣除用户积分
+        if total_token_count > 0:
+            self.points_service.deduct_points_by_token(
+                account_id=account.id,
+                token_count=total_token_count,
+                message_id=message.id,
+                app_id=app.id,
             )
 
         # 创建异步线程保存智能体思考记录，避免阻塞主流程

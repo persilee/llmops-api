@@ -31,6 +31,7 @@ from src.schemas.assistant_agent_schema import (
     GetAssistantAgentMessagesWithPageReq,
 )
 from src.service.faiss_service import FaissService
+from src.service.points_service import PointsService
 from src.task.app_task import auto_create_app
 
 from .base_service import BaseService
@@ -46,6 +47,7 @@ class AssistantAgentService(BaseService):
     faiss_service: FaissService
     conversation_service: ConversationService
     builtin_provider_manager: BuiltinProviderManager
+    points_service: PointsService
 
     def chat(self, req: AssistantAgentChat, account: Account) -> Generator:
         """传递query与账号实现与辅助Agent进行会话"""
@@ -113,6 +115,7 @@ class AssistantAgentService(BaseService):
         )
 
         agent_thoughts = {}
+        total_token_count = 0  # 记录总token消耗
         for agent_thought in agent.stream(
             {
                 "messages": [
@@ -124,6 +127,7 @@ class AssistantAgentService(BaseService):
         ):
             # 8.提取thought以及answer
             event_id = str(agent_thought.id)
+            total_token_count += agent_thought.total_token_count or 0  # 累计token消耗
 
             # 9.将数据填充到agent_thought，便于存储到数据库服务中
             if agent_thought.event != QueueEvent.PING:
@@ -181,6 +185,15 @@ class AssistantAgentService(BaseService):
             yield (
                 f"event: {agent_thought.event.value}\n"
                 f"data:{json.dumps(data, ensure_ascii=False)}\n\n"
+            )
+
+        # 扣除用户积分
+        if total_token_count > 0:
+            self.points_service.deduct_points_by_token(
+                account_id=account.id,
+                token_count=total_token_count,
+                message_id=message.id,
+                app_id=assistant_agent_id,
             )
 
         # 创建异步线程保存智能体思考记录，避免阻塞主流程

@@ -42,6 +42,7 @@ from src.schemas.app_schema import (
 )
 from src.schemas.conversation_schema import GetConversationMessagesWithPageReq
 from src.service.base_service import BaseService
+from src.service.points_service import PointsService
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +62,7 @@ class AgentThoughtConfig:
 class ConversationService(BaseService):
     db: SQLAlchemy
     redis_client: Redis
+    points_service: PointsService
 
     def get_conversation_messages_with_page(
         self,
@@ -317,8 +319,12 @@ class ConversationService(BaseService):
             },
         )
 
-    @classmethod
-    def generate_conversation(cls, query: str) -> str:
+    def generate_conversation(
+        self,
+        query: str,
+        account_id: UUID | None = None,
+        app_id: UUID | None = None,
+    ) -> str:
         """根据用户输入生成对话名称。
 
         该方法使用GPT模型分析用户输入，提取对话的主题和意图，
@@ -327,6 +333,8 @@ class ConversationService(BaseService):
 
         Args:
             query (str): 用户的输入文本，可能包含多语言内容
+            app_id (UUID, optional): 应用ID，用于区分不同应用下的对话，默认为None
+            account_id (UUID, optional): 账户ID，用于区分不同用户下的对话，默认为None
 
         Returns:
             str: 生成的对话名称，长度限制在MAX_CONVERSATION_NAME_LENGTH内
@@ -389,6 +397,9 @@ class ConversationService(BaseService):
         # 如果生成的名称超过最大长度限制，进行截断处理
         if len(name) > MAX_CONVERSATION_NAME_LENGTH:
             name = name[:MAX_CONVERSATION_NAME_LENGTH] + "..."
+
+        tokens = llm.get_num_tokens(query)
+        self.points_service.deduct_points_by_token(account_id, tokens, app_id=app_id)
 
         # 返回处理后的会话名称
         return name
@@ -571,6 +582,8 @@ class ConversationService(BaseService):
                             "flask_app": current_app._get_current_object(),  # noqa: SLF001
                             "conversation_id": conversation.id,
                             "query": message.query,
+                            "account": config.account_id,
+                            "app_id": config.app_id,
                         },
                     ).start()
 
@@ -614,6 +627,8 @@ class ConversationService(BaseService):
         flask_app: Flask,
         conversation_id: UUID,
         query: str,
+        account_id: UUID | None = None,
+        app_id: UUID | None = None,
     ) -> None:
         """生成会话名字并更新"""
         with flask_app.app_context():
@@ -621,7 +636,11 @@ class ConversationService(BaseService):
             conversation = self.get(Conversation, conversation_id)
 
             # 2.计算获取新会话名字
-            new_conversation_name = self.generate_conversation(query)
+            new_conversation_name = self.generate_conversation(
+                query,
+                account_id=account_id,
+                app_id=app_id,
+            )
 
             # 3.调用更新服务更新会话名称
             self.update(

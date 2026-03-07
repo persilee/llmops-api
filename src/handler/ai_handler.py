@@ -50,7 +50,11 @@ class AIHandler:
             return validate_error_json(req.errors)
 
         # 调用AI服务生成对话名称
-        name = self.ai_service.generate_conversation_name(req.query.data)
+        name = self.ai_service.generate_conversation_name(
+            req.query.data,
+            account_id=current_user.id,
+            app_id=req.app_id.data,
+        )
 
         # 返回包含生成名称的成功响应
         return success_json({"name": name})
@@ -75,7 +79,11 @@ class AIHandler:
             return validate_error_json(req.errors)
 
         # 调用AI服务优化提示词
-        resp = self.ai_service.optimize_prompt(req.prompt.data)
+        resp = self.ai_service.optimize_prompt(
+            req.prompt.data,
+            account_id=current_user.id,
+            app_id=req.app_id.data,
+        )
 
         # 返回优化后的结果
         return compact_generate_response(resp)

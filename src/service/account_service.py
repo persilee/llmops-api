@@ -16,6 +16,7 @@ from pkg.password.password import compare_password, hash_password
 from pkg.sqlalchemy.sqlalchemy import SQLAlchemy
 from src.exception.exception import FailException
 from src.model.account import Account, AccountOAuth
+from src.model.account_points import AccountPoints
 from src.service.base_service import BaseService
 from src.service.jwt_service import JwtService
 from src.service.mail_service import MailService
@@ -115,6 +116,25 @@ class AccountService(BaseService):
 
         """
         return self.create(Account, **kwargs)
+
+    def create_account_point(self, account_id: UUID, point: int) -> AccountPoints:
+        """为账户创建积分记录
+
+        Args:
+            account_id (UUID): 账户ID
+            point (int): 初始积分数量
+
+        Returns:
+            AccountPoints: 创建的积分账户记录
+
+        """
+        return self.create(
+            AccountPoints,
+            account_id=account_id,
+            total_points=point,
+            available_points=point,
+            frozen_points=0,
+        )
 
     def update_password(self, password: str, account: Account) -> Account:
         """更新账户密码。
@@ -551,6 +571,8 @@ class AccountService(BaseService):
                 email="",
                 avatar="https://llmops-dev-1253877543.cos.ap-guangzhou.myqcloud.com/2026/02/20/efc213c0-3a5a-4ad1-8ca5-724ed1ee3ecd.png",
             )
+            # 新用户赠送 1000 积分
+            self.create_account_point(account_id=account.id, point=1000)
 
         # 设置JWT令牌的过期时间为30天后
         expire_at = int((datetime.now(UTC) + timedelta(days=30)).timestamp())

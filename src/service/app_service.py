@@ -81,6 +81,7 @@ from src.service.base_service import BaseService
 from src.service.conversation_service import AgentThoughtConfig, ConversationService
 from src.service.cos_service import CosService
 from src.service.llm_model_service import LLMModelService
+from src.service.points_service import PointsService
 from src.service.retrieval_service import RetrievalConfig, RetrievalService
 
 
@@ -97,6 +98,7 @@ class AppService(BaseService):
     cos_service: CosService
     llm_model_service: LLMModelService
     llm_model_manager: LLMModelManager
+    points_service: PointsService
 
     def get_published_config(self, app_id: UUID, account: Account) -> dict[str, Any]:
         """根据传递的应用id+账号，获取应用的发布配置"""
@@ -612,6 +614,7 @@ class AppService(BaseService):
 
         # 初始化智能体思考记录字典，用于存储对话过程中的思考过程
         agent_thoughts = {}
+        total_token_count = 0  # 记录总token消耗
 
         # 运行智能体并处理事件流
         for agent_thought in agent.stream(
@@ -624,6 +627,7 @@ class AppService(BaseService):
             },
         ):
             event_id = str(agent_thought.id)
+            total_token_count += agent_thought.total_token_count or 0  # 累计token消耗
 
             if agent_thought.event != QueueEvent.PING:
                 # 处理智能体消息事件，支持增量更新
@@ -682,6 +686,15 @@ class AppService(BaseService):
 
             # 生成服务器发送事件格式的响应
             yield f"event: {agent_thought.event.value}\ndata: {json.dumps(data)}\n\n"
+
+        # 扣除用户积分
+        if total_token_count > 0:
+            self.points_service.deduct_points_by_token(
+                account_id=account.id,
+                token_count=total_token_count,
+                message_id=message.id,
+                app_id=app_id,
+            )
 
         # 创建异步线程保存智能体思考记录，避免阻塞主流程
         agent_thought_config = AgentThoughtConfig(

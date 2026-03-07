@@ -15,6 +15,7 @@ from src.model.account import Account
 from src.model.conversation import Message
 from src.service.base_service import BaseService
 from src.service.conversation_service import ConversationService
+from src.service.points_service import PointsService
 
 
 @inject
@@ -22,18 +23,30 @@ from src.service.conversation_service import ConversationService
 class AIService(BaseService):
     db: SQLAlchemy
     conversation_service: ConversationService
+    points_service: PointsService
 
-    def generate_conversation_name(self, query: str) -> str:
+    def generate_conversation_name(
+        self,
+        query: str,
+        account_id: UUID | None = None,
+        app_id: UUID | None = None,
+    ) -> str:
         """根据查询生成对话名称。
 
         Args:
             query (str): 查询字符串
+            account_id (UUID | None): 账户ID
+            app_id (UUID | None): 应用ID
 
         Returns:
             str: 对话名称
 
         """
-        return self.conversation_service.generate_conversation(query)
+        return self.conversation_service.generate_conversation(
+            query,
+            account_id=account_id,
+            app_id=app_id,
+        )
 
     def generate_suggested_questions_from_message_id(
         self,
@@ -69,8 +82,12 @@ class AIService(BaseService):
         # 调用conversation_service生成建议问题
         return self.conversation_service.generate_suggested_questions(histories)
 
-    @classmethod
-    def optimize_prompt(cls, prompt: str) -> Generator[str, None, None]:
+    def optimize_prompt(
+        self,
+        prompt: str,
+        account_id: UUID | None = None,
+        app_id: UUID | None = None,
+    ) -> Generator[str, None, None]:
         r"""优化用户输入的提示词，使用流式输出返回优化结果。
 
         该方法使用 GPT-4o-mini 模型对输入的提示词进行优化，通过 Server-Sent Events (SSE)
@@ -78,6 +95,8 @@ class AIService(BaseService):
 
         Args:
             prompt (str): 需要优化的原始提示词文本
+            account_id (UUID, optional): 用户ID，用于验证消息归属权。默认为 None
+            app_id (UUID, optional): 应用ID，用于验证消息归属权。默认为 None
 
         Yields:
             str: SSE 格式的字符串，包含优化后的提示词片段。
@@ -106,12 +125,24 @@ class AIService(BaseService):
         # 使用管道操作符 | 连接各个组件，形成完整的处理流程
         optimize_chain = prompt_template | llm | StrOutputParser()
 
+        # 记录token消耗
+        total_tokens = 0
+
         # 使用流式处理方式逐块生成优化后的提示词
         # stream 方法允许实时获取生成的内容，提高用户体验
-        for optimize_prompt in optimize_chain.stream({"prompt": prompt}):
+        for chunk in optimize_chain.stream({"prompt": prompt}):
+            # 获取当前块的token数量
+            if hasattr(chunk, "content"):
+                content = chunk.content
+                tokens = llm.get_num_tokens(content)
+            else:
+                content = chunk
+                tokens = llm.get_num_tokens(content)
+
+            total_tokens += tokens
             # 构造 SSE (Server-Sent Events) 格式的数据
             data = {
-                "optimize_prompt": optimize_prompt,  # 包含优化后的提示词片段
+                "optimize_prompt": content,  # 包含优化后的提示词片段
             }
 
             # 按照 SSE 格式生成响应字符串
@@ -121,4 +152,12 @@ class AIService(BaseService):
             yield (
                 f"event: optimize_prompt\n"
                 f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+            )
+
+        # 扣除用户积分
+        if account_id and total_tokens > 0:
+            self.points_service.deduct_points_by_token(
+                account_id=account_id,
+                token_count=total_tokens,
+                app_id=app_id,
             )

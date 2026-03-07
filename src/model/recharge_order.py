@@ -2,7 +2,6 @@ from datetime import datetime
 
 from sqlalchemy import (
     UUID,
-    BigInteger,
     Column,
     DateTime,
     Index,
@@ -41,7 +40,7 @@ class RechargeOrder(db.Model):
     )
     account_id = Column(UUID, nullable=False, info={"description": "充值账户ID"})
     points_amount = Column(
-        BigInteger,
+        Numeric(10, 2),
         nullable=False,
         info={"description": "充值积分数量"},
     )

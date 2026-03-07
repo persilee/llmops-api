@@ -110,6 +110,8 @@ class OAuthService(BaseService):
 
         # 创建新账户
         account = self.account_service.create_account(**account_data)
+        # 新用户，赠送1000积分
+        self.account_service.create_account_point(account.id, 1000)
 
         # 创建OAuth账户绑定记录，将新账户与OAuth提供商关联
         self.create(
