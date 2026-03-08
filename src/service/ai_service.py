@@ -10,6 +10,7 @@ from langchain_openai import ChatOpenAI
 
 from pkg.sqlalchemy.sqlalchemy import SQLAlchemy
 from src.entity.ai_entity import OPTIMIZE_PROMPT_TEMPLATE
+from src.entity.points_entity import DeductFrom
 from src.exception.exception import ForbiddenException
 from src.model.account import Account
 from src.model.conversation import Message
@@ -159,5 +160,6 @@ class AIService(BaseService):
             self.points_service.deduct_points_by_token(
                 account_id=account_id,
                 token_count=total_tokens,
+                deduct_from=DeductFrom.OPTIMIZE,
                 app_id=app_id,
             )

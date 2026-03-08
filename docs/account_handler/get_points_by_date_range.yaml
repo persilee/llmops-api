@@ -1,0 +1,95 @@
+获取用户积分记录
+---
+tags:
+  - 账号管理
+summary: 获取用户积分记录
+description:
+operationId: get_points_by_date_range
+parameters:
+  - name: start_date
+    in: query
+    description: 开始日期
+    schema:
+      type: string
+    required: true
+  - name: end_date
+    in: query
+    description: 结束日期
+    schema:
+      type: string
+    required: true
+  - name: include_details
+    in: query
+    description: 是否包含积分详情
+    schema:
+      type: boolean
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              required:
+                - "details"
+                - "total_deduct"
+                - "transaction_count"
+              properties:
+                details:
+                  type: "array"
+                  items:
+                    type: "object"
+                    properties:
+                      account_id:
+                        type: "string"
+                        example: "63b12d96-4a21-4edc-b7eb-065ec5f3c7e3"
+                      app_icon:
+                        type: "string"
+                        example: "https://llmops-dev-1253877543.cos.ap-guangzhou.myqcloud.com/2025/11/05/dd34cd16-f248-4030-a19e-a298b42b3999.png"
+                      app_id:
+                        type: "string"
+                        example: "94ad01a7-3dff-4830-87ff-e87662fc4eda"
+                      app_name:
+                        type: "string"
+                        example: "LLMOps管家"
+                      created_at:
+                        type: "string"
+                        example: "2026-03-07T03:19:51"
+                      id:
+                        type: "string"
+                        example: "f4c6fc4c-7e26-4b89-a028-411c1a0f8392"
+                      message_id:
+                        type: "string"
+                        example: "4cdb4b3b-e73f-4279-99e6-ba2802e3d345"
+                      points_amount:
+                        type: "string"
+                        example: "-0.37"
+                      token_amount:
+                        type: "number"
+                        example: 367
+                      transaction_desc:
+                        type: "string"
+                        example: "抵扣消息token消耗367token，扣除0.37积分"
+                      transaction_meta:
+                        required: []
+                        properties: {}
+                        type: "object"
+                total_deduct:
+                  type: "string"
+                  example: "0.37"
+                transaction_count:
+                  type: "number"
+                  example: 1
+              type: "object"
+            message:
+              type: "string"
+              example: ""

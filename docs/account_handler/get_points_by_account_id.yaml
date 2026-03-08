@@ -1,0 +1,33 @@
+获取用户积分
+---
+tags:
+  - 账号管理
+summary: 获取用户积分
+description:
+operationId: get_points_by_account_id
+responses:
+  x-200:
+    $ref: "#/components/responses/BaseResponse"
+  "200":
+    content:
+      application/json:
+        schema:
+          required:
+            - "code"
+            - "data"
+            - "message"
+          properties:
+            code:
+              type: "string"
+              example: "success"
+            data:
+              required:
+                - "points"
+              properties:
+                points:
+                  type: "string"
+                  example: "999.63"
+              type: "object"
+            message:
+              type: "string"
+              example: ""

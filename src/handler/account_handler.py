@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from flasgger import swag_from
+from flask import request
 from flask_login import current_user, login_required
 from injector import inject
 
@@ -21,17 +22,20 @@ from src.schemas.account_schema import (
     UpdatePasswordReq,
 )
 from src.schemas.auth_schema import (
+    GetPointsByDateRangeReq,
     SendMailCodeReq,
     SendSMSCodeReq,
     UnbindOAuthProviderReq,
 )
 from src.service.account_service import AccountService
+from src.service.points_service import PointsService
 
 
 @inject
 @dataclass
 class AccountHandler:
     account_service: AccountService
+    points_service: PointsService
 
     @route("/", methods=["GET"])
     @swag_from(get_swagger_path("account_handler/get_current_user.yaml"))
@@ -171,3 +175,28 @@ class AccountHandler:
         self.account_service.unbind_oauth_provider(req.provider_name.data, current_user)
 
         return success_message_json("解绑成功")
+
+    @route("/points", methods=["GET"])
+    @swag_from(get_swagger_path("account_handler/get_points_by_account_id.yaml"))
+    @login_required
+    def get_points_by_account_id(self) -> Response:
+        points = self.points_service.get_points_by_account_id(current_user)
+
+        return success_json({"points": points.available_points})
+
+    @route("/get-deduct-points-by-date-range", methods=["GET"])
+    @swag_from(get_swagger_path("account_handler/get_points_by_date_range.yaml"))
+    @login_required
+    def get_points_by_date_range(self) -> Response:
+        req = GetPointsByDateRangeReq(request.args)
+        if not req.validate():
+            return validate_error_json(req.errors)
+
+        points = self.points_service.get_points_by_date_range(
+            start_date=req.start_date.data,
+            end_date=req.end_date.data,
+            account=current_user,
+            include_details=req.include_details.data,
+        )
+
+        return success_json(points)

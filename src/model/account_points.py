@@ -15,6 +15,8 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB
 
 from src.extension.database_extension import db
+from src.model.app import App
+from src.model.conversation import Message
 
 
 class AccountPoints(db.Model):
@@ -109,6 +111,12 @@ class PointsTransaction(db.Model):
             ),
         },
     )
+    deduct_from = Column(
+        String(255),
+        nullable=False,
+        server_default=text("''::character varying"),
+        info={"description": "扣除来源，如订单号、活动ID等"},
+    )
     points_amount = Column(
         Numeric(10, 2),  # 总共10位数字，其中2位小数
         nullable=False,
@@ -163,3 +171,23 @@ class PointsTransaction(db.Model):
         server_default=text("CURRENT_TIMESTAMP(0)"),
         info={"description": "创建时间"},
     )
+
+    @property
+    def app(self) -> "App | None":
+        """获取应用名称
+
+        优先从 app_id 获取应用名称，如果 app_id 为空则从 message_id 关联的记录中获取
+
+        Returns:
+            App | None: 应用名称
+
+        """
+        if self.app_id:
+            return db.session.query(App).get(self.app_id)
+
+        if self.message_id:
+            message = db.session.query(Message).get(self.message_id)
+            if message and message.app_id:
+                return db.session.query(App).get(message.app_id)
+
+        return None

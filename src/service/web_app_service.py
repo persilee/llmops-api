@@ -18,6 +18,7 @@ from src.core.memory import TokenBufferMemory
 from src.entity.app_entity import AppStatus
 from src.entity.conversation_entity import InvokeFrom, MessageStatus
 from src.entity.dataset_entity import RetrievalSource
+from src.entity.points_entity import DeductFrom
 from src.exception import ForbiddenException, NotFoundException
 from src.model import Account, App, Conversation, Message
 from src.schemas.web_app_schema import WebAppChatReq
@@ -277,6 +278,7 @@ class WebAppService(BaseService):
             self.points_service.deduct_points_by_token(
                 account_id=account.id,
                 token_count=total_token_count,
+                deduct_from=DeductFrom.WEB_APP,
                 message_id=message.id,
                 app_id=app.id,
             )

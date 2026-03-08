@@ -2,8 +2,8 @@ import re
 
 from flask_wtf import FlaskForm
 from marshmallow import Schema, ValidationError, fields
-from wtforms import StringField
-from wtforms.validators import DataRequired, Length, regexp
+from wtforms import BooleanField, StringField
+from wtforms.validators import DataRequired, Length, Optional, regexp
 
 from pkg.password import AUTH_CREDENTIAL_FORMAT
 from src.schemas.schema import DictField
@@ -195,6 +195,32 @@ class UnbindOAuthProviderReq(FlaskForm):
         validators=[
             DataRequired("第三方账号类型不能为空"),
         ],
+    )
+
+
+@req_schema
+class GetPointsByDateRangeReq(FlaskForm):
+    """获取指定日期范围内的扣分记录请求结构"""
+
+    start_date = StringField(
+        "start_date",
+        validators=[
+            DataRequired("开始日期不能为空"),
+        ],
+    )
+
+    end_date = StringField(
+        "end_date",
+        validators=[
+            DataRequired("结束日期不能为空"),
+        ],
+    )
+
+    include_details = BooleanField(
+        "include_details",
+        validators=[Optional()],  # 添加Optional验证器
+        false_values={False, "false", ""},
+        default=False,
     )
 
 

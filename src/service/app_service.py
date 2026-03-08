@@ -53,6 +53,7 @@ from src.entity.app_entity import (
 from src.entity.audio_entity import ALLOWED_AUDIO_VOICES
 from src.entity.conversation_entity import InvokeFrom, MessageStatus
 from src.entity.dataset_entity import RetrievalSource
+from src.entity.points_entity import DeductFrom
 from src.entity.workflow_entity import WorkflowStatus
 from src.exception.exception import (
     FailException,
@@ -692,6 +693,7 @@ class AppService(BaseService):
             self.points_service.deduct_points_by_token(
                 account_id=account.id,
                 token_count=total_token_count,
+                deduct_from=DeductFrom.DEBUG,
                 message_id=message.id,
                 app_id=app_id,
             )

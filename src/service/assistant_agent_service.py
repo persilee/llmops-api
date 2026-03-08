@@ -24,6 +24,7 @@ from src.core.tools.builtin_tools.providers.builtin_provider_manager import (
     BuiltinProviderManager,
 )
 from src.entity.conversation_entity import InvokeFrom, MessageStatus
+from src.entity.points_entity import DeductFrom
 from src.exception.exception import FailException
 from src.model import Account, Message
 from src.schemas.assistant_agent_schema import (
@@ -192,6 +193,7 @@ class AssistantAgentService(BaseService):
             self.points_service.deduct_points_by_token(
                 account_id=account.id,
                 token_count=total_token_count,
+                deduct_from=DeductFrom.ASSISTANT_AGENT,
                 message_id=message.id,
                 app_id=assistant_agent_id,
             )

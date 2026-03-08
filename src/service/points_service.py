@@ -1,14 +1,17 @@
 import logging
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from uuid import UUID
 
 from injector import inject
+from sqlalchemy import Date, cast, extract, func
 
 from pkg.sqlalchemy.sqlalchemy import SQLAlchemy
+from src.entity.points_entity import DeductFromText
 from src.exception.exception import FailException
+from src.model.account import Account
 from src.model.account_points import AccountPoints, PointsTransaction
 from src.model.recharge_order import RechargeOrder
 from src.service.base_service import BaseService
@@ -21,10 +24,32 @@ logger = logging.getLogger(__name__)
 class PointsService(BaseService):
     db: SQLAlchemy
 
+    def get_points_by_account_id(self, account: Account) -> AccountPoints:
+        """根据用户id获取用户积分
+
+        Args:
+            account (Account): 用户
+
+        Returns:
+            AccountPoints: 用户积分
+
+        """
+        points = (
+            self.db.session.query(AccountPoints)
+            .filter(AccountPoints.account_id == account.id)
+            .one_or_none()
+        )
+        if points is None:
+            error_msg = "用户积分不存在"
+            raise FailException(error_msg)
+
+        return points
+
     def deduct_points_by_token(
         self,
         account_id: UUID,
         token_count: int,
+        deduct_from: str,
         message_id: UUID | None = None,
         app_id: UUID | None = None,
     ) -> None:
@@ -33,6 +58,7 @@ class PointsService(BaseService):
         Args:
             account_id (UUID): 用户账户ID
             message_id (UUID): 消息ID，用于关联积分交易记录
+            deduct_from (str): 积分扣除来源
             app_id (UUID): 应用ID
             token_count (int): 消耗的token数量
 
@@ -86,6 +112,8 @@ class PointsService(BaseService):
                     )
                     raise
 
+                # 积分消耗来源文本
+                deduct_from_text = DeductFromText.MAP.get(deduct_from, "")
                 # 记录积分变动
                 try:
                     transaction = PointsTransaction(
@@ -93,9 +121,10 @@ class PointsService(BaseService):
                         transaction_type="DEDUCT",
                         points_amount=-deduct_points,  # 负数表示扣除
                         token_amount=token_count,
+                        deduct_from=deduct_from,  # 消耗的token来源
                         message_id=message_id,
                         app_id=app_id,
-                        transaction_desc=f"抵扣消息token消耗{token_count}token，扣除{deduct_points}积分",
+                        transaction_desc=f"{deduct_from_text}消耗{token_count}token，扣除{deduct_points}积分",
                     )
                     self.db.session.add(transaction)
                 except Exception:
@@ -227,3 +256,151 @@ class PointsService(BaseService):
             )
             # 保存积分变动记录
             self.db.session.add(transaction)
+
+    def get_monthly_deduct_points(
+        self,
+        account_id: UUID | None = None,
+        year: int | None = None,
+        month: int | None = None,
+    ) -> dict[str, Decimal]:
+        """按月度统计积分消耗情况
+
+        Args:
+            account_id: 可选，指定用户ID，为空则统计所有用户
+            year: 可选，指定年份，为空则统计当前年
+            month: 可选，指定月份，为空则统计指定年的所有月份
+
+        Returns:
+            月度消耗统计字典，格式：{"YYYY-MM": 消耗积分总量, ...}
+
+        Example:
+            {
+                "2024-01": Decimal("150.50"),
+                "2024-02": Decimal("200.75")
+            }
+
+        """
+        # 构建查询
+        query = self.db.session.query(
+            extract("year", PointsTransaction.created_at).label("year"),
+            extract("month", PointsTransaction.created_at).label("month"),
+            func.abs(func.sum(PointsTransaction.points_amount)).label("total_deduct"),
+        ).filter(
+            PointsTransaction.transaction_type == "DEDUCT",  # 只统计扣除类型
+        )
+
+        # 过滤指定用户
+        if account_id:
+            query = query.filter(PointsTransaction.account_id == account_id)
+
+        # 过滤指定年份
+        current_year = datetime.now(UTC).year
+        target_year = year or current_year
+        query = query.filter(
+            extract("year", PointsTransaction.created_at) == target_year,
+        )
+
+        # 过滤指定月份
+        if month:
+            query = query.filter(
+                extract("month", PointsTransaction.created_at) == month,
+            )
+
+        # 按年月分组
+        query = query.group_by("year", "month").order_by("year", "month")
+
+        # 执行查询并格式化结果
+        results = query.all()
+        monthly_stats = {}
+        for result in results:
+            month_key = f"{int(result.year)}-{int(result.month):02d}"
+            monthly_stats[month_key] = result.total_deduct or Decimal("0.00")
+
+        return monthly_stats
+
+    def get_points_by_date_range(
+        self,
+        start_date: date,
+        end_date: date,
+        account: Account,
+        *,
+        include_details: bool = False,
+    ) -> dict[str, any]:
+        """按日期范围查询积分情况
+
+        Args:
+            start_date: 开始日期（包含）
+            end_date: 结束日期（包含）
+            account: 账户
+            include_details: 是否返回详细交易记录，默认False
+
+        Returns:
+            积分统计结果，包含总量和可选的明细
+
+        Example:
+            {
+                "total_deduct": Decimal("350.25"),
+                "transaction_count": 15,
+                "details": [
+                    {
+                        "id": "uuid",
+                        "account_id": "uuid",
+                        "points_amount": Decimal("-50.00"),
+                        "token_amount": 50000,
+                        "created_at": "2024-03-15T10:30:00",
+                        "transaction_desc": "抵扣消息token消耗50000token，扣除50.00积分"
+                    },
+                    ...
+                ]
+            }
+
+        """
+        # 基础过滤条件
+        filters = [
+            cast(PointsTransaction.created_at, Date) >= start_date,
+            cast(PointsTransaction.created_at, Date) <= end_date,
+        ]
+
+        # 过滤指定用户
+        if account.id:
+            filters.append(PointsTransaction.account_id == account.id)
+
+        # 构建总量查询
+        total_query = self.db.session.query(
+            func.abs(func.sum(PointsTransaction.points_amount)).label("total_deduct"),
+            func.count(PointsTransaction.id).label("transaction_count"),
+        ).filter(*filters)
+
+        total_result = total_query.one()
+        total_deduct = total_result.total_deduct or Decimal("0.00")
+        transaction_count = total_result.transaction_count or 0
+
+        # 构建返回结果
+        result = {"total_deduct": total_deduct, "transaction_count": transaction_count}
+
+        # 如果需要返回明细
+        if include_details:
+            detail_query = self.db.session.query(PointsTransaction).filter(*filters)
+            # 按创建时间倒序
+            detail_query = detail_query.order_by(PointsTransaction.created_at.desc())
+
+            # 格式化明细数据
+            details = [
+                {
+                    "id": str(trans.id),
+                    "app_name": trans.app.name,
+                    "app_icon": trans.app.icon,
+                    "account_id": str(trans.account_id),
+                    "points_amount": trans.points_amount,
+                    "token_amount": trans.token_amount,
+                    "message_id": str(trans.message_id) if trans.message_id else None,
+                    "app_id": str(trans.app_id) if trans.app_id else None,
+                    "transaction_desc": trans.transaction_desc,
+                    "created_at": trans.created_at.isoformat(),
+                    "transaction_meta": trans.transaction_meta,
+                }
+                for trans in detail_query.all()
+            ]
+            result["details"] = details
+
+        return result

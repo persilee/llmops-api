@@ -33,6 +33,7 @@ from src.entity.conversation_entity import (
     MessageStatus,
     SuggestedQuestions,
 )
+from src.entity.points_entity import DeductFrom
 from src.exception.exception import NotFoundException
 from src.model.account import Account
 from src.model.conversation import Conversation, Message, MessageAgentThought
@@ -399,7 +400,12 @@ class ConversationService(BaseService):
             name = name[:MAX_CONVERSATION_NAME_LENGTH] + "..."
 
         tokens = llm.get_num_tokens(query)
-        self.points_service.deduct_points_by_token(account_id, tokens, app_id=app_id)
+        self.points_service.deduct_points_by_token(
+            account_id,
+            tokens,
+            deduct_from=DeductFrom.GENERATE_CONVERSATION,
+            app_id=app_id,
+        )
 
         # 返回处理后的会话名称
         return name
