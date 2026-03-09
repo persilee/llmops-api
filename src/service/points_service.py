@@ -356,6 +356,12 @@ class PointsService(BaseService):
 
         """
         # 基础过滤条件
+        deduct_filters = [
+            PointsTransaction.transaction_type == "DEDUCT",
+            cast(PointsTransaction.created_at, Date) >= start_date,
+            cast(PointsTransaction.created_at, Date) <= end_date,
+        ]
+
         filters = [
             cast(PointsTransaction.created_at, Date) >= start_date,
             cast(PointsTransaction.created_at, Date) <= end_date,
@@ -363,13 +369,14 @@ class PointsService(BaseService):
 
         # 过滤指定用户
         if account.id:
+            deduct_filters.append(PointsTransaction.account_id == account.id)
             filters.append(PointsTransaction.account_id == account.id)
 
         # 构建总量查询
         total_query = self.db.session.query(
             func.abs(func.sum(PointsTransaction.points_amount)).label("total_deduct"),
             func.count(PointsTransaction.id).label("transaction_count"),
-        ).filter(*filters)
+        ).filter(*deduct_filters)
 
         total_result = total_query.one()
         total_deduct = total_result.total_deduct or Decimal("0.00")
@@ -396,6 +403,7 @@ class PointsService(BaseService):
                     "message_id": str(trans.message_id) if trans.message_id else None,
                     "app_id": str(trans.app_id) if trans.app_id else None,
                     "transaction_desc": trans.transaction_desc,
+                    "deduct_from": trans.deduct_from,
                     "created_at": trans.created_at.isoformat(),
                     "transaction_meta": trans.transaction_meta,
                 }
