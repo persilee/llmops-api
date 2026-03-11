@@ -1,5 +1,5 @@
-# 使用python:3.12.10版本作为基础镜像
-FROM my-python:local AS base
+# 使用python:alpine3.22版本作为基础镜像
+FROM python:alpine3.22 AS base
 
 # 将requirements.txt拷贝到根目录下
 COPY requirements.txt .
