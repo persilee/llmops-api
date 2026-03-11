@@ -1,5 +1,5 @@
-# 使用python:alpine3.13版本作为基础镜像
-FROM python:alpine3.13 AS base
+# 使用python:3.12.13-bookworm版本作为基础镜像
+FROM python:3.12.13-bookworm AS base
 
 # 将requirements.txt拷贝到根目录下
 COPY requirements.txt .
