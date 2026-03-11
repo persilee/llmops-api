@@ -1,5 +1,5 @@
 # 使用python:3.12.10版本作为基础镜像
-FROM python:3.12.10 AS base
+FROM python@sha256:3afb30cea20d AS base
 
 # 将requirements.txt拷贝到根目录下
 COPY requirements.txt .
