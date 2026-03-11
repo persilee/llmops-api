@@ -1,5 +1,5 @@
 # 使用python:alpine3.22版本作为基础镜像
-FROM python:alpine3.20 AS base
+FROM python:3.12-debian12 AS base
 
 # 将requirements.txt拷贝到根目录下
 COPY requirements.txt .
