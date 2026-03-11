@@ -5,8 +5,7 @@ FROM my-python:local AS base
 COPY requirements.txt .
 
 # 构建缓存并使用pip安装严格版本的requirements.txt
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --prefix=/pkg -r requirements.txt
+RUN pip install --prefix=/pkg -r requirements.txt
 
 # 二阶段生产环境构建
 FROM base AS production
