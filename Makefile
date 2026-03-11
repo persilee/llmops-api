@@ -14,7 +14,7 @@ test:
 
 # 生成项目依赖文件
 pipreqs:
-	uv run pipreqs --ignore .venv --force
+	uv run uv pip freeze > requirements.txt
 
 # 执行数据库迁移命令
 # ARGS 可以传入迁移标识，用于指定特定的迁移版本
