@@ -66,6 +66,7 @@ fsspec==2025.10.0
 gevent==25.9.1
 greenlet==3.2.4
 grpcio==1.76.0
+gunicorn==25.1.0
 h11==0.16.0
 hf-xet==1.2.0
 html5lib==1.1

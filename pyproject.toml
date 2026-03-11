@@ -49,6 +49,7 @@ dependencies = [
     "gevent>=25.9.1",
     "alibabacloud-dypnsapi20170525==2.0.0",
     "alibabacloud-dm20151123==1.8.3",
+    "gunicorn>=25.1.0",
 ]
 
 [tool.rye.scripts]
