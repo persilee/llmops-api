@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass
+import os
 from pathlib import Path
 from typing import Any
 
@@ -93,7 +94,11 @@ class Http(Flask):
         http_config.login_manager.request_loader(http_config.middleware.request_loader)
 
         # 初始化Swagger
-        self._init_swagger(http_config.swag, swag_schemas)
+        # 生产环境自动禁用 Swagger
+        is_production = os.environ.get("FLASK_DEBUG") == "0" or os.environ.get("FLASK_ENV") == "production"
+        self.enable_swagger = not is_production  # 生产环境禁用，开发环境启用
+        if self.enable_swagger:
+            self._init_swagger(http_config.swag, swag_schemas)
 
         # 初始化路由器
         self.router = http_config.router
