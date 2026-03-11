@@ -5,7 +5,8 @@ FROM python:3.12 AS base
 COPY requirements.txt .
 
 # 构建缓存并使用pip安装严格版本的requirements.txt
-RUN pip install --prefix=/pkg -r requirements.txt
+RUN pip install --upgrade pip -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com --default-timeout=100
+RUN pip install --prefix=/pkg -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com --default-timeout=100
 
 # 二阶段生产环境构建
 FROM base AS production
