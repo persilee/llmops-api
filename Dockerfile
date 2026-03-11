@@ -1,4 +1,4 @@
-# 使用Debian 12的Python 3.10版本作为基础镜像
+# 使用python:alpine3.13版本作为基础镜像
 FROM python:alpine3.13 AS base
 
 # 将requirements.txt拷贝到根目录下
