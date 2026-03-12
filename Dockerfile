@@ -1,9 +1,12 @@
 # 使用python:3.11版本作为基础镜像
 FROM python:3.11 AS base
 
-# ====================== 【换成阿里云Debian源】秒速下载 ======================
-RUN sed -i "s@deb.debian.org@mirrors.aliyun.com@g" /etc/apt/sources.list \
-    && sed -i "s@security.debian.org@mirrors.aliyun.com@g" /etc/apt/sources.list
+# ==========================
+# 阿里云 Debian 源
+# ==========================
+RUN echo "deb https://mirrors.aliyun.com/debian bookworm main non-free contrib" > /etc/apt/sources.list \
+    && echo "deb https://mirrors.aliyun.com/debian-security bookworm-security main non-free contrib" >> /etc/apt/sources.list \
+    && echo "deb https://mirrors.aliyun.com/debian bookworm-updates main non-free contrib" >> /etc/apt/sources.list
 # 安装编译器（python:3.11 是 Debian，用 apt-get）
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc g++ \
