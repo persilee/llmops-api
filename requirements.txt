@@ -2145,7 +2145,7 @@ tokenizers==0.22.1 \
     # via
     #   langchain-huggingface
     #   transformers
-torch==2.8.0 \
+torch>=2.6.0 \
     --hash=sha256:1a62a1ec4b0498930e2543535cf70b1bef8c777713de7ceb84cd79115f553767 \
     --hash=sha256:2b2f96814e0345f5a5aed9bf9734efa913678ed19caf6dc2cddb7930672d6128 \
     --hash=sha256:2f4ac52f0130275d7517b03a33d2493bab3693c83dcfadf4f81688ea82147d2e \

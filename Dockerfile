@@ -1,5 +1,5 @@
-# 使用python:3.12版本作为基础镜像
-FROM python:3.12 AS base
+# 使用python:3.11版本作为基础镜像
+FROM python:3.11 AS base
 
 RUN apk update && apk add --no-cache gcc g++ musl-dev
 
