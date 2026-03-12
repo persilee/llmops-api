@@ -1,7 +1,8 @@
 # 使用python:3.11版本作为基础镜像
 FROM python:3.11 AS base
 
-RUN apk update && apk add --no-cache gcc g++ musl-dev
+# 安装编译器（python:3.11 是 Debian，用 apt-get）
+RUN apt-get update && apt-get install -y --no-install-recommends gcc g++
 
 # 将requirements.txt拷贝到根目录下
 COPY requirements.txt .
