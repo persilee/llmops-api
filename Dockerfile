@@ -1,6 +1,8 @@
 # 使用python:3.12版本作为基础镜像
 FROM python:3.12 AS base
 
+RUN apt-get update && apt-get install -y --no-install-recommends gcc g++
+
 # 将requirements.txt拷贝到根目录下
 COPY requirements.txt .
 
