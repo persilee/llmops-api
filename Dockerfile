@@ -23,11 +23,13 @@ COPY requirements.txt .
 RUN pip install --upgrade pip \
     -i https://mirrors.aliyun.com/pypi/simple/ \
     --trusted-host mirrors.aliyun.com \
-    --no-cache-dir
+    --no-cache-dir \
+    --default-timeout=300
 RUN pip install --prefix=/pkg -r requirements.txt \
     -i https://mirrors.aliyun.com/pypi/simple/ \
     --trusted-host mirrors.aliyun.com \
-    --no-cache-dir
+    --no-cache-dir \
+    --default-timeout=300
 
 # 二阶段生产环境构建
 FROM base AS production
