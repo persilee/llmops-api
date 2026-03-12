@@ -734,7 +734,7 @@ jinja2==3.1.6 \
     #   flask
     #   llmops-api
     #   torch
-jiter==0.11.1 \
+jiter \
     --hash=sha256:090f4c9d4a825e0fcbd0a2647c9a88a0f366b75654d982d95a9590745ff0c48d \
     --hash=sha256:09e2e386ebf298547ca3a3704b729471f7ec666c2906c5c26c1a915ea24741ec \
     --hash=sha256:0a68d679c0e47649a61df591660507608adc2652442de7ec8276538ac46abe08 \
@@ -1904,7 +1904,7 @@ safetensors==0.6.2 \
     --hash=sha256:fa48268185c52bfe8771e46325a1e21d317207bcabcb72e65c6e28e9ffeb29c7 \
     --hash=sha256:fc4d0d0b937e04bdf2ae6f70cd3ad51328635fe0e6214aa1fc811f3b576b3bda
     # via transformers
-scikit-learn==1.7.2 \
+scikit-learn>=1.3.0 \
     --hash=sha256:0b7dacaa05e5d76759fb071558a8b5130f4845166d88654a0f9bdf3eb57851b7 \
     --hash=sha256:191e5550980d45449126e23ed1d5e9e24b2c68329ee1f691a3987476e115e09c \
     --hash=sha256:20e9e49ecd130598f1ca38a1d85090e1a600147b9c02fa6f15d69cb53d968fda \

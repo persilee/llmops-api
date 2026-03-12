@@ -20,16 +20,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 
 # 构建缓存并使用pip安装严格版本的requirements.txt
-RUN pip install --upgrade pip \
+RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/ && \
+    pip config set global.trusted-host mirrors.aliyun.com && \
+    pip config set global.timeout 300 && \
+    RUN pip install --upgrade pip \
     -i https://mirrors.aliyun.com/pypi/simple/ \
     --trusted-host mirrors.aliyun.com \
     --no-cache-dir \
-    --default-timeout=300
+    --only-binary=:all:
 RUN pip install --prefix=/pkg -r requirements.txt \
     -i https://mirrors.aliyun.com/pypi/simple/ \
     --trusted-host mirrors.aliyun.com \
     --no-cache-dir \
-    --default-timeout=300
+    --only-binary=:all:
 
 # 二阶段生产环境构建
 FROM base AS production
