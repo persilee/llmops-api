@@ -1,15 +1,30 @@
 # 使用python:3.11版本作为基础镜像
 FROM python:3.11 AS base
 
+# ====================== 【换成阿里云Debian源】秒速下载 ======================
+RUN sed -i "s@deb.debian.org@mirrors.aliyun.com@g" /etc/apt/sources.list \
+    && sed -i "s@security.debian.org@mirrors.aliyun.com@g" /etc/apt/sources.list
 # 安装编译器（python:3.11 是 Debian，用 apt-get）
-RUN apt-get update && apt-get install -y --no-install-recommends gcc g++
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc g++ \
+    python3-dev \
+    libffi-dev \
+    musl-dev \
+    make \
+    && rm -rf /var/lib/apt/lists/*
 
 # 将requirements.txt拷贝到根目录下
 COPY requirements.txt .
 
 # 构建缓存并使用pip安装严格版本的requirements.txt
-RUN pip install --upgrade pip -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com --default-timeout=100
-RUN pip install --prefix=/pkg -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com --default-timeout=100
+RUN pip install --upgrade pip \
+    -i https://mirrors.aliyun.com/pypi/simple/ \
+    --trusted-host mirrors.aliyun.com \
+    --no-cache-dir
+RUN pip install --prefix=/pkg -r requirements.txt \
+    -i https://mirrors.aliyun.com/pypi/simple/ \
+    --trusted-host mirrors.aliyun.com \
+    --no-cache-dir
 
 # 二阶段生产环境构建
 FROM base AS production
