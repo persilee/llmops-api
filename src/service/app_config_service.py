@@ -1,8 +1,8 @@
+import os
 from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
-from flask import request
 from injector import inject
 from langchain.tools import BaseTool
 
@@ -405,7 +405,9 @@ class AppConfigService(BaseService):
                             "id": provider_entity.name,
                             "name": provider_entity.name,
                             "label": provider_entity.provider_entity.label,
-                            "icon": f"{request.scheme}://{request.host}/builtin-tools/{provider_entity.name}/icon",
+                            "icon": (
+                                f"{os.getenv('BASE_ICON_URL')}/builtin-tools/{provider_entity.name}/icon"
+                            ),
                         },
                         "tool": {
                             "id": tool_entity.name,

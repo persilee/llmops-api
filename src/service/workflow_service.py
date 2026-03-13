@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import time
 import uuid
 from collections.abc import Generator
@@ -9,7 +10,6 @@ from typing import Any
 from uuid import UUID
 from venv import logger
 
-from flask import request
 from injector import inject
 
 from pkg.paginator.paginator import Paginator
@@ -364,7 +364,9 @@ class WorkflowService(BaseService):
                             "id": provider_entity.name,
                             "name": provider_entity.name,
                             "label": provider_entity.label,
-                            "icon": f"{request.scheme}://{request.host}/builtin-tools/{provider_entity.name}/icon",
+                            "icon": (
+                                f"{os.getenv('BASE_ICON_URL')}/builtin-tools/{provider_entity.name}/icon"
+                            ),
                             "description": provider_entity.description,
                         },
                         "tool": {
