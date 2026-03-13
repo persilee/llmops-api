@@ -5,7 +5,7 @@ aiohttp==3.13.2
 aiosignal==1.4.0
 alembic==1.17.1
 alibabacloud-credentials==1.0.7
-alibabacloud-credentials-api==1.0.0
+alibabacloud-credentials-api
 alibabacloud-dm20151123==1.8.3
 alibabacloud-dypnsapi20170525==2.0.0
 alibabacloud-endpoint-util==0.0.4

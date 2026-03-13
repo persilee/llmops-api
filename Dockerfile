@@ -24,8 +24,8 @@ RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/ && \
     pip config set global.trusted-host mirrors.aliyun.com && \
     pip config set global.timeout 300 && \
     # 关键：优先装预编译的 wheel 包，避免源码编译
-    pip install --no-cache-dir --only-binary=:all: --upgrade pip && \
-    pip install --prefix=/pkg --no-cache-dir --only-binary=:all: -r requirements.txt
+    pip install --no-cache-dir --upgrade pip && \
+    pip install --prefix=/pkg --no-cache-dir -r requirements.txt
 
 # 二阶段生产环境构建
 FROM base AS production
