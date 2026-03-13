@@ -41,10 +41,10 @@ class AudioService(BaseService):
         :return: access_token，或是None(如果错误)
         """
         # 尝试从 Redis 获取缓存的 token
+        token_bytes = self.redis_client.get("baidu_access_token")
+        if token_bytes:
+            return token_bytes.decode("utf-8")
 
-        token = self.redis_client.get("baidu_access_token").decode("utf-8")
-        if token:
-            return token
         # 如果缓存中没有，请求新的 token
         url = os.getenv("BAIDU_OAUTH_URL")
         params = {
