@@ -14,9 +14,7 @@ test:
 
 # 生成项目依赖文件
 pipreqs:
-	uv run uv export --format requirements.txt --no-dev > requirements.txt
-	sed -i.bak '/^nvidia-/d' requirements.txt
-	rm -f requirements.txt.bak
+	uv pip freeze > requirements.txt
 
 # 执行数据库迁移命令
 # ARGS 可以传入迁移标识，用于指定特定的迁移版本
