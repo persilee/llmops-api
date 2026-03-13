@@ -1,4 +1,6 @@
 # 使用python:3.11版本作为基础镜像
+# docker pull swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/tiangolo/uvicorn-gunicorn:python3.11-slim
+# docker tag  swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/tiangolo/uvicorn-gunicorn:python3.11-slim  python:3.11
 FROM python:3.11 AS base
 
 # ==========================
