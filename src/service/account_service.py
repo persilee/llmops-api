@@ -569,6 +569,7 @@ class AccountService(BaseService):
             account = self.create_account(
                 name="user_" + phone,
                 email="",
+                phone_number=phone,
                 avatar="https://llmops-dev-1253877543.cos.ap-guangzhou.myqcloud.com/2026/02/20/efc213c0-3a5a-4ad1-8ca5-724ed1ee3ecd.png",
             )
             # 新用户赠送 1000 积分
