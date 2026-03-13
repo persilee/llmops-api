@@ -25,8 +25,8 @@ def init_app(app: Flask) -> None:
     redis_client.connection_pool = redis.ConnectionPool(
         host=app.config.get("REDIS_HOST", "localhost"),  # Redis服务器地址
         port=app.config.get("REDIS_PORT", 6379),  # Redis服务器端口
-        username=app.config.get("REDIS_USERNAME", ""),  # Redis用户名
-        password=app.config.get("REDIS_PASSWORD", ""),  # Redis密码
+        username=app.config.get("REDIS_USERNAME", None),  # Redis用户名
+        password=app.config.get("REDIS_PASSWORD", None),  # Redis密码
         db=app.config.get("REDIS_DB", 0),  # Redis数据库编号
         encoding="utf-8",  # 编码格式
         encoding_errors="strict",  # 编码错误处理方式
