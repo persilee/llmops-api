@@ -154,6 +154,9 @@ class AIService(BaseService):
                 f"event: optimize_prompt\n"
                 f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
             )
+            import sys
+
+            sys.stdout.flush()
 
         # 扣除用户积分
         if account_id and total_tokens > 0:

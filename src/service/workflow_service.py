@@ -239,6 +239,9 @@ class WorkflowService(BaseService):
                             f"event: workflow\n"
                             f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
                         )
+                        import sys
+
+                        sys.stdout.flush()
                 else:
                     # 5.1 流式获取工作流执行结果
                     for chunk in workflow_tool.stream(inputs):
@@ -264,6 +267,9 @@ class WorkflowService(BaseService):
                             f"event: workflow\n"
                             f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
                         )
+                        import sys
+
+                        sys.stdout.flush()
 
                     # 工作流执行成功，更新结果状态和调试状态
                     self.update(

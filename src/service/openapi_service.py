@@ -516,6 +516,9 @@ class OpenAPIService(BaseService):
                     config.conversation,
                     config.message,
                 )
+                import sys
+
+                sys.stdout.flush()
 
             # 流式处理完成后，异步保存所有智能体思考记录
             # 使用异步保存可以避免阻塞主流程，提高响应速度

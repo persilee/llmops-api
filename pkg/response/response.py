@@ -269,8 +269,16 @@ def compact_generate_response(response: Response | Generator) -> FlaskResponse:
         """内部生成器函数，用于逐个产生响应数据"""
         yield from response
 
+    # 关键请求头，禁止所有缓存
+    custom_headers = {
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",  # 禁用 Nginx 缓冲，这对 SSE 至关重要
+        "Connection": "keep-alive",
+    }
+
     return FlaskResponse(
         stream_with_context(generate()),
         status=200,
         mimetype="text/event-stream",
+        headers=custom_headers,
     )

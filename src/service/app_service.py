@@ -687,6 +687,9 @@ class AppService(BaseService):
 
             # 生成服务器发送事件格式的响应
             yield f"event: {agent_thought.event.value}\ndata: {json.dumps(data)}\n\n"
+            import sys
+
+            sys.stdout.flush()
 
         # 扣除用户积分
         if total_token_count > 0:

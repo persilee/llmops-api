@@ -272,6 +272,9 @@ class WebAppService(BaseService):
                 f"event: {agent_thought.event.value}\n"
                 f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
             )
+            import sys
+
+            sys.stdout.flush()
 
         # 扣除用户积分
         if total_token_count > 0:
