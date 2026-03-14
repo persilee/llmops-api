@@ -26,7 +26,6 @@ else
       --worker-class ${SERVER_WORKER_CLASS:-gthread} \
       --threads ${SERVER_THREAD_AMOUNT:-2} \
       --timeout ${GUNICORN_TIMEOUT:-600} \
-      --buffering off \
       --preload \
       app.http.app:app
   fi
