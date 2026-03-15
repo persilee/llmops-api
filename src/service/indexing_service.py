@@ -19,7 +19,7 @@ from src.entity.cache_entity import (
     LOCK_DOCUMENT_UPDATE_ENABLED,
 )
 from src.entity.dataset_entity import DocumentStatus, SegmentStatus
-from src.exception.exception import NotFoundException
+from src.exception.exception import FailException, NotFoundException
 from src.lib.helper import generate_text_hash
 from src.model.dataset import DatasetQuery, Document, KeywordTable, Segment
 from src.service.base_service import BaseService
@@ -574,7 +574,23 @@ class IndexingService(BaseService):
         # 获取文档的上传文件对象
         upload_file = document.upload_file
         # 使用文件提取器加载文件内容，is_unstructured=True表示使用非结构化方式解析
-        lc_documents = self.file_extractor.load(upload_file, is_unstructured=True)
+        try:
+            lc_documents = self.file_extractor.load(upload_file, is_unstructured=True)
+        except Exception as e:
+            # 记录详细的错误日志，包含文档ID和原始异常信息
+            error_msg = f"提取文档内容失败 {document.id}: {e}"
+            self.logger.exception(error_msg)
+            # 更新文档状态为错误，并记录错误信息
+            self.update(
+                document,
+                status=DocumentStatus.ERROR,
+                error=str(e),
+                stopped_at=datetime.now(UTC),
+            )
+            # 根据业务需求，可以选择抛出异常让上层处理，或者返回空列表
+            # 这里选择抛出自定义异常以便上层任务捕获
+
+            raise FailException(error_msg) from e
 
         # 遍历每个解析后的文档
         for lc_document in lc_documents:
