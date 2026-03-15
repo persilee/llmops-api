@@ -12,7 +12,7 @@ fi
 # 3.检测运行的模式(api/celery)，以执行不同的脚本
 if [[ "${MODE}" == "celery" ]]; then
   # 4.运行Celery命令
-  celery -A app.http.app.celery worker -P ${CELERY_WORKER_CLASS:-prefork} -c ${CELERY_WORKER_AMOUNT:-5} --loglevel INFO
+  celery -A app.http.app.celery worker -P ${CELERY_WORKER_CLASS:-prefork} -c ${CELERY_WORKER_AMOUNT:-5} --loglevel INFO --pool=threads --logfile storage/logs/celery.log
 else
   # 5.判断当前API环境是开发环境还是生产环境，以执行不同的脚本
   if [[ "${FLASK_ENV}" == "development" ]]; then

@@ -125,7 +125,7 @@ class Http(Flask):
 
         """
         # 记录错误日志
-        self.logger.error("Error: %s", error)
+        self.logger.error("Error: %s", error, exc_info=error, stack_info=True)
 
         # 返回 404 错误响应
         if isinstance(error, NotFound):
