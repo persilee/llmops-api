@@ -6,6 +6,7 @@
       "module": "flask",
       "type": "debugpy",
       "request": "launch",
+      "justMyCode": false,
       "env": {
         "FLASK_APP": "${workspaceFolder}/app/http/app.py",
         "FLASK_ENV": "development",

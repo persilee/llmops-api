@@ -74,7 +74,7 @@ class DocumentService(BaseService):
         # 检查文档状态，只允许删除已完成或处理失败的文档
         if document.status not in [DocumentStatus.COMPLETED, DocumentStatus.ERROR]:
             error_msg = f"文档状态不允许删除：{document.status}"
-            raise ForbiddenException(error_msg)
+            raise FailException(error_msg)
 
         # 从数据库中删除文档记录
         self.delete(document)
